@@ -1,0 +1,11 @@
+{
+    "name": "dgraph",
+    "targetName" : "DGraph",
+    "authors": [
+	"Emile Cadorel"
+    ],
+    "description": "D library for distributed graph computation",
+    "copyright": " ",
+    "license": "open",
+    "lflags" : ["/usr/lib/openmpi/lib/libmpi.so", "libs/libmpi.lib"]
+}
