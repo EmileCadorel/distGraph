@@ -1,0 +1,7 @@
+{
+	"fileVersion": 1,
+	"versions": {
+		"dgraph": "0.0.2",
+		"dist-graph": "~master"
+	}
+}
