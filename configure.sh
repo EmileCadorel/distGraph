@@ -5,3 +5,4 @@ if [ ! -d  "${HOME}/libs" ]; then
 fi
 
 cp libs/libmpi.lib ${HOME}/libs/
+dub add-local .
