@@ -4,12 +4,13 @@ all:
 all5:
 	dub build --parallel --compiler=gdc-5
 
-final:
+install:
 	dub build --parallel --build=release
+	dub add-local .
 
-
-final5:
+install5:
 	dub build --parallel --build=release  --compiler=gdc-5
+	dub add-local .
 
 clean:
 	dub clean
