@@ -1,12 +1,16 @@
 module mpiez.Message;
 import mpi.mpi;
-import mpiez.ezBase, mpiez.ezArray, mpiez.ezList;
+import mpiez.ezBase;
 
 class Message (int N, T ...) {
     
     private MPI_Status _status;
 
     private MPI_Comm _comm;
+
+    this (MPI_Comm comm = MPI_COMM_WORLD) {
+	this._comm = comm;
+    }
     
     void opCall (int procId, T params) {
 	this._send (procId, params);

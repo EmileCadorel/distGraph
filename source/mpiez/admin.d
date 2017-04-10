@@ -4,6 +4,7 @@ import std.container;
 public import mpiez.Process;
 public import mpiez.Message;
 public import mpiez.global;
+import std.stdio;
 
 class AdminMultipleDefinition : Exception {
     this () {
@@ -32,14 +33,16 @@ class Admin (C : Process!P, P : Protocol) {
 	    MPI_Barrier (MPI_COMM_WORLD);
 	    this._process.routine ();
 
-	    __admLaunched__ = true;
+	    __admLaunched__ = true;	    
 	} else throw new AdminMultipleDefinition ();
     }
 
     void finalize () {
 	MPI_Barrier (MPI_COMM_WORLD);
 	this._process.onEnd ();
-	MPI_Finalize ();	
+	delete this._process;
+	delete this._proto;
+	MPI_Finalize ();
     }
     
 }

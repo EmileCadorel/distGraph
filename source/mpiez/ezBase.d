@@ -1,6 +1,7 @@
 module mpiez.ezBase;
 import mpi.mpi;
 import std.string, std.conv;
+import std.traits;
 
 int send (A) (int proc, int tag, A value, MPI_Comm comm) {
     return MPI_Send (&value, value.sizeof, MPI_BYTE, proc, tag, comm);
@@ -33,9 +34,9 @@ int recv (int proc, int tag, ref string value, ref MPI_Status status, MPI_Comm c
     return i;
 }
 
-int sendRecv (A, B) (int to, int from, int tag, A to_send, ref B to_recv, ref MPI_Status status, MPI_Comm comm) {
+int sendRecv (A) (int to, int from, int tag, A to_send, ref A to_recv, ref MPI_Status status, MPI_Comm comm) {
     return MPI_Sendrecv (&to_send, A.sizeof, MPI_BYTE, to, tag,
-			 &to_recv, B.sizeof, MPI_BYTE, from, tag,
+			 &to_recv, A.sizeof, MPI_BYTE, from, tag,
 			 comm, &status);
 }
 
@@ -54,6 +55,52 @@ int sendRecvReplace (A) (int to, int from, int tag, ref A to_send, ref MPI_Statu
 
 int sendRecvReplace (int to_, int from, int tag, ref string to_send, ref MPI_Status status, MPI_Comm comm) {
     return MPI_Sendrecv_replace (to!(char [])(to_send).ptr, to!int (to_send.length), MPI_CHAR, to_, tag, from, tag, comm, &status);
+}
+
+int send (T : U[], U) (int proc, int tag, T value, MPI_Comm comm) {
+    return MPI_Send (value.ptr, to!int(value.length * U.sizeof), MPI_BYTE, proc, tag, comm);
+}
+
+int ssend (T : U[], U) (int proc, int tag, T value, MPI_Comm comm) {
+    return MPI_Ssend (value.ptr, to!int(value.length * U.sizeof), MPI_BYTE, proc, tag, comm);
+}
+
+int recv (T : U[], U) (int proc, int tag, ref T value, ref MPI_Status status, MPI_Comm comm) {
+    int size;
+    MPI_Probe (proc, tag, comm, &status);
+    MPI_Get_count (&status, MPI_BYTE, &size);
+    value = new U [size / U.sizeof];
+    return MPI_Recv (value.ptr, size, MPI_BYTE, proc, tag, comm, &status);
+}
+
+
+int sendRecv (T : U[], U) (int to, int from, int tag, T to_send, ref T to_recv, ulong recvLength, ref MPI_Status status, MPI_Comm comm) {
+    to_recv = new U [recvLength];
+    return MPI_Sendrecv (to_send.ptr, to!int(to_send.length * U.sizeof), MPI_BYTE, to, tag,
+			 to_recv.ptr, to!int(recvLength * U.sizeof), MPI_BYTE, from, tag,
+			 comm, &status);
+}
+
+int sendRecv (T : string) (int to_, int from, int tag, T to_send, ref T to_recv, ref MPI_Status status, MPI_Comm comm) {
+    to_send = to!string (new char [to_send.length]);
+    return MPI_Sendrecv (to!(char[])(to_send).ptr, to!int(to_send.length * char.sizeof), MPI_BYTE, to_, tag,
+			 to!(char[]) (to_recv).ptr, to!int(to_send.length * char.sizeof), MPI_BYTE, from, tag,
+			 comm, &status);
+}
+
+
+int sendRecv (T : U[], U) (int to_, int from, int tag, T to_send, ref T to_recv, ref MPI_Status status, MPI_Comm comm) {
+    to_send = new U [to_send.length];
+    return MPI_Sendrecv (to!(U[])(to_send).ptr, to!int(to_send.length * U.sizeof), MPI_BYTE, to_, tag,
+			 to!(U[])(to_recv).ptr, to!int(to_send.length * U.sizeof), MPI_BYTE, from, tag,
+			 comm, &status);
+}
+
+int sendRecvReplace (T : U[], U) (int to_, int from, int tag, ref T to_send, ref MPI_Status status, MPI_Comm comm) {
+    return MPI_Sendrecv_replace (to_send.ptr, to!int(to_send.length * U.sizeof), MPI_BYTE,
+				 to_, tag,
+				 from, tag,
+				 comm, &status);
 }
 
 
