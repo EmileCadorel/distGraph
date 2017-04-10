@@ -34,6 +34,21 @@ int recv (int proc, int tag, ref string value, ref MPI_Status status, MPI_Comm c
     return i;
 }
 
+int recv (A) (int tag, ref A value, ref MPI_Status status, MPI_Comm comm) {
+    return MPI_Recv (&value, A.sizeof, MPI_BYTE, MPI_ANY_SOURCE, tag, comm, &status);
+}
+
+int recv (int tag, ref string value, ref MPI_Status status, MPI_Comm comm) {
+    int size;
+    MPI_Probe (MPI_ANY_SOURCE, tag, comm, &status);
+    MPI_Get_count (&status, MPI_CHAR, &size);
+    char [] buf = new char [size];
+    int i = MPI_Recv (buf.ptr, size, MPI_CHAR, MPI_ANY_SOURCE, tag, comm, &status);
+    value = to!string (buf);
+    return i;
+}
+
+
 int sendRecv (A) (int to, int from, int tag, A to_send, ref A to_recv, ref MPI_Status status, MPI_Comm comm) {
     return MPI_Sendrecv (&to_send, A.sizeof, MPI_BYTE, to, tag,
 			 &to_recv, A.sizeof, MPI_BYTE, from, tag,
@@ -73,6 +88,13 @@ int recv (T : U[], U) (int proc, int tag, ref T value, ref MPI_Status status, MP
     return MPI_Recv (value.ptr, size, MPI_BYTE, proc, tag, comm, &status);
 }
 
+int recv (T : U[], U) (int tag, ref T value, ref MPI_Status status, MPI_Comm comm) {
+    int size;
+    MPI_Probe (MPI_ANY_SOURCE, tag, comm, &status);
+    MPI_Get_count (&status, MPI_BYTE, &size);
+    value = new U [size / U.sizeof];
+    return MPI_Recv (value.ptr, size, MPI_BYTE, MPI_ANY_SOURCE, tag, comm, &status);
+}
 
 int sendRecv (T : U[], U) (int to, int from, int tag, T to_send, ref T to_recv, ulong recvLength, ref MPI_Status status, MPI_Comm comm) {
     to_recv = new U [recvLength];

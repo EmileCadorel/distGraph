@@ -1,4 +1,36 @@
 digraph G {
+	subgraph cluster_cut {
+		node [style=filled];
+		label="Part Cut";
+		penwidth=10; 
+		color=blue;
+		6[label="6/1"];
+
+	}
+	subgraph cluster_0 {
+		node [style=filled; line=10];
+		label="Part 0";
+		penwidth=10;
+		0;
+		1;
+		2;
+		3;
+		4;
+		5;
+
+	}
+	subgraph cluster_1 {
+		node [style=filled; line=10];
+		label="Part 1";
+		penwidth=10;
+		7;
+		8;
+		9;
+		10;
+		11;
+		12;
+
+	}
 	0 -> 1 [color="/set19/1"]
 	0 -> 2 [color="/set19/1"]
 	1 -> 0 [color="/set19/1"]
@@ -39,6 +71,4 @@ digraph G {
 	10 -> 11 [color="/set19/2"]
 	11 -> 10 [color="/set19/2"]
 	12 -> 8 [color="/set19/2"]
-	12 -> 13 [color="/set19/2"]
-	13 -> 12 [color="/set19/2"]
 }

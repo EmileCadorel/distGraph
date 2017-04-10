@@ -81,4 +81,9 @@ class Vertex {
 	return buf;
     }
 
+    override string toString () {
+	import std.conv;
+	return to!string (this._id);
+    }
+    
 }

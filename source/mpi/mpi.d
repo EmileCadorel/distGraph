@@ -530,6 +530,8 @@ extern(C) {
   MPI_Datatype mpiwrap_get_mpi_unsigned_long();
 }
 
+enum MPI_ANY_SOURCE = -1;
+
 // Operations
 MPI_Op MPI_MAX, MPI_MIN, MPI_SUM, MPI_PROD;
 MPI_Op MPI_LAND, MPI_BAND, MPI_LOR, MPI_BOR, MPI_LXOR, MPI_BXOR;

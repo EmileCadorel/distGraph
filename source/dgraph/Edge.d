@@ -14,11 +14,12 @@ class Edge {
     private ulong _color;
     private bool _isOriented;
     
-    this (ulong src, ulong dst) {
+    this (ulong src, ulong dst, ulong color = 0) {
 	this._src = src;
 	this._dst = dst;
-    }
-
+	this._color = color;
+    }    
+    
     /++
      Récupération de la source de l'arête.
      On ne peut pas changer la topologie du graphe

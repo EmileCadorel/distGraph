@@ -8,3 +8,5 @@ DGraph
 mpitest
 .#*
 *.a
+mpieztest
+graphtest
