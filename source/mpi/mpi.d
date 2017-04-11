@@ -530,10 +530,12 @@ extern(C) {
   MPI_Datatype mpiwrap_get_mpi_unsigned_long();
 }
 
+enum MPI_ANY_SOURCE = -1;
+
 // Operations
 MPI_Op MPI_MAX, MPI_MIN, MPI_SUM, MPI_PROD;
 MPI_Op MPI_LAND, MPI_BAND, MPI_LOR, MPI_BOR, MPI_LXOR, MPI_BXOR;
-MPI_Op MPI_MAXLOC, MPI_MINLOC, MPI_REPLACE;
+MPI_Op MPI_MAXLOC, MPI_MINLOC, MPI_REPLACE, MPI_STATUS_IGNORE;
 
 extern(C) {
   MPI_Op mpiwrap_get_mpi_max();
@@ -549,6 +551,7 @@ extern(C) {
   MPI_Op mpiwrap_get_mpi_maxloc();
   MPI_Op mpiwrap_get_mpi_minloc();
   MPI_Op mpiwrap_get_mpi_replace();
+  MPI_Op mpiwrap_get_mpi_status_ignore ();
 }
 
 // Call this to set global variables
@@ -582,6 +585,7 @@ void MPI_Get_globals() {
   MPI_MAXLOC  = mpiwrap_get_mpi_maxloc();
   MPI_MINLOC  = mpiwrap_get_mpi_minloc();
   MPI_REPLACE = mpiwrap_get_mpi_replace();
+  MPI_STATUS_IGNORE = mpiwrap_get_mpi_status_ignore ();
 }
 
 //////////////////////////////////////////////////////////////////////
