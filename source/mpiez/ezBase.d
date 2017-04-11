@@ -72,20 +72,58 @@ int sendRecvReplace (int to_, int from, int tag, ref string to_send, ref MPI_Sta
     return MPI_Sendrecv_replace (to!(char [])(to_send).ptr, to!int (to_send.length), MPI_CHAR, to_, tag, from, tag, comm, &status);
 }
 
-int send (T : U[], U) (int proc, int tag, T value, MPI_Comm comm) {
+int send (T : U[], U) (int proc, int tag, T value, MPI_Comm comm)
+    if (!isStaticArray!T)
+{
+    
     return MPI_Send (value.ptr, to!int(value.length * U.sizeof), MPI_BYTE, proc, tag, comm);
+}
+
+int send (T : U [N], U, int N) (int proc, int tag, U [N] value, MPI_Comm comm)
+    if (isStaticArray!T)
+{
+    return MPI_Send (value.ptr, to!int(value.length * U.sizeof), MPI_BYTE, proc, tag, comm);
+}
+
+int send (T : U*, U) (int proc, int tag, T value, ulong size, MPI_Comm comm) {
+    return MPI_Send (value, to!int (size * U.sizeof), MPI_BYTE, proc, tag, comm);
 }
 
 int ssend (T : U[], U) (int proc, int tag, T value, MPI_Comm comm) {
     return MPI_Ssend (value.ptr, to!int(value.length * U.sizeof), MPI_BYTE, proc, tag, comm);
 }
 
-int recv (T : U[], U) (int proc, int tag, ref T value, ref MPI_Status status, MPI_Comm comm) {
+int ssend (T : U*, U) (int proc, int tag, T value, ulong size, MPI_Comm comm) {
+    return MPI_Ssend (value, to!int (size * U.sizeof), MPI_BYTE, proc, tag, comm);
+}
+
+int recv (T : U[], U) (int proc, int tag, ref T value, ref MPI_Status status, MPI_Comm comm)
+    if (!isStaticArray!T)
+{
+    
     int size;
     MPI_Probe (proc, tag, comm, &status);
     MPI_Get_count (&status, MPI_BYTE, &size);
     value = new U [size / U.sizeof];
     return MPI_Recv (value.ptr, size, MPI_BYTE, proc, tag, comm, &status);
+}
+
+int recv (T : U [N], U, int N) (int proc, int tag, ref T value, ref MPI_Status status, MPI_Comm comm)
+    if (isStaticArray!T)
+{
+    //value = new U [size / U.sizeof];
+    return MPI_Recv (value.ptr, N * U.sizeof, MPI_BYTE, proc, tag, comm, &status);
+}
+
+int recv (T : U*, U) (int proc, int tag, ref T value, ref ulong len, ref MPI_Status status, MPI_Comm comm) {
+    int size;
+    MPI_Probe (proc, tag, comm, &status);
+    MPI_Get_count (&status, MPI_BYTE, &size);
+    auto val = new U [size / U.sizeof];
+    auto i = MPI_Recv (val.ptr, size, MPI_BYTE, proc, tag, comm, &status);
+    len = size / U.sizeof;    
+    value = val.ptr;
+    return i;
 }
 
 int recv (T : U[], U) (int tag, ref T value, ref MPI_Status status, MPI_Comm comm) {

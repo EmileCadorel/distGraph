@@ -121,6 +121,9 @@ class Session : Process!Proto {
 
     this (string [] args, Proto p) {
 	super (args, p);
+	__lambda__ = to!float (args [1]);
+	__nbPart__ = to!ulong (args [2]);
+	__file__ = args [3];
     }
 
     override void routine () {
@@ -174,10 +177,10 @@ class Session : Process!Proto {
     }    
     
     private void master () {
-	this._file = File ("sample/article.txt", "r");
+	this._file = File (__file__, "r");
 	this._current = new Graph ();
-	this._current.partitions = make!(Array!Partition)(new Partition [2]);
-	foreach (it ; 0 .. 2) this._current.partitions [it] = new Partition (it);
+	this._current.partitions = make!(Array!Partition)(new Partition [__nbPart__]);
+	foreach (it ; 0 .. __nbPart__) this._current.partitions [it] = new Partition (it);
 	ulong nb = 0;
 	while (true) {
 	    int procId, type;
@@ -187,16 +190,16 @@ class Session : Process!Proto {
 		this._proto.edge (procId, edge);
 	    } else if (type == STATE) {
 		ulong [] vertices;
-		writeln ("Debut State", procId);
+		//writeln ("Debut State", procId);
 		this._proto.state.receive (procId, vertices);
 		this._proto.state (procId, serialize (computeState (vertices)));
-		writeln ("Fin State", procId);
+		//writeln ("Fin State", procId);
 	    } else if (type == PUT) {
 		ulong [] state, edges;
-		writeln ("Debut Put", procId);
+		//writeln ("Debut Put", procId);
 		this._proto.put.receive (procId, state, edges);
 		updateState (deserialize!SharedState (state), deserialize!(Array!Edge) (edges));
-		writeln ("Fin Put ", procId);
+		//writeln ("Fin Put ", procId);
 	    } else if (type == END) {
 		nb ++;
 		writefln ("END %d", procId);
@@ -327,8 +330,9 @@ class Session : Process!Proto {
 
     private Graph _current;
 
-    static immutable float __lambda__ = 1.9;
-    
+    static float __lambda__ = 1.9;
+    static ulong __nbPart__ = 2;
+    static string __file__;
 }
 
 void main(string [] args) {    

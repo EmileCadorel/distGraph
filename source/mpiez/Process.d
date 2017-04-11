@@ -1,5 +1,5 @@
 module mpiez.Process;
-
+public import mpiez.Message;
 
 class Protocol {
     private int _id;
@@ -27,6 +27,14 @@ class Process (P : Protocol) {
     
     this (string [] args, P proto) {
 	this._proto = proto;
+    }
+
+    const (int) thisId () const {
+	return this._proto.id;
+    }
+
+    const (int) worldNb () const {
+	return this._proto.total;
     }
     
     abstract void routine ();
