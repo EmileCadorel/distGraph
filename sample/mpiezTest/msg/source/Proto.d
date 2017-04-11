@@ -3,8 +3,8 @@ import std.container;
 import std.outbuffer;
 import utils.Colors, std.traits;
 
-enum WINDOW_SIZE = 2;
-enum MAX_CUT = 20;
+enum WINDOW_SIZE = 10;
+enum MAX_CUT = 10;
 
 class Proto : Protocol {
     this (int id, int total) {

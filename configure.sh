@@ -4,5 +4,7 @@ if [ ! -d  "${HOME}/libs" ]; then
     echo "Creation du dossier ~/libs"
 fi
 
-cp libs/libmpi.lib ${HOME}/libs/
+cd libs
+./install.sh
+cd ..
 dub add-local .
