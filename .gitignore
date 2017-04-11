@@ -10,3 +10,4 @@ mpitest
 *.a
 mpieztest
 graphtest
+*.dot
