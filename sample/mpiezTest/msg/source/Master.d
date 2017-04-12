@@ -40,11 +40,12 @@ class Master {
 	}
     }
     
-    void run () {
+
+    // belle version mais un peu plus lente, dommage
+    /*    void run () {
 	this._file = File (this._filename, "r");
 	int nb = 0;
 	while (nb < this._proto.total - 1) {
-	    int type;
 	    receive (
 		(int procId, byte) {
 		    this._next ();
@@ -75,7 +76,47 @@ class Master {
 	}
 	writeGraph ();
     }
-      
+    */
+
+    /**
+     VOILA, Cette version est bien plus rapide (x2 voire plus, sur ma petite machine )
+     */
+    void run () {
+	this._file = File (this._filename, "r");
+	int nb = 0;
+	while (nb < this._proto.total - 1) {
+	    int type; byte useless;
+	    auto status = this._proto.probe ();
+	    if (status.MPI_TAG == 1) {
+		this._proto.request.receive (status.MPI_SOURCE, useless);
+		this._next ();
+		if (this._read) {
+		    Serializer!(Edge*) serial;
+		    serial.value = &this._toSend;
+		    this._proto.edge (status.MPI_SOURCE, serial.ptr, Edge.sizeof);
+		    // Master a envoye un arete a  procId
+		} else {
+		    this._proto.edge (status.MPI_SOURCE, null, 0);
+		    // Master a envoye un message vide a procId
+		}		    
+	    }  else if (status.MPI_TAG == 3) {
+		ulong [] vertices;
+		this._proto.state.receive (status.MPI_SOURCE, vertices);
+		computeState (status.MPI_SOURCE, vertices);
+	    } else if (status.MPI_TAG == 5) {
+		Edge [] edges;
+		this._proto.putState.receive (status.MPI_SOURCE, edges);
+		foreach (it ; edges) {
+		    this._current.addEdge (it);
+		}
+	    } else if (status.MPI_TAG == 6) {
+		this._proto.end.receive (status.MPI_SOURCE, useless);
+		nb ++;
+	    } else assert (false, "Pas prevu ca");
+	}	
+    }
+
+
     private void computeState (int procId, ulong [] vertices) {
 	Vertex [] retVerts = new Vertex [vertices.length];
 	foreach (it ; 0 .. vertices.length) {

@@ -19,6 +19,12 @@ class Protocol {
     const (int) total () const {
 	return this._total;
     }
+
+    final MPI_Status probe (int proc = MPI_ANY_SOURCE, int tag = MPI_ANY_TAG, MPI_Comm comm = MPI_COMM_WORLD) const {
+	MPI_Status stat;
+	MPI_Probe (proc, tag, comm, &stat);
+	return stat;
+    }
     
 }
 
