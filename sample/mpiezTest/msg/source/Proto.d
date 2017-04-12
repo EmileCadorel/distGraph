@@ -9,15 +9,16 @@ enum MAX_CUT = 10;
 class Proto : Protocol {
     this (int id, int total) {
 	super (id, total);
-	this.request = new Message!(1, int);
+	this.request = new Message!(1, byte);
 	this.edge = new Message!(2, ubyte*, ulong);
 	this.state = new Message!(3, ulong []);
 	this.getState = new Message!(4, Vertex[], ulong[]);
 	this.putState = new Message!(5, Edge []);
+	this.end = new Message!(6, byte);
     }
 
     // Id de la requete
-    Message!(1, int) request;
+    Message!(1, byte) request;
 
     // Donnees, taille des donnees
     Message!(2, ubyte*, ulong) edge;
@@ -30,6 +31,8 @@ class Proto : Protocol {
 
     // Met a jour le graphe
     Message!(5, Edge[]) putState;
+
+    Message!(6, byte) end;
 }
 
 struct Edge {

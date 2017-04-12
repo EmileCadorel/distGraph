@@ -45,15 +45,13 @@ class Slave {
 		this._vertices.clear ();
 	    }
 	}
-	this._proto.request (0, END);
+	this._proto.end (0, END);
     }
 
     private void partitionWindow () {
-	this._proto.request (0, STATE);
 	this._proto.state (0, (this._vertices.array));
 	Vertex [] vertices; ulong [] partitions;
 	this._proto.getState.receive (0, vertices, partitions);
-	writeln (vertices);
 	for (int it = 0, vt = 0; it < this._window.length; it ++, vt += 2) {
 	    auto u = vertices [vt];
 	    auto v = vertices [vt + 1];
@@ -62,7 +60,6 @@ class Slave {
 	    auto p = selectPartitionHDRF (u, v, partitions);
 	    this._window [it].color = p;
 	}
-	this._proto.request (0, PUT);
 	this._proto.putState (0, (this._window.array));
     }
 

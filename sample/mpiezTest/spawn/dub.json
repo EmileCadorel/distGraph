@@ -1,0 +1,30 @@
+{
+    "name": "spawn",
+    "authors": [
+	"emile"
+    ],
+    "description": "A minimal D application.",
+    "copyright": "Copyright © 2017, emile",
+    "license": "proprietary",
+    "dependencies" : {
+	"dist-graph" : "*"
+    },
+
+    "configurations": [
+	{
+            "name": "master",
+            "targetType": "executable",
+            "mainSourceFile": "source/master.d",
+            "excludedSourceFiles": [ "source/slave.d" ],
+            "targetName": "master"
+	},
+	{
+            "name": "slave",
+            "targetType": "executable",
+            "mainSourceFile": "source/slave.d",
+            "excludedSourceFiles": [ "source/master.d" ],
+            "targetName": "slave"
+	}
+    ]
+    
+}

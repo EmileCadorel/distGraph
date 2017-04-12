@@ -19,6 +19,475 @@ alias void* MPI_Op;
 alias void* MPI_Request;
 alias void* MPI_Win;
 
+/* The compiler id which OMPI was built with */
+enum OPAL_BUILD_PLATFORM_COMPILER_FAMILYID = 1;
+
+/* The compiler version which OMPI was built with */
+enum OPAL_BUILD_PLATFORM_COMPILER_VERSION = 328449;
+
+/* Define to 1 if you have the ANSI C header files. */
+enum OPAL_STDC_HEADERS = 1;
+
+/* Whether your compiler has __attribute__ deprecated or not */
+auto OPAL_HAVE_ATTRIBUTE_DEPRECATED = 1;
+
+/* Whether your compiler has __attribute__ deprecated with the optional argument */
+enum OPAL_HAVE_ATTRIBUTE_DEPRECATED_ARGUMENT = 1;
+
+/* Define to 1 if you have the <sys/time.h> header file. */
+enum OPAL_HAVE_SYS_TIME_H = 1;
+
+/* Define to 1 if you have the <sys/synch.h> header file. */
+/* #undef OPAL_HAVE_SYS_SYNCH_H */
+
+/* Define to 1 if the system has the type `long long'. */
+enum OPAL_HAVE_LONG_LONG = 1;
+
+/* The size of a `bool', as computed by sizeof. */
+/* #undef OPAL_SIZEOF_BOOL */
+
+/* The size of a `int', as computed by sizeof. */
+/* #undef OPAL_SIZEOF_INT */
+
+/* Maximum length of datarep string (default is 128) */
+enum OPAL_MAX_DATAREP_STRING = 128;
+
+/* Maximum length of error strings (default is 256) */
+enum OPAL_MAX_ERROR_STRING = 256;
+
+/* Maximum length of info keys (default is 36) */
+enum OPAL_MAX_INFO_KEY = 36;
+
+/* Maximum length of info vals (default is 256) */
+enum OPAL_MAX_INFO_VAL = 256;
+
+/* Maximum length of object names (default is 64) */
+enum OPAL_MAX_OBJECT_NAME = 64;
+
+/* Maximum length of port names (default is 1024) */
+enum OPAL_MAX_PORT_NAME = 1024;
+
+/* Maximum length of processor names (default is 256) */
+enum OPAL_MAX_PROCESSOR_NAME = 256;
+
+/* Whether we have FORTRAN LOGICAL*1 or not */
+enum OMPI_HAVE_FORTRAN_LOGICAL1 = 1;
+
+/* Whether we have FORTRAN LOGICAL*2 or not */
+enum OMPI_HAVE_FORTRAN_LOGICAL2 = 1;
+
+/* Whether we have FORTRAN LOGICAL*4 or not */
+enum OMPI_HAVE_FORTRAN_LOGICAL4 = 1;
+
+/* Whether we have FORTRAN LOGICAL*8 or not */
+enum OMPI_HAVE_FORTRAN_LOGICAL8 = 1;
+
+/* Whether we have FORTRAN INTEGER*1 or not */
+enum OMPI_HAVE_FORTRAN_INTEGER1 = 1;
+
+/* Whether we have FORTRAN INTEGER*16 or not */
+enum OMPI_HAVE_FORTRAN_INTEGER16 = 0;
+
+/* Whether we have FORTRAN INTEGER*2 or not */
+enum OMPI_HAVE_FORTRAN_INTEGER2 = 1;
+
+/* Whether we have FORTRAN INTEGER*4 or not */
+enum OMPI_HAVE_FORTRAN_INTEGER4 = 1;
+
+/* Whether we have FORTRAN INTEGER*8 or not */
+enum OMPI_HAVE_FORTRAN_INTEGER8 = 1;
+
+/* Whether we have FORTRAN REAL*16 or not */
+enum OMPI_HAVE_FORTRAN_REAL16 = 1;
+
+/* Whether we have FORTRAN REAL*2 or not */
+enum OMPI_HAVE_FORTRAN_REAL2 = 0;
+
+/* Whether we have FORTRAN REAL*4 or not */
+enum OMPI_HAVE_FORTRAN_REAL4 = 1;
+
+/* Whether we have FORTRAN REAL*8 or not */
+enum OMPI_HAVE_FORTRAN_REAL8 = 1;
+
+/* Whether we have float _Complex  or not */
+enum HAVE_FLOAT__COMPLEX = 1;
+
+/* Whether we have double _Complex  or not */
+enum HAVE_DOUBLE__COMPLEX = 1;
+
+/* Whether we have long double _Complex  or not */
+enum HAVE_LONG_DOUBLE__COMPLEX = 1;
+
+/* Type of MPI_Offset -- has to be defined here and typedef'ed later because mpi.h does not get AC SUBST's */
+alias OMPI_MPI_OFFSET_TYPE = long;
+
+/* Size of the MPI_Offset corresponding type */
+enum OMPI_MPI_OFFSET_SIZE = 8;
+
+/* Type of MPI_Count */
+alias OMPI_MPI_COUNT_TYPE = long;
+
+/* type to use for ptrdiff_t, if it does not exist, set to ptrdiff_t if it does exist */
+alias OPAL_PTRDIFF_TYPE = ptrdiff_t;
+
+/* Whether we want MPI cxx support or not */
+enum OMPI_BUILD_CXX_BINDINGS = 1;
+
+/* do we want to try to work around C++ bindings SEEK_* issue? */
+enum OMPI_WANT_MPI_CXX_SEEK = 1;
+
+/* Whether a const_cast on a 2-d array will work with the C++ compiler */
+enum OMPI_CXX_SUPPORTS_2D_CONST_CAST = 1;
+
+/* Whether OMPI was built with parameter checking or not */
+enum OMPI_PARAM_CHECK = 1;
+
+/* Whether or not we have compiled with C++ exceptions support */
+enum OMPI_HAVE_CXX_EXCEPTION_SUPPORT = 0;
+
+/* Major, minor, and release version of Open MPI */
+enum OMPI_MAJOR_VERSION = 1;
+enum OMPI_MINOR_VERSION = 10;
+enum OMPI_RELEASE_VERSION = 2;
+
+/* A  type that allows us to have sentinel type values that are still
+   valid */
+alias ompi_fortran_bogus_type_t = int;
+
+/* C type corresponding to FORTRAN INTEGER */
+alias ompi_fortran_integer_t = int;
+
+/* Whether C compiler supports -fvisibility */
+enum OPAL_C_HAVE_VISIBILITY = 1;
+
+/* Whether OMPI should provide MPI File interface */
+enum OMPI_PROVIDE_MPI_FILE_INTERFACE = 1;
+
+
+/*
+ * Miscellaneous constants
+ */
+enum MPI_ANY_SOURCE         = -1;                      /* match any source rank */
+enum MPI_PROC_NULL          = -2;                     /* rank of null process */
+enum MPI_ROOT               = -4;                     /* special value for intercomms */
+enum MPI_ANY_TAG            = -1;                     /* match any message tag */
+enum MPI_MAX_PROCESSOR_NAME = OPAL_MAX_PROCESSOR_NAME; /* max proc. name length */
+enum MPI_MAX_ERROR_STRING  = OPAL_MAX_ERROR_STRING;  /* max error message length */
+enum MPI_MAX_OBJECT_NAME    = OPAL_MAX_OBJECT_NAME;   /* max object name length */
+enum MPI_MAX_LIBRARY_VERSION_STRING = 256;             /* max length of library version string */
+enum MPI_UNDEFINED         = -32766;                  /* undefined stuff */
+enum MPI_DIST_GRAPH        = 3;                       /* dist graph topology */
+enum MPI_CART              = 1;                       /* cartesian topology */
+enum MPI_GRAPH             = 2;                       /* graph topology */
+enum MPI_KEYVAL_INVALID     = -1;                      /* invalid key value */
+
+/*
+ * More constants
+ */
+enum MPI_UNWEIGHTED          = (cast(void *) 2);          /* unweighted graph */
+enum MPI_WEIGHTS_EMPTY       = (cast(void *) 3);          /* empty weights */
+enum MPI_BOTTOM              = (cast(void *) 0);          /* base reference address */
+enum MPI_IN_PLACE            = (cast(void *) 1);          /* in place buffer */
+enum MPI_BSEND_OVERHEAD      = 128;                   /* size of bsend header + ptr */
+enum MPI_MAX_INFO_KEY        = OPAL_MAX_INFO_KEY;     /* max info key length */
+enum MPI_MAX_INFO_VAL        = OPAL_MAX_INFO_VAL;     /* max info value length */
+enum MPI_ARGV_NULL           = (cast(char **) 0);         /* NULL argument vector */
+enum MPI_ARGVS_NULL          = (cast(char ***) 0);        /* NULL argument vectors */
+enum MPI_ERRCODES_IGNORE     = (cast(int *) 0);           /* don't return error codes */
+enum MPI_MAX_PORT_NAME       = OPAL_MAX_PORT_NAME;    /* max port name length */
+enum MPI_ORDER_C             = 0;                     /* C row major order */
+enum MPI_ORDER_FORTRAN       = 1;                     /* Fortran column major order */
+enum MPI_DISTRIBUTE_BLOCK    = 0;                     /* block distribution */
+enum MPI_DISTRIBUTE_CYCLIC   = 1;                     /* cyclic distribution */
+enum MPI_DISTRIBUTE_NONE     = 2;                     /* not distributed */
+enum MPI_DISTRIBUTE_DFLT_DARG = (-1);                  /* default distribution arg */
+
+static if (OMPI_PROVIDE_MPI_FILE_INTERFACE) {
+/*
+ * Since these values are arbitrary to Open MPI, we might as well make
+ * them the same as ROMIO for ease of mapping.  These values taken
+ * from ROMIO's mpio.h file.
+ */
+enum MPI_MODE_CREATE           =   1;  /* ADIO_CREATE */
+enum MPI_MODE_RDONLY           =   2;  /* ADIO_RDONLY */
+enum MPI_MODE_WRONLY           =   4;  /* ADIO_WRONLY  */
+enum MPI_MODE_RDWR             =   8;  /* ADIO_RDWR  */
+enum MPI_MODE_DELETE_ON_CLOSE  =  16;  /* ADIO_DELETE_ON_CLOSE */
+enum MPI_MODE_UNIQUE_OPEN      =  32;  /* ADIO_UNIQUE_OPEN */
+enum MPI_MODE_EXCL             =  64;  /* ADIO_EXCL */
+enum MPI_MODE_APPEND           = 128;  /* ADIO_APPEND */
+enum MPI_MODE_SEQUENTIAL       = 256;  /* ADIO_SEQUENTIAL */
+
+enum MPI_DISPLACEMENT_CURRENT   = -54278278;
+
+enum MPI_SEEK_SET              = 600;
+enum MPI_SEEK_CUR              = 602;
+enum MPI_SEEK_END              = 604;
+
+/* Max data representation length */
+enum MPI_MAX_DATAREP_STRING = OPAL_MAX_DATAREP_STRING;
+
+}
+// #endif /* #if OMPI_PROVIDE_MPI_FILE_INTERFACE */
+
+/*
+ * MPI-2 One-Sided Communications asserts
+ */
+enum MPI_MODE_NOCHECK           = 1;
+enum MPI_MODE_NOPRECEDE         = 2;
+enum MPI_MODE_NOPUT             = 4;
+enum MPI_MODE_NOSTORE           = 8;
+enum MPI_MODE_NOSUCCEED         = 16;
+
+enum MPI_LOCK_EXCLUSIVE          = 1;
+enum MPI_LOCK_SHARED             = 2;
+
+enum MPI_WIN_FLAVOR_CREATE       = 1;
+enum MPI_WIN_FLAVOR_ALLOCATE     = 2;
+enum MPI_WIN_FLAVOR_DYNAMIC      = 3;
+enum MPI_WIN_FLAVOR_SHARED       = 4;
+
+enum MPI_WIN_UNIFIED             = 0;
+enum MPI_WIN_SEPARATE            = 1;
+
+/*
+ * Predefined attribute keyvals
+ *
+ * DO NOT CHANGE THE ORDER WITHOUT ALSO CHANGING THE ORDER IN
+ * src/attribute/attribute_predefined.c and mpif.h.in.
+ */
+enum {
+    /* MPI-1 */
+    MPI_TAG_UB,
+    MPI_HOST,
+    MPI_IO,
+    MPI_WTIME_IS_GLOBAL,
+
+    /* MPI-2 */
+    MPI_APPNUM,
+    MPI_LASTUSEDCODE,
+    MPI_UNIVERSE_SIZE,
+    MPI_WIN_BASE,
+    MPI_WIN_SIZE,
+    MPI_WIN_DISP_UNIT,
+    MPI_WIN_CREATE_FLAVOR,
+    MPI_WIN_MODEL,
+
+    /* Even though these four are IMPI attributes, they need to be there
+       for all MPI jobs */
+    IMPI_CLIENT_SIZE,
+    IMPI_CLIENT_COLOR,
+    IMPI_HOST_SIZE,
+    IMPI_HOST_COLOR
+};
+
+/*
+ * Error classes and codes
+ * Do not change the values of these without also modifying mpif.h.in.
+ */
+enum MPI_SUCCESS                  = 0;
+enum MPI_ERR_BUFFER               = 1;
+enum MPI_ERR_COUNT                = 2;
+enum MPI_ERR_TYPE                 = 3;
+enum MPI_ERR_TAG                  = 4;
+enum MPI_ERR_COMM                 = 5;
+enum MPI_ERR_RANK                 = 6;
+enum MPI_ERR_REQUEST              = 7;
+enum MPI_ERR_ROOT                 = 8;
+enum MPI_ERR_GROUP                = 9;
+enum MPI_ERR_OP                   = 10;
+enum MPI_ERR_TOPOLOGY             = 11;
+enum MPI_ERR_DIMS                 = 12;
+enum MPI_ERR_ARG                  = 13;
+enum MPI_ERR_UNKNOWN              = 14;
+enum MPI_ERR_TRUNCATE             = 15;
+enum MPI_ERR_OTHER                = 16;
+enum MPI_ERR_INTERN               = 17;
+enum MPI_ERR_IN_STATUS            = 18;
+enum MPI_ERR_PENDING              = 19;
+enum MPI_ERR_ACCESS               = 20;
+enum MPI_ERR_AMODE                = 21;
+enum MPI_ERR_ASSERT               = 22;
+enum MPI_ERR_BAD_FILE             = 23;
+enum MPI_ERR_BASE                 = 24;
+enum MPI_ERR_CONVERSION           = 25;
+enum MPI_ERR_DISP                 = 26;
+enum MPI_ERR_DUP_DATAREP          = 27;
+enum MPI_ERR_FILE_EXISTS          = 28;
+enum MPI_ERR_FILE_IN_USE          = 29;
+enum MPI_ERR_FILE                 = 30;
+enum MPI_ERR_INFO_KEY             = 31;
+enum MPI_ERR_INFO_NOKEY           = 32;
+enum MPI_ERR_INFO_VALUE           = 33;
+enum MPI_ERR_INFO                 = 34;
+enum MPI_ERR_IO                   = 35;
+enum MPI_ERR_KEYVAL               = 36;
+enum MPI_ERR_LOCKTYPE             = 37;
+enum MPI_ERR_NAME                 = 38;
+enum MPI_ERR_NO_MEM               = 39;
+enum MPI_ERR_NOT_SAME             = 40;
+enum MPI_ERR_NO_SPACE             = 41;
+enum MPI_ERR_NO_SUCH_FILE         = 42;
+enum MPI_ERR_PORT                 = 43;
+enum MPI_ERR_QUOTA                = 44;
+enum MPI_ERR_READ_ONLY            = 45;
+enum MPI_ERR_RMA_CONFLICT         = 46;
+enum MPI_ERR_RMA_SYNC             = 47;
+enum MPI_ERR_SERVICE              = 48;
+enum MPI_ERR_SIZE                 = 49;
+enum MPI_ERR_SPAWN                = 50;
+enum MPI_ERR_UNSUPPORTED_DATAREP  = 51;
+enum MPI_ERR_UNSUPPORTED_OPERATION = 52;
+enum MPI_ERR_WIN                  = 53;
+enum MPI_T_ERR_MEMORY             = 54;
+enum MPI_T_ERR_NOT_INITIALIZED    = 55;
+enum MPI_T_ERR_CANNOT_INIT        = 56;
+enum MPI_T_ERR_INVALID_INDEX      = 57;
+enum MPI_T_ERR_INVALID_ITEM       = 58;
+enum MPI_T_ERR_INVALID_HANDLE     = 59;
+enum MPI_T_ERR_OUT_OF_HANDLES     = 60;
+enum MPI_T_ERR_OUT_OF_SESSIONS    = 61;
+enum MPI_T_ERR_INVALID_SESSION    = 62;
+enum MPI_T_ERR_CVAR_SET_NOT_NOW   = 63;
+enum MPI_T_ERR_CVAR_SET_NEVER     = 64;
+enum MPI_T_ERR_PVAR_NO_STARTSTOP  = 65;
+enum MPI_T_ERR_PVAR_NO_WRITE      = 66;
+enum MPI_T_ERR_PVAR_NO_ATOMIC     = 67;
+enum MPI_ERR_RMA_RANGE            = 68;
+enum MPI_ERR_RMA_ATTACH           = 69;
+enum MPI_ERR_RMA_FLAVOR           = 70;
+enum MPI_ERR_RMA_SHARED           = 71;
+enum MPI_T_ERR_INVALID            = 72;
+enum MPI_T_ERR_INVALID_NAME       = 73;
+
+/* Per MPI-3 p349 47, MPI_ERR_LASTCODE must be >= the last predefined
+   MPI_ERR_<foo> code. Set the last code to allow some room for adding
+   error codes without breaking ABI. */
+enum MPI_ERR_LASTCODE   =           92;
+
+enum MPI_ERR_SYSRESOURCE =         -2;
+
+
+/*
+ * Comparison results.  Don't change the order of these, the group
+ * comparison functions rely on it.
+ * Do not change the order of these without also modifying mpif.h.in.
+ */
+enum {
+  MPI_IDENT,
+  MPI_CONGRUENT,
+  MPI_SIMILAR,
+  MPI_UNEQUAL
+};
+
+/*
+ * MPI_Init_thread constants
+ * Do not change the order of these without also modifying mpif.h.in.
+ */
+enum {
+  MPI_THREAD_SINGLE,
+  MPI_THREAD_FUNNELED,
+  MPI_THREAD_SERIALIZED,
+  MPI_THREAD_MULTIPLE
+};
+
+/*
+ * Datatype combiners.
+ * Do not change the order of these without also modifying mpif.h.in.
+ * (see also mpif-common.h.fin).
+ */
+enum {
+  MPI_COMBINER_NAMED,
+  MPI_COMBINER_DUP,
+  MPI_COMBINER_CONTIGUOUS,
+  MPI_COMBINER_VECTOR,
+  MPI_COMBINER_HVECTOR_INTEGER,
+  MPI_COMBINER_HVECTOR,
+  MPI_COMBINER_INDEXED,
+  MPI_COMBINER_HINDEXED_INTEGER,
+  MPI_COMBINER_HINDEXED,
+  MPI_COMBINER_INDEXED_BLOCK,
+  MPI_COMBINER_STRUCT_INTEGER,
+  MPI_COMBINER_STRUCT,
+  MPI_COMBINER_SUBARRAY,
+  MPI_COMBINER_DARRAY,
+  MPI_COMBINER_F90_REAL,
+  MPI_COMBINER_F90_COMPLEX,
+  MPI_COMBINER_F90_INTEGER,
+  MPI_COMBINER_RESIZED,
+  MPI_COMBINER_HINDEXED_BLOCK
+};
+
+/*
+ * Communicator split type constants.
+ * Do not change the order of these without also modifying mpif.h.in
+ * (see also mpif-common.h.fin).
+ */
+enum {
+  MPI_COMM_TYPE_SHARED
+};
+
+/*
+ * MPIT Verbosity Levels
+ */
+enum {
+  MPI_T_VERBOSITY_USER_BASIC,
+  MPI_T_VERBOSITY_USER_DETAIL,
+  MPI_T_VERBOSITY_USER_ALL,
+  MPI_T_VERBOSITY_TUNER_BASIC,
+  MPI_T_VERBOSITY_TUNER_DETAIL,
+  MPI_T_VERBOSITY_TUNER_ALL,
+  MPI_T_VERBOSITY_MPIDEV_BASIC,
+  MPI_T_VERBOSITY_MPIDEV_DETAIL,
+  MPI_T_VERBOSITY_MPIDEV_ALL
+};
+
+/*
+ * MPIT Scopes
+ */
+enum {
+  MPI_T_SCOPE_CONSTANT,
+  MPI_T_SCOPE_READONLY,
+  MPI_T_SCOPE_LOCAL,
+  MPI_T_SCOPE_GROUP,
+  MPI_T_SCOPE_GROUP_EQ,
+  MPI_T_SCOPE_ALL,
+  MPI_T_SCOPE_ALL_EQ
+};
+
+/*
+ * MPIT Object Binding
+ */
+enum {
+  MPI_T_BIND_NO_OBJECT,
+  MPI_T_BIND_MPI_COMM,
+  MPI_T_BIND_MPI_DATATYPE,
+  MPI_T_BIND_MPI_ERRHANDLER,
+  MPI_T_BIND_MPI_FILE,
+  MPI_T_BIND_MPI_GROUP,
+  MPI_T_BIND_MPI_OP,
+  MPI_T_BIND_MPI_REQUEST,
+  MPI_T_BIND_MPI_WIN,
+  MPI_T_BIND_MPI_MESSAGE,
+  MPI_T_BIND_MPI_INFO
+};
+
+/*
+ * MPIT pvar classes
+ */
+enum {
+  MPI_T_PVAR_CLASS_STATE,
+  MPI_T_PVAR_CLASS_LEVEL,
+  MPI_T_PVAR_CLASS_SIZE,
+  MPI_T_PVAR_CLASS_PERCENTAGE,
+  MPI_T_PVAR_CLASS_HIGHWATERMARK,
+  MPI_T_PVAR_CLASS_LOWWATERMARK,
+  MPI_T_PVAR_CLASS_COUNTER,
+  MPI_T_PVAR_CLASS_AGGREGATE,
+  MPI_T_PVAR_CLASS_TIMER,
+  MPI_T_PVAR_CLASS_GENERIC
+};
+
 // MPI_Status is a structure, but size may be implementation dependent
 
 struct MPI_Status {
@@ -530,12 +999,11 @@ extern(C) {
   MPI_Datatype mpiwrap_get_mpi_unsigned_long();
 }
 
-enum MPI_ANY_SOURCE = -1;
-
 // Operations
 MPI_Op MPI_MAX, MPI_MIN, MPI_SUM, MPI_PROD;
 MPI_Op MPI_LAND, MPI_BAND, MPI_LOR, MPI_BOR, MPI_LXOR, MPI_BXOR;
 MPI_Op MPI_MAXLOC, MPI_MINLOC, MPI_REPLACE, MPI_STATUS_IGNORE;
+MPI_Op MPI_INFO_NULL;
 
 extern(C) {
   MPI_Op mpiwrap_get_mpi_max();
@@ -552,6 +1020,7 @@ extern(C) {
   MPI_Op mpiwrap_get_mpi_minloc();
   MPI_Op mpiwrap_get_mpi_replace();
   MPI_Op mpiwrap_get_mpi_status_ignore ();
+  MPI_Op mpiwrap_get_mpi_info_null ();
 }
 
 // Call this to set global variables
@@ -586,6 +1055,7 @@ void MPI_Get_globals() {
   MPI_MINLOC  = mpiwrap_get_mpi_minloc();
   MPI_REPLACE = mpiwrap_get_mpi_replace();
   MPI_STATUS_IGNORE = mpiwrap_get_mpi_status_ignore ();
+  MPI_INFO_NULL = mpiwrap_get_mpi_info_null ();
 }
 
 //////////////////////////////////////////////////////////////////////

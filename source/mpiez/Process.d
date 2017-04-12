@@ -1,5 +1,6 @@
 module mpiez.Process;
 public import mpiez.Message;
+public import mpi.mpi;
 
 class Protocol {
     private int _id;
@@ -24,16 +25,18 @@ class Protocol {
 class Process (P : Protocol) {
 
     protected P _proto;
+
+    private MPI_Comm _parentComm = null;
     
     this (string [] args, P proto) {
 	this._proto = proto;
     }
 
-    const (int) thisId () const {
+    int thisId () const {
 	return this._proto.id;
     }
 
-    const (int) worldNb () const {
+    int worldNb () const {
 	return this._proto.total;
     }
     
@@ -41,4 +44,41 @@ class Process (P : Protocol) {
 
     abstract void onEnd ();
 
+    final protected MPI_Comm spawn (string worker, int nbSpawn, string [] args) {
+	import std.string, core.stdc.stdio;
+	char *[] argv = new char *[args.length];   
+	for (int it = 0; it < args.length; it ++) {
+	    argv [it] = args [it].toStringz [0 .. args [it].length + 1].dup.ptr;
+	}
+	
+	auto aux = argv.ptr;
+	MPI_Comm workerComm;
+	MPI_Comm_spawn (worker.dup.ptr, cast (char**) MPI_ARGV_NULL, nbSpawn, MPI_INFO_NULL, 0, MPI_COMM_SELF, &workerComm, cast(int*) MPI_ERRCODES_IGNORE);
+	return workerComm;
+    }
+
+    final protected MPI_Comm parent () {
+	if (!this._parentComm)
+	    MPI_Comm_get_parent (&this._parentComm);
+	return this._parentComm;
+    }
+
+    final protected void freeComm (MPI_Comm comm) {
+	int same;
+	MPI_Comm_compare (comm, MPI_COMM_WORLD, &same);
+	if (same != MPI_SIMILAR)
+	    MPI_Comm_free (&comm);
+    }
+
+    import std.typecons;
+    final protected Tuple!(int, "id", int, "total") commInfo (MPI_Comm comm) {
+	int nprocs, id;
+	MPI_Comm_size (comm, &nprocs);
+	MPI_Comm_rank (comm, &id);
+	return Tuple!(int, "id", int, "total") (id, nprocs);
+    }
+    
+    ~this () {
+    }
+    
 }

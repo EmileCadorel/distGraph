@@ -33,4 +33,6 @@ MPI_Op mpiwrap_get_mpi_maxloc()  { return MPI_MAXLOC;  }
 MPI_Op mpiwrap_get_mpi_minloc()  { return MPI_MINLOC;  }
 MPI_Op mpiwrap_get_mpi_replace() { return MPI_REPLACE; }
 MPI_Op mpiwrap_get_mpi_status_ignore () { return MPI_STATUS_IGNORE; }
-
+MPI_Op mpiwrap_get_mpi_errcodes_ignore () { return MPI_ERRCODES_IGNORE; }
+MPI_Op mpiwrap_get_mpi_info_null () { return MPI_INFO_NULL; }
+MPI_Op mpiwrap_get_mpi_argv_null () { return MPI_ARGV_NULL; }
