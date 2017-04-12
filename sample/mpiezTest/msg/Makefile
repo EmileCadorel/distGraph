@@ -4,8 +4,11 @@ all:
 dmd:
 	dub build --parallel 
 
-release:
+release-dmd:
 	dub build --parallel --build=release
+
+release:
+	dub build --parallel --build=release --compiler=gdc-5
 
 force:
 	dub build --parallel --force
