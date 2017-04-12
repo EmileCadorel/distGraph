@@ -74,7 +74,6 @@ class Master {
 		[1, 3, 5, 6]
 	    );
 	}
-	writeGraph ();
     }
     */
 
@@ -113,7 +112,8 @@ class Master {
 		this._proto.end.receive (status.MPI_SOURCE, useless);
 		nb ++;
 	    } else assert (false, "Pas prevu ca");
-	}	
+	}
+	writeGraph ();
     }
 
 
@@ -126,7 +126,6 @@ class Master {
 	this._proto.getState (procId, retVerts, this._current.partitions);
     }
     
-
     private void writeGraph () {
 	auto file = File ("out.dot", "w+");	
 	file.write (this._current.toDot (null, true).toString ());
