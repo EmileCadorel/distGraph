@@ -3,7 +3,7 @@ import std.container;
 import std.outbuffer;
 import utils.Colors, std.traits;
 
-enum WINDOW_SIZE = 10;
+enum WINDOW_SIZE = 1;
 enum MAX_CUT = 10;
 
 class Proto : Protocol {
@@ -84,7 +84,9 @@ class Graph {
 	if (this._vertices.length <= id) {
 	    import std.algorithm;
 	    long [MAX_CUT] empty;
-	    empty.each !((ref it) => it = -1);
+	    foreach (it ; 0 .. empty.length)
+		empty [it] = -1L;
+	    
 	    auto aux = new Vertex [id - this._vertices.length + 1];
 	    foreach (it ; 0 .. aux.length) 
 		aux [it] = Vertex (it + this._vertices.length, 0, empty);

@@ -11,3 +11,5 @@ mpitest
 mpieztest
 graphtest
 *.dot
+*#
+*.lib

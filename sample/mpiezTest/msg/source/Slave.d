@@ -3,6 +3,15 @@ import std.stdio;
 import std.container;
 import std.array, std.conv;
 
+
+T findExtrem (alias fun, T) (T [] rng) {
+    T ret = rng [0];
+    foreach (it ; 1 .. rng.length) {
+	if (fun (rng [it], ret)) ret = rng [it];
+    }
+    return ret;
+}
+
 class Slave {
 
     private Proto _proto;
@@ -44,6 +53,7 @@ class Slave {
 	this._proto.state (0, (this._vertices.array));
 	Vertex [] vertices; ulong [] partitions;
 	this._proto.getState.receive (0, vertices, partitions);
+	writeln (vertices);
 	for (int it = 0, vt = 0; it < this._window.length; it ++, vt += 2) {
 	    auto u = vertices [vt];
 	    auto v = vertices [vt + 1];
@@ -78,8 +88,8 @@ class Slave {
 	auto delta1 = u.degree, delta2 = v.degree;
 	auto thetaV1 = cast (float) delta1 / cast (float) (delta1 + delta2);
 	auto thetaV2 = 1 - thetaV1;
-	auto maxP = partitions [].maxElement;
-	auto minP = partitions [].minElement;
+	auto maxP = partitions.findExtrem!((a, b) => a > b);
+	auto minP = partitions.findExtrem!((a, b) => a < b);
 	Pair maxPart = Pair (0, float.init);
 	Pair [] scores = new Pair [partitions.length];
 	foreach (it ; 0 .. partitions.length) {
@@ -88,7 +98,7 @@ class Slave {
 	    auto bScore = balanceScoreHDRF (p, maxP, minP, __lambda__, epsilon);
 	    scores [it] = Pair (it, (rScore + bScore) / 2.);
 	}
-	return scores [].maxElement!"a.score".p;
+	return scores [].findExtrem!((a, b) => a.score > b.score).p;
     }
     
     
