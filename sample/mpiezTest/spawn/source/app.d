@@ -1,8 +1,18 @@
 import std.stdio;
 import mpiez.admin, mpiez.StateAdmin;
-import Proto;
 import std.conv;
 import utils.Options;
+
+class Proto : Protocol {
+
+    this (int id, int total) {
+	super (id, total);
+	this.se = new Message!(2, ulong);
+    }
+
+    Message!(2, ulong) se;
+}
+
 
 class Slave : Process!Proto {
     
@@ -13,15 +23,9 @@ class Slave : Process!Proto {
     override void routine () {
 	auto comm = this.parent ();
 	auto info = this.commInfo (comm);
-	receive (
-	    (int id, string msg) {
-		writeln (id, " => ", msg);
-	    },
-	    (int id, ulong [] elems) {
-		writeln (id, " => ", elems);
-	    },
-	    comm
-	);
+	ulong msg;
+	this._proto.se.receive (0, msg, comm);
+	writeln (thisId, " => ", msg);
     }
 
 }
@@ -40,9 +44,8 @@ class Master : Process!Proto {
     override void routine () {
 	this._slaveComm = this.spawn!"slave" (this._nbSlave, []);
 	auto info = this.commInfo (this._slaveComm);
-	writeln ("Master :", info [0], " ", info [1]);
 	foreach (it; 0 .. this._nbSlave) {
-	    this._proto.se (it, [it, it+ 2], this._slaveComm);
+	    this._proto.se (it, it, this._slaveComm);
 	    writefln ("Send to %d", it);
 	}
     }
@@ -51,8 +54,6 @@ class Master : Process!Proto {
 	this.freeComm (this._slaveComm);	
     }
 }
-
-class Test {}
 
 void main (string [] args) {
     auto adm = new StateAdmin!(Master, "master", Slave, "slave") (args);   
