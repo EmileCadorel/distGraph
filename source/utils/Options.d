@@ -16,12 +16,14 @@ alias Options = OptionsS.instance;
 
 class OptionsS {
 
+    private string _process;
     private string [string] _unknown;
     private string [Option] _options;
     private string [] _simple;
     
     void init (string [] args) {
 	ulong it;
+	this._process = args [0];
 	for (it = 1; it < args.length - 1; it ++) {
 	    if (args [it].length > 0 && args [it][0] == '-') {
 		it = parseArgument (it, args);
@@ -35,6 +37,10 @@ class OptionsS {
 	}
     }
 
+    string process () {
+	return this._process;
+    }
+    
     string opIndex (OptionEnum type) {
 	auto f = type in this._options;
 	if (f !is null) return *f;

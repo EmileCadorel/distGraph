@@ -43,7 +43,7 @@ class Session : Process!Proto {
 	this._nbEdge = slave.nbEdges;
     }
     
-    override void onEnd () {
+    ~this () {
 	syncFunc ((int id, ulong nbEdge, SysTime begin) {
 		auto end = Clock.currTime;
 		writef ("Fin du Process %d qui a traité %d arete(s) en  ", id, nbEdge);

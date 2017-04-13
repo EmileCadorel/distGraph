@@ -48,21 +48,43 @@ class Process (P : Protocol) {
     
     abstract void routine ();
 
-    abstract void onEnd ();
-
     final protected MPI_Comm spawn (string worker, int nbSpawn, string [] args) {
 	import std.string, core.stdc.stdio;
+	import utils.Options, std.stdio;	
+	if (worker [0] != '.') worker = "./" ~ worker;
 	char *[] argv = new char *[args.length];   
 	for (int it = 0; it < args.length; it ++) {
 	    argv [it] = args [it].toStringz [0 .. args [it].length + 1].dup.ptr;
 	}
 	
-	auto aux = argv.ptr;
+	auto aux = argv.ptr;	
+	if (args.length == 0) 
+	    aux = MPI_ARGV_NULL;
+	
 	MPI_Comm workerComm;
-	MPI_Comm_spawn (worker.dup.ptr, cast (char**) MPI_ARGV_NULL, nbSpawn, MPI_INFO_NULL, 0, MPI_COMM_SELF, &workerComm, cast(int*) MPI_ERRCODES_IGNORE);
+	MPI_Comm_spawn (worker.dup.ptr, cast (char**) aux, nbSpawn, MPI_INFO_NULL, 0, MPI_COMM_SELF, &workerComm, cast(int*) MPI_ERRCODES_IGNORE);
 	return workerComm;
     }
-
+    
+    final protected MPI_Comm spawn (string worker) (int nbSpawn, string [] args) {
+	import std.string, core.stdc.stdio;
+	import utils.Options, std.stdio;
+	args ~= ["-t", worker];
+	
+	char *[] argv = new char *[args.length];   
+	for (int it = 0; it < args.length; it ++) {
+	    argv [it] = args [it].toStringz [0 .. args [it].length + 1].dup.ptr;
+	}
+	
+	auto aux = argv.ptr;	
+	if (args.length == 0) 
+	    aux = MPI_ARGV_NULL;
+	
+	MPI_Comm workerComm;
+	MPI_Comm_spawn (Options.process.dup.ptr, cast (char**) aux, nbSpawn, MPI_INFO_NULL, 0, MPI_COMM_SELF, &workerComm, cast(int*) MPI_ERRCODES_IGNORE);
+	return workerComm;
+    }    
+    
     final protected MPI_Comm parent () {
 	if (!this._parentComm)
 	    MPI_Comm_get_parent (&this._parentComm);

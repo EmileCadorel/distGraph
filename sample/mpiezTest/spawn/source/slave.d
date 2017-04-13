@@ -23,8 +23,6 @@ class Session : Process!Proto {
 	);
     }
 
-    override void onEnd () {
-    }
 }
 
 

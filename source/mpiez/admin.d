@@ -4,6 +4,7 @@ import std.container;
 public import mpiez.Process;
 public import mpiez.Message;
 public import mpiez.global;
+public import mpiez.StateAdmin;
 import std.stdio;
 import utils.Options;
 
@@ -13,9 +14,9 @@ class AdminMultipleDefinition : Exception {
     }    
 }
 
-class Admin (C : Process!P, P : Protocol) {
+static __gshared bool __admLaunched__ = false;
 
-    private static bool __admLaunched__ = false;
+class Admin (C : Process!P, P : Protocol) {
 
     private C _process;
     
@@ -41,7 +42,6 @@ class Admin (C : Process!P, P : Protocol) {
 
     void finalize () {
 	MPI_Barrier (MPI_COMM_WORLD);
-	this._process.onEnd ();
 	delete this._process;
 	delete this._proto;
 	MPI_Finalize ();
