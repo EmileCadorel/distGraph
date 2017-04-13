@@ -2,7 +2,7 @@ import std.stdio;
 import mpiez.admin;
 import Master, Slave, Proto;
 import std.datetime, std.conv;
-
+import utils.Options;
 
 class Session : Process!Proto {
 
@@ -16,11 +16,11 @@ class Session : Process!Proto {
     
     private ulong _nbEdge;
     
-    this (string [] args, Proto p) {
-	super (args, p);
-	this._filename = args [1];
-	this._nbPart = to!ulong (args [2]);
-	this._lambda = to!float (args [3]);
+    this (Proto p) {
+	super (p);
+	this._filename = Options ["-i"];
+	this._nbPart = to!ulong (Options["-n"]);
+	this._lambda = to!float (Options ["-l"]);	
 	this._begin = Clock.currTime ();	    
     }    
 

@@ -15,8 +15,8 @@ class Proto : Protocol {
 
 class Session : Process!Proto {
 
-    this (string [] args, Proto p) {
-	super (args, p);
+    this (Proto p) {
+	super (p);
     }
 
     override void routine () {

@@ -1,8 +1,11 @@
 all:
 	dub build --parallel
 
-all5:
+gdc:
 	dub build --parallel --compiler=gdc-5
+
+gdc6:
+	dub build --parallel --compiler=gdc-6
 
 install:
 	dub build --parallel --build=release

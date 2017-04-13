@@ -34,7 +34,7 @@ class Process (P : Protocol) {
 
     private MPI_Comm _parentComm = null;
     
-    this (string [] args, P proto) {
+    this (P proto) {
 	this._proto = proto;
     }
 

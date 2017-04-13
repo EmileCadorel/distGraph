@@ -2,6 +2,7 @@ import std.stdio;
 import mpiez.admin;
 import Proto;
 import std.conv;
+import utils.Options;
 
 class Session : Process!Proto {
 
@@ -9,9 +10,9 @@ class Session : Process!Proto {
     
     private MPI_Comm _slaveComm;
 
-    this (string [] args, Proto p) {
-	super (args, p);
-	this._nbSlave = to!int (args [1]);
+    this (Proto p) {
+	super (p);
+	this._nbSlave = to!int (Options ["-n"]);
     }
 
     override void routine () {
@@ -31,6 +32,6 @@ class Session : Process!Proto {
 
 
 void main (string [] args) {
-    auto admin = new Admin!Session (args);
+    auto admin = new Admin!Session (args);    
     admin.finalize ();
 }

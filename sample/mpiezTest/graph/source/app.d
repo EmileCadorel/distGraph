@@ -4,6 +4,7 @@ import dgraph.Vertex, dgraph.Edge;
 import std.string, std.conv, std.array;
 import std.container, std.algorithm;
 import dgraph.Graph;
+import utils.Options;
 
 __gshared immutable __windowSize__ = 5;
 
@@ -119,11 +120,11 @@ class SharedState {
 
 class Session : Process!Proto {
 
-    this (string [] args, Proto p) {
-	super (args, p);
-	__lambda__ = to!float (args [1]);
-	__nbPart__ = to!ulong (args [2]);
-	__file__ = args [3];
+    this (Proto p) {
+	super (p);
+	__lambda__ = to!float (Options ["-l"]);
+	__nbPart__ = to!ulong (Options ["-n"]);
+	__file__ = Options ["-i"];
     }
 
     override void routine () {

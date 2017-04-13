@@ -2,6 +2,7 @@ import Proto;
 import std.stdio;
 import std.string, std.conv;
 import mpiez.Message, mpiez.Process;
+import utils.Options;
 
 class Master {
 
@@ -127,7 +128,10 @@ class Master {
     }
     
     private void writeGraph () {
-	auto file = File ("out.dot", "w+");	
+	auto filename = Options ["-o"];
+	if (filename is null)
+	    filename = "out.dot";
+	auto file = File (filename, "w+");	
 	file.write (this._current.toDot (null, true).toString ());
 	file.close ();
 

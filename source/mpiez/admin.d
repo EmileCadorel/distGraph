@@ -5,6 +5,7 @@ public import mpiez.Process;
 public import mpiez.Message;
 public import mpiez.global;
 import std.stdio;
+import utils.Options;
 
 class AdminMultipleDefinition : Exception {
     this () {
@@ -23,12 +24,13 @@ class Admin (C : Process!P, P : Protocol) {
     this (string [] args) {
 	if (!__admLaunched__) {
 	    MPI_Init (args);
+	    Options.init (args);
 	    int nprocs, id;
 	    MPI_Comm_size (MPI_COMM_WORLD, &nprocs);
 	    MPI_Comm_rank (MPI_COMM_WORLD, &id);
 
 	    this._proto = new P (id, nprocs);
-	    this._process = new C (args, this._proto);
+	    this._process = new C (this._proto);
 
 	    MPI_Barrier (MPI_COMM_WORLD);
 	    this._process.routine ();
