@@ -1,6 +1,6 @@
 import std.stdio;
 import mpiez.admin, mpiez.StateAdmin;
-import std.conv;
+import std.conv, std.datetime;
 import utils.Options;
 
 class Proto : Protocol {
@@ -13,49 +13,23 @@ class Proto : Protocol {
     Message!(2, ulong) se;
 }
 
-
-class Slave : Process!Proto {
-    
-    this (Proto p) {
-	super (p);
-    }
-
-    override void routine () {
-	auto comm = this.parent ();
-	auto info = this.commInfo (comm);
-	ulong msg;
-	this._proto.se.receive (0, msg, comm);
-	writeln (thisId, " => ", msg);
-    }
-
+void slave (int id, int total) {
+    auto proto = new Proto (id, total);
+    ulong msg;
+    auto comm = proto.parent ();
+    proto.se.receive (0, msg, comm);
+    writeln (id, " => ", msg);
 }
 
-class Master : Process!Proto {
-
-    private int _nbSlave;
-    
-    private MPI_Comm _slaveComm;
-
-    this (Proto p) {
-	super (p);
-	this._nbSlave = to!int (Options ["-n"]);
-    }
-
-    override void routine () {
-	this._slaveComm = this.spawn!"slave" (this._nbSlave, []);
-	auto info = this.commInfo (this._slaveComm);
-	foreach (it; 0 .. this._nbSlave) {
-	    this._proto.se (it, it, this._slaveComm);
-	    writefln ("Send to %d", it);
-	}
-    }
-
-    ~ this () {
-	this.freeComm (this._slaveComm);	
-    }
+void master (int id, int total) {
+    auto proto = new Proto (id, total);
+    auto nb = to!int (Options ["-n"]);
+    auto slaveComm = proto.spawn!"slave" (nb, []);
+    foreach (it ; 0 .. nb)
+	proto.se (it, it, slaveComm);
 }
 
 void main (string [] args) {
-    auto adm = new StateAdmin!(Master, "master", Slave, "slave") (args);   
+    auto adm = new StateAdmin!(master, "master", slave, "slave") (args);
     adm.finalize ();
 }

@@ -7,6 +7,8 @@ class Protocol {
     
     private int _total;
 
+    private MPI_Comm _parentComm = null;
+    
     this (int id, int total) {
 	this._id = id;
 	this._total = total;	
@@ -25,28 +27,7 @@ class Protocol {
 	MPI_Probe (proc, tag, comm, &stat);
 	return stat;
     }
-    
-}
 
-class Process (P : Protocol) {
-
-    protected P _proto;
-
-    private MPI_Comm _parentComm = null;
-    
-    this (P proto) {
-	this._proto = proto;
-    }
-
-    int thisId () const {
-	return this._proto.id;
-    }
-
-    int worldNb () const {
-	return this._proto.total;
-    }
-    
-    abstract void routine ();
 
     final protected MPI_Comm spawn (string worker, int nbSpawn, string [] args) {
 	import std.string, core.stdc.stdio;
@@ -81,7 +62,9 @@ class Process (P : Protocol) {
 	    aux = MPI_ARGV_NULL;
 	
 	MPI_Comm workerComm;
-	MPI_Comm_spawn (Options.process.dup.ptr, cast (char**) aux, nbSpawn, MPI_INFO_NULL, 0, MPI_COMM_SELF, &workerComm, cast(int*) MPI_ERRCODES_IGNORE);
+	auto process = Options.process;
+	if (process [0] != '.') process = "./" ~ process;
+	MPI_Comm_spawn (process.dup.ptr, cast (char**) aux, nbSpawn, MPI_INFO_NULL, 0, MPI_COMM_SELF, &workerComm, cast(int*) MPI_ERRCODES_IGNORE);
 	return workerComm;
     }    
     
@@ -91,13 +74,6 @@ class Process (P : Protocol) {
 	return this._parentComm;
     }
 
-    final protected void freeComm (MPI_Comm comm) {
-	int same;
-	MPI_Comm_compare (comm, MPI_COMM_WORLD, &same);
-	if (same != MPI_SIMILAR)
-	    MPI_Comm_free (&comm);
-    }
-
     import std.typecons;
     final protected Tuple!(int, "id", int, "total") commInfo (MPI_Comm comm) {
 	int nprocs, id;
@@ -105,6 +81,39 @@ class Process (P : Protocol) {
 	MPI_Comm_rank (comm, &id);
 	return Tuple!(int, "id", int, "total") (id, nprocs);
     }
+
+    final protected void freeComm (MPI_Comm comm) {
+	int same;
+	MPI_Comm_compare (comm, MPI_COMM_WORLD, &same);
+	if (same != MPI_SIMILAR)
+	    MPI_Comm_free (&comm);
+    }
+
+
+    
+}
+
+class Process (P : Protocol) {
+
+    protected P _proto;
+    
+    this (P proto) {
+	this._proto = proto;
+    }
+
+    int thisId () const {
+	return this._proto.id;
+    }
+
+    int worldNb () const {
+	return this._proto.total;
+    }
+
+    alias spawn = this._proto.spawn;
+    alias freeComm = this._proto.freeComm;
+    alias parent = this._proto.parent;
+    
+    abstract void routine ();
     
     ~this () {
     }
