@@ -7,29 +7,42 @@ class Proto : Protocol {
 
     this (int id, int total) {
 	super (id, total);
-	this.se = new Message!(2, ulong);
+	this.ping = new Message!(1, ulong);
     }
 
-    Message!(2, ulong) se;
+    Message!(1, ulong) ping;
 }
 
-void slave (int id, int total) {
+void pong (int id, int total) {
     auto proto = new Proto (id, total);
-    ulong msg;
     auto comm = proto.parent ();
-    proto.se.receive (0, msg, comm);
-    writeln (id, " => ", msg);
+    auto info = proto.commInfo (comm);
+    receive ( 
+	(int id, ulong msg) {
+	    writeln (id, " => ", msg);
+	    proto.ping (id, 1, comm);
+	},
+	comm
+    );
 }
 
-void master (int id, int total) {
+void ping (int id, int total) {
     auto proto = new Proto (id, total);
     auto nb = to!int (Options ["-n"]);
     auto slaveComm = proto.spawn!"slave" (nb, []);
-    foreach (it ; 0 .. nb)
-	proto.se (it, it, slaveComm);
+
+    foreach (it ; 0 .. nb) {
+	proto.ping (it, 1, slaveComm);
+	receive (
+	    (int id, ulong msg) {
+		writeln (id, " => ", msg);
+	    },
+	    slaveComm
+	);
+    }
 }
 
 void main (string [] args) {
-    auto adm = new StateAdmin!(master, "master", slave, "slave") (args);
+    auto adm = new StateAdmin!(ping, "master", pong, "slave") (args);
     adm.finalize ();
 }

@@ -21,8 +21,8 @@ void scatter (T) (int root, int size, ref T [] _in, ref T [] _out, MPI_Comm comm
 	displs.length = nb_procs;
 	int disp = 0;
 	foreach (it ; 0 .. ind.length) {
-	    ind [it] = n_s * T.sizeof;
-	    if (i < reste) ind [it] += T.sizeof;
+	    ind [it] = n_s * cast (int) T.sizeof;
+	    if (it < reste) ind [it] += cast (int) T.sizeof;
 	    displs [it] = disp;
 	    disp += ind [it];
 	}
@@ -31,7 +31,7 @@ void scatter (T) (int root, int size, ref T [] _in, ref T [] _out, MPI_Comm comm
     int size_ = n_s;
     if (id < reste) size_ += 1;
     _out.length = size_;
-    MPI_Scatterv (_in.ptr, ind.ptr, displs.ptr, MPI_BYTE, _out.ptr, size_ * T.sizeof, MPI_BYTE, root, comm);
+    MPI_Scatterv (_in.ptr, ind.ptr, displs.ptr, MPI_BYTE, _out.ptr, size_ * cast (int)T.sizeof, MPI_BYTE, root, comm);
 }
 
 void scatter (T) (int root, int size, ref T [][] _in, ref T [][] _out, MPI_Comm comm) {
@@ -72,7 +72,7 @@ void scatterNxM (T) (int root, int n, int m, ref T [] _in, ref T [] _out, MPI_Co
     MPI_Scatterv(_in.ptr, ind.ptr, displs.ptr, MPI_BYTE, _out.ptr, size_ * T.sizeof, MPI_BYTE, root, comm);
 }
 	
-void gather (T)(int root, int size, ref T [] _in, ref T [] _out, MPI_Comm comm) {
+void gather (T : U [], U)(int root, int size, ref T _in, ref T _out, MPI_Comm comm) {
     int nb_procs, id;
     MPI_Comm_size(comm, &nb_procs);
     MPI_Comm_rank(comm, &id);
@@ -84,9 +84,33 @@ void gather (T)(int root, int size, ref T [] _in, ref T [] _out, MPI_Comm comm) 
 	displs.length = (nb_procs);
 	
 	int disp = 0;
-	for(int i = 0; i < ind.size(); i++) {
-	    ind[i] = n_s * T.sizeof;
-	    if(i < reste) ind[i] += T.sizeof;
+	for(int i = 0; i < ind.length; i++) {
+	    ind[i] = n_s * cast (int) U.sizeof;
+	    if(i < reste) ind[i] += cast (int) U.sizeof;
+	    displs[i] = disp;
+	    disp += ind[i];
+	}
+	_out.length = (size);
+    }
+    
+    MPI_Gatherv(_in.ptr, cast (int) (_in.length * U.sizeof), MPI_BYTE, _out.ptr, ind.ptr, displs.ptr, MPI_BYTE, root, comm);
+}
+
+void gather (T : U [], U) (int root, int size, ref U _in, ref T _out, MPI_Comm comm) {
+    int nb_procs, id;
+    MPI_Comm_size(comm, &nb_procs);
+    MPI_Comm_rank(comm, &id);
+    int n_s = size / nb_procs;
+    int reste = size % nb_procs;
+    int [] ind, displs;
+    if(id == root) {
+	ind.length = (nb_procs);
+	displs.length = (nb_procs);
+	
+	int disp = 0;
+	for(int i = 0; i < ind.length; i++) {
+	    ind[i] = n_s * cast (int) U.sizeof;
+	    if(i < reste) ind[i] += cast (int)U.sizeof;
 	    displs[i] = disp;
 	    disp += ind[i];
 	}
@@ -94,9 +118,10 @@ void gather (T)(int root, int size, ref T [] _in, ref T [] _out, MPI_Comm comm) 
 	
     }
     
-    MPI_Gatherv(_in.ptr, _in.length() * T.sizeof, MPI_BYTE, _out.ptr, ind.ptr, displs.ptr, MPI_BYTE, root, comm);
+    MPI_Gatherv(&_in, cast (int) (U.sizeof), MPI_BYTE, _out.ptr, ind.ptr, displs.ptr, MPI_BYTE, root, comm);
 }
-	
+
+
 
 void reduce (T) (int root, int size, ref T [] _in, ref T [] _out, MPI_Datatype type, MPI_Op op, MPI_Comm comm) {
     int id;
@@ -147,7 +172,6 @@ void syncFunc (Foo : void function (Params), Params ...) (MPI_Comm comm, Foo f, 
     barrier (comm);
 }
 
-
 void syncFunc (Foo : void function (Params), Params ...) (Foo f, Params param) {
     int id, size;
     MPI_Comm_rank (MPI_COMM_WORLD, &id);
@@ -160,4 +184,17 @@ void syncFunc (Foo : void function (Params), Params ...) (Foo f, Params param) {
     barrier (MPI_COMM_WORLD);
 }
 
+
+void syncWriteln (T ...) (T params) {
+    import std.stdio;
+    int id, size;
+    MPI_Comm_rank (MPI_COMM_WORLD, &id);
+    MPI_Comm_size (MPI_COMM_WORLD, &size);
+    foreach (it ; 0 .. size) {
+	if (id == it)
+	    writeln (id, " => [", params, "]");
+	barrier (MPI_COMM_WORLD);
+    }
+    barrier (MPI_COMM_WORLD);
+}
 
