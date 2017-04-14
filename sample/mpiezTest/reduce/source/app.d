@@ -1,54 +1,34 @@
+module test;
 import std.stdio;
 import mpiez.admin;
 import utils.Options;
-import std.conv, std.random;
-import std.datetime;
+import std.traits;
+import utils.FunctionTable;
+import std.conv;
+import skeleton.Reduce;
 
-T reduce (alias fun, T) (T [] array) {
-    if (array.length > 0) {
-	T total = array [0];
-	foreach (it ; 1 .. array.length) {
-	    total = fun (total, array [it]);
-	}
-	return total;
-    } return T.init;
+struct Test {
+    int a;
+    int b;
 }
 
-T parallelReduce (alias fun, T : U [], U) (int total, T  array, int len) {
-    int [] o;
-    scatter (0, len, array, o, MPI_COMM_WORLD);
-    
-    auto res = reduce!fun (o);
-    int [] aux;
-    gather (0, total, res, aux, MPI_COMM_WORLD);
-    return aux;
+Test sum (Test a, Test b) {
+    return Test (a.a + b.a, a.b + b.b);
 }
 
-void foo (int id, int total) {
-    auto begin = Clock.currTime;
-    int [] array;
-    auto len = to!int (Options ["-l"]);
-    if (id == 0) {
-	array = new int [len];
-    }
-    int [] o;
-    scatter (0, len, array, o, MPI_COMM_WORLD);
-    
-    foreach (ref it ; o)
-	it = uniform (1, len);
-    
-    gather (0, len, o, array, MPI_COMM_WORLD);
-    
-    auto res = parallelReduce!((a, b) => (a > b) ? a : b) (total, array, len);
-    syncWriteln (res);
-    if (id == 0) {
-	writeln ("SOMME : ", reduce!((a, b) => (a < b) ? a : b) (res), "\n");
-    }
-    syncWriteln (Clock.currTime - begin);
+void master (int id, int total) {
+    import std.random;
+    auto len = to!(int) (Options ["-l"]);
+    auto nb = 2;
+    if (Options.active ("-n"))
+	nb = to!(int) (Options ["-n"]);
+    auto array = new Test [len];    
+    foreach (it ; 0 .. len)
+	array [it] = Test (it + 1, it - 1);
+    writeln (Reduce!(sum, Test).run (array, nb));    
 }
 
 void main (string [] args) {
-    auto adm = new Admin!foo (args);
+    auto adm = new Admin!(master) (args);
     adm.finalize ();
-
 }

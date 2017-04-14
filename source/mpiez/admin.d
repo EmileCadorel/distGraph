@@ -17,6 +17,14 @@ class AdminMultipleDefinition : Exception {
 
 static __gshared bool __admLaunched__ = false;
 
+
+alias Launchable = void function (int, int);
+Launchable [string] __skeletons__;
+
+void insertSkeleton (string name, Launchable skel) {
+    __skeletons__ [name] = skel;
+}
+
 private bool checkT (T ...) () {
     foreach (i, t1 ; T) {
 	static if ((is (typeof(&t1) U : U*) && is (U == function)) ||
@@ -39,9 +47,9 @@ class Admin (T...)
 	    static assert (checkT!T);
     
 	    private Object _process;
-    
+	    	    
 	    private Protocol _proto;
-    
+	    
 	    this (string [] args) {
 		if (!__admLaunched__) {
 		    __admLaunched__ = true;	  
@@ -50,6 +58,7 @@ class Admin (T...)
 		    int nprocs, id;
 		    MPI_Comm_size (MPI_COMM_WORLD, &nprocs);
 		    MPI_Comm_rank (MPI_COMM_WORLD, &id);
+		    if (checkSkeletons (id, nprocs)) return;
 		    alias Type = T[0];
 		    static if (is(T[0] : Process!P, P : Protocol)) {
 			alias Proto = TemplateArgsOf!Type [0]; 
@@ -65,6 +74,17 @@ class Admin (T...)
 		} else throw new AdminMultipleDefinition ();
 	    }
 
+	    bool checkSkeletons (int id, int total) {
+		auto type = Options [OptionEnum.TYPE];
+		foreach (key, value ; __skeletons__) {
+		    if (key == type) {
+			value (id, total);
+			return true;
+		    }
+		}
+		return false;
+	    }
+	    
 	    void finalize () {
 		MPI_Barrier (MPI_COMM_WORLD);
 		if (this._process) {

@@ -22,14 +22,13 @@ class Protocol {
 	return this._total;
     }
 
-    final MPI_Status probe (int proc = MPI_ANY_SOURCE, int tag = MPI_ANY_TAG, MPI_Comm comm = MPI_COMM_WORLD) const {
+    static MPI_Status probe (int proc = MPI_ANY_SOURCE, int tag = MPI_ANY_TAG, MPI_Comm comm = MPI_COMM_WORLD) {
 	MPI_Status stat;
 	MPI_Probe (proc, tag, comm, &stat);
 	return stat;
     }
 
-
-    final protected MPI_Comm spawn (string worker, int nbSpawn, string [] args) {
+    static MPI_Comm spawn (string worker, int nbSpawn, string [] args) {
 	import std.string, core.stdc.stdio;
 	import utils.Options, std.stdio;	
 	if (worker [0] != '.') worker = "./" ~ worker;
@@ -43,46 +42,44 @@ class Protocol {
 	    aux = MPI_ARGV_NULL;
 	
 	MPI_Comm workerComm;
-	MPI_Comm_spawn (worker.dup.ptr, cast (char**) aux, nbSpawn, MPI_INFO_NULL, 0, MPI_COMM_SELF, &workerComm, cast(int*) MPI_ERRCODES_IGNORE);
+	auto toLaunch = worker.toStringz [0 .. worker.length + 1].dup.ptr;
+	MPI_Comm_spawn (toLaunch, cast (char**) aux, nbSpawn, MPI_INFO_NULL, 0, MPI_COMM_SELF, &workerComm, cast(int*) MPI_ERRCODES_IGNORE);
 	return workerComm;
     }
     
-    final protected MPI_Comm spawn (string worker) (int nbSpawn, string [] args) {
+    static MPI_Comm spawn (string worker) (int nbSpawn, string [] args) {
 	import std.string, core.stdc.stdio;
 	import utils.Options, std.stdio;
 	args ~= ["-t", worker];
-	
 	char *[] argv = new char *[args.length];   
 	for (int it = 0; it < args.length; it ++) {
-	    argv [it] = args [it].toStringz [0 .. args [it].length + 1].dup.ptr;
+	    argv [it] = cast (char*)(args [it].toStringz [0 .. args [it].length + 1].ptr);
 	}
 	
-	auto aux = argv.ptr;	
-	if (args.length == 0) 
-	    aux = MPI_ARGV_NULL;
-	
+	auto aux = argv.ptr;		
 	MPI_Comm workerComm;
 	auto process = Options.process;
 	if (process [0] != '.') process = "./" ~ process;
-	MPI_Comm_spawn (process.dup.ptr, cast (char**) aux, nbSpawn, MPI_INFO_NULL, 0, MPI_COMM_SELF, &workerComm, cast(int*) MPI_ERRCODES_IGNORE);
+	auto toLaunch = cast (char*)(process.toStringz [0 .. process.length + 1].ptr);
+	MPI_Comm_spawn (toLaunch, cast (char**) aux, nbSpawn, MPI_INFO_NULL, 0, MPI_COMM_SELF, &workerComm, cast(int*) MPI_ERRCODES_IGNORE);
 	return workerComm;
     }    
     
-    final protected MPI_Comm parent () {
-	if (!this._parentComm)
-	    MPI_Comm_get_parent (&this._parentComm);
-	return this._parentComm;
+    static MPI_Comm parent () {
+	MPI_Comm parent;
+	MPI_Comm_get_parent (&parent);
+	return parent;
     }
 
     import std.typecons;
-    final protected Tuple!(int, "id", int, "total") commInfo (MPI_Comm comm) {
+    static Tuple!(int, "id", int, "total") commInfo (MPI_Comm comm) {
 	int nprocs, id;
 	MPI_Comm_size (comm, &nprocs);
 	MPI_Comm_rank (comm, &id);
 	return Tuple!(int, "id", int, "total") (id, nprocs);
     }
 
-    final protected void freeComm (MPI_Comm comm) {
+    static void freeComm (MPI_Comm comm) {
 	int same;
 	MPI_Comm_compare (comm, MPI_COMM_WORLD, &same);
 	if (same != MPI_SIMILAR)

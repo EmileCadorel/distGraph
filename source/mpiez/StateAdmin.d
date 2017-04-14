@@ -36,8 +36,8 @@ class StateAdmin (T ...) {
 
     private Object _process;
     
-    private Protocol _proto;
-              
+    private Protocol _proto;   
+    
     this (string [] args) {
 	import std.stdio;
 	if (!__admLaunched__) {
@@ -48,6 +48,8 @@ class StateAdmin (T ...) {
 	    MPI_Comm_size (MPI_COMM_WORLD, &nprocs);
 	    MPI_Comm_rank (MPI_COMM_WORLD, &id);
 	    alias TYPE = OptionEnum.TYPE;
+	    auto res = checkSkeletons (id, nprocs);
+	    if (res) return;
 	    foreach (i, t1 ; T) {		
 		static if (is (typeof (t1) == string)) {
 		    if (((Options [TYPE] is null || Options [TYPE].length == 0) && i == 1)
@@ -67,6 +69,17 @@ class StateAdmin (T ...) {
 		}		
 	    }
 	} else throw new AdminMultipleDefinition ();
+    }
+
+    bool checkSkeletons (int id, int total) {
+	auto type = Options [OptionEnum.TYPE];
+	foreach (key, value ; __skeletons__) {
+	    if (key == type) {
+		value (id, total);
+		return true;
+	    }
+	}
+	return false;
     }
     
     void finalize () {

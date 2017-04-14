@@ -56,7 +56,17 @@ class OptionsS {
 	    return null;
 	}
     }
-
+   
+    bool active (string name) {
+	auto f = find!("a.id == b") ([EnumMembers!OptionEnum], name);
+	if (f != []) return true;
+	else {
+	    if (auto it = name in this._unknown)
+		return true;
+	    return false;
+	}
+    }
+    
     string [] simple () {
 	return this._simple;
     }

@@ -30,7 +30,6 @@ void ping (int id, int total) {
     auto proto = new Proto (id, total);
     auto nb = to!int (Options ["-n"]);
     auto slaveComm = proto.spawn!"slave" (nb, []);
-
     foreach (it ; 0 .. nb) {
 	proto.ping (it, 1, slaveComm);
 	receive (
