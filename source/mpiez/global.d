@@ -1,5 +1,6 @@
 module mpiez.global;
 import mpi.mpi;
+import std.typecons;
 
 enum Shift : ubyte {
     VER = 0, HOR = 1
@@ -8,6 +9,17 @@ enum Shift : ubyte {
 void barrier (MPI_Comm comm) {
     MPI_Barrier (comm);
 }
+
+Tuple!(ulong, "len", ulong, "begin") computeLen (int size, int id, int nb_procs) {
+    int n_s = size / nb_procs;
+    int reste = size % nb_procs;
+    int size_ = n_s;
+    if (id < reste)
+	return Tuple!(ulong, "len", ulong, "begin") (size_, size_ * id);
+    else 
+    	return Tuple!(ulong, "len", ulong, "begin") (size_, ((size_ + 1) * reste + ((id - reste) * size_)));
+}
+
 
 ulong scatter (T) (int root, int size, ref T [] _in, ref T [] _out, MPI_Comm comm) {
     int nb_procs, id;

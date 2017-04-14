@@ -90,17 +90,14 @@ template Generate (alias fun)
 	if (func is null)
 	    assert (false, "La fonction n'est pas référencé dans la liste des fonctions appelable par les squelettes");
 
-	T [] array;
-	if (id == 0) array = new T [len];	
-    
-	T [] o;
-	auto begin = scatter (0, len, array, o, MPI_COMM_WORLD);
-	syncWriteln (begin);
+
+	auto pos = computeLen (len, id, total);
+    	auto o = new T [pos.len];
 	T[] res;
 	static if (PARAMLENGTH == 1)
-	    res = generate (begin, o, cast (T function (I))(func));	    
+	    res = generate (pos.begin, o, cast (T function (I))(func));	    
 	else
-	    res = generate (begin, len, o, cast (T function (I, N))(func));
+	    res = generate (pos.begin, len, o, cast (T function (I, N))(func));
 	
 	T [] aux;
 	gather (0, len, res, aux, MPI_COMM_WORLD);
