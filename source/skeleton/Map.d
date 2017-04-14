@@ -1,4 +1,4 @@
-module skeleton.Reduce;
+module skeleton.Map;
 import mpiez.admin;
 public import skeleton.Register;
 import std.traits;
@@ -6,43 +6,44 @@ import std.algorithm;
 import std.conv;
 import utils.Options;
 
-
 private bool checkFunc (alias fun) () {
     static assert ((is (typeof(&fun) U : U*) && is (U == function)) || (is (fun T2) && is(T2 == function)));
     alias a1 = ParameterTypeTuple! (fun);
     alias r1 = ReturnType!fun;
-    static assert (a1.length == 2 && is (a1[0] == a1 [1]) && is (r1 == a1 [0]), "On a besoin de : T function (T) (T, T)");
+    static assert (a1.length == 1 && !is (r1 == void), "On a besoin de : T2 function (T, T2 != void) (T)");
     return true;
 }
 
-template Reduce (alias fun)
+template Map (alias fun)
     if (checkFunc !(fun)) {
 
     alias T = ParameterTypeTuple!(fun) [0];
+    alias T2 = ReturnType!fun;
     
     static this () {
-	insertSkeleton ("#reduceSlave", &reduceSlave);
+	insertSkeleton ("#mapSlave", &mapSlave);
 	register.add (fullyQualifiedName!fun, &fun);
     }
 
-    class ReduceProto : Protocol {
+    T2[] map (T2, T : U [], U) (T array, T2 function (U) op) {
+	T2 [] res = new T2 [array.length];
+	foreach (it ; 0 .. array.length)
+	    res [it] = op (array [it]);
+	return res;
+    }
+    
+    class MapProto : Protocol {
 	this (int id, int total) {
 	    super (id, total);
 	    this.send = new Message!(1, T []);
-	    this.res = new Message!(2, T);
+	    this.res = new Message!(2, T2 []);
 	}
-
+	
 	Message!(1, T []) send;
-	Message!(2, T) res;
-    }    
+	Message!(2, T2 []) res;
+    }
     
-    /**
-     Lance le squelette
-     Params:
-     array = le tableau à réduire
-     nb = le nombre de worker
-     */
-    T run (T [] array, int nb = 2) {
+    T2 [] run (T [] array, int nb = 2) {
 	import std.math;
 	auto name = fullyQualifiedName!fun;
 	auto func = register.get(name);
@@ -50,25 +51,17 @@ template Reduce (alias fun)
 	    assert (false, "La fonction n'est pas référencé dans la liste des fonctions appelable par les squelettes");
 
 	nb = min (nb, array.length);
-	auto proto = new ReduceProto (0, nb);
-	auto slaveComm = proto.spawn!"#reduceSlave" (nb, ["--name", name, "--len", to!string (array.length)]);
+	auto proto = new MapProto (0, nb);
+	auto slaveComm = proto.spawn!"#mapSlave" (nb, ["--name", name, "--len", to!string(array.length)]);
 	proto.send (0, array, slaveComm);
-	T res;
+	T2 [] res;
 	proto.res.receive (0, res, slaveComm);
 	return res;	
-    }
 
-    U reduce (T : U [], U) (T array, U function (U, U) op) {
-	auto res = array [0];
-	foreach (it ; 1 .. array.length) {
-	    res = op (res, array [it]);
-	}
-	return res;
     }
-        
-
-    void reduceSlave (int id, int total) {
-	auto proto = new ReduceProto (id, total);
+    
+    void mapSlave (int id, int total) {
+	auto proto = new MapProto (id, total);
 	auto comm = Protocol.parent ();
 
 	auto len = to!int (Options ["--len"]);
@@ -84,14 +77,13 @@ template Reduce (alias fun)
     
 	T [] o;
 	scatter (0, len, array, o, MPI_COMM_WORLD);
-	auto res = reduce (o, cast (T function (T, T))(func));
-	syncWriteln (res);
-	T [] aux;
-	gather (0, total, res, aux, MPI_COMM_WORLD);
-
+	auto res = map (o, cast (T2 function (T))(func));
+	T2 [] aux;
+	gather (0, len, res, aux, MPI_COMM_WORLD);
+	
 	if (id == 0) {
-	    res = reduce (aux, cast (T function (T, T))(func));
-	    proto.res (0, res, comm);
+	    proto.res (0, aux, comm);
 	}
     }
+    
 }

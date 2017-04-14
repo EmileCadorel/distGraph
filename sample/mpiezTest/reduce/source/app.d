@@ -5,15 +5,20 @@ import utils.Options;
 import std.traits;
 import utils.FunctionTable;
 import std.conv;
-import skeleton.Reduce;
+import skeleton.Reduce, skeleton.Map;
+import skeleton.Generate;
 
 struct Test {
-    int a;
-    int b;
+    long a;
+    long b;
 }
 
 Test sum (Test a, Test b) {
     return Test (a.a + b.a, a.b + b.b);
+}
+
+Test one (ulong i, ulong N) {
+    return Test (N, -N);
 }
 
 void master (int id, int total) {
@@ -22,10 +27,10 @@ void master (int id, int total) {
     auto nb = 2;
     if (Options.active ("-n"))
 	nb = to!(int) (Options ["-n"]);
-    auto array = new Test [len];    
-    foreach (it ; 0 .. len)
-	array [it] = Test (it + 1, it - 1);
-    writeln (Reduce!(sum, Test).run (array, nb));    
+    
+    auto array = Generate!(one).run (len, nb);
+    writeln (array);
+    writeln (Reduce!(sum).run (array, nb));        
 }
 
 void main (string [] args) {

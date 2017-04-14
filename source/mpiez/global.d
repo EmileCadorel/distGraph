@@ -9,7 +9,7 @@ void barrier (MPI_Comm comm) {
     MPI_Barrier (comm);
 }
 
-void scatter (T) (int root, int size, ref T [] _in, ref T [] _out, MPI_Comm comm) {
+ulong scatter (T) (int root, int size, ref T [] _in, ref T [] _out, MPI_Comm comm) {
     int nb_procs, id;
     MPI_Comm_size (comm, &nb_procs);
     MPI_Comm_rank (comm, &id);
@@ -32,6 +32,12 @@ void scatter (T) (int root, int size, ref T [] _in, ref T [] _out, MPI_Comm comm
     if (id < reste) size_ += 1;
     _out.length = size_;
     MPI_Scatterv (_in.ptr, ind.ptr, displs.ptr, MPI_BYTE, _out.ptr, size_ * cast (int)T.sizeof, MPI_BYTE, root, comm);
+
+    if (id < reste) {
+	return (size_ * id);
+    } else {
+	return ((size_ + 1) * reste + ((id - reste) * size_));
+    }    
 }
 
 void scatter (T) (int root, int size, ref T [][] _in, ref T [][] _out, MPI_Comm comm) {
