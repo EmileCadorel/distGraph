@@ -37,6 +37,7 @@ class Protocol {
 	    argv [it] = args [it].toStringz [0 .. args [it].length + 1].dup.ptr;
 	}
 	
+	argv ~= [null];
 	auto aux = argv.ptr;	
 	if (args.length == 0) 
 	    aux = MPI_ARGV_NULL;
@@ -46,8 +47,29 @@ class Protocol {
 	MPI_Comm_spawn (toLaunch, cast (char**) aux, nbSpawn, MPI_INFO_NULL, 0, MPI_COMM_SELF, &workerComm, cast(int*) MPI_ERRCODES_IGNORE);
 	return workerComm;
     }
-    
+
+
     static MPI_Comm spawn (string worker) (int nbSpawn, string [] args) {
+	import std.string, core.stdc.stdio;
+	import utils.Options, std.stdio;
+	args ~= ["-t", worker];
+	char *[] argv = new char *[args.length];   
+	for (int it = 0; it < args.length; it ++) {
+	    argv [it] = cast (char*)(args [it].toStringz [0 .. args [it].length + 1].dup.ptr);
+	}
+	
+	argv ~= [null];
+	auto aux = argv.ptr;		
+	MPI_Comm workerComm;
+	auto process = Options.process;
+	if (process [0] != '.') process = "./" ~ process;
+	auto toLaunch = cast (char*)(process.toStringz [0 .. process.length + 1].dup.ptr);
+
+	MPI_Comm_spawn (toLaunch, cast (char**) aux, nbSpawn, MPI_INFO_NULL, 0, MPI_COMM_SELF, &workerComm, cast (int*) MPI_ERRCODES_IGNORE);
+	return workerComm;
+    }
+    
+    static MPI_Comm spawn (string worker) (int nbSpawn, string [] args, ref int [4] err) {
 	import std.string, core.stdc.stdio;
 	import utils.Options, std.stdio;
 	args ~= ["-t", worker];
@@ -56,14 +78,20 @@ class Protocol {
 	    argv [it] = cast (char*)(args [it].toStringz [0 .. args [it].length + 1].ptr);
 	}
 	
+	argv ~= [null];
 	auto aux = argv.ptr;		
 	MPI_Comm workerComm;
 	auto process = Options.process;
 	if (process [0] != '.') process = "./" ~ process;
 	auto toLaunch = cast (char*)(process.toStringz [0 .. process.length + 1].ptr);
-	MPI_Comm_spawn (toLaunch, cast (char**) aux, nbSpawn, MPI_INFO_NULL, 0, MPI_COMM_SELF, &workerComm, cast(int*) MPI_ERRCODES_IGNORE);
+	
+	MPI_Comm_spawn (toLaunch, cast (char**) aux, nbSpawn, MPI_INFO_NULL, 0, MPI_COMM_SELF, &workerComm, err.ptr);
 	return workerComm;
-    }    
+    }
+   
+    static void disconnect (MPI_Comm comm) {
+	MPI_Comm_disconnect (&comm);
+    }
     
     static MPI_Comm parent () {
 	MPI_Comm parent;
@@ -86,8 +114,10 @@ class Protocol {
 	    MPI_Comm_free (&comm);
     }
 
-
-    
+    static void barrier (MPI_Comm comm) {
+	MPI_Barrier (comm);
+    }
+       
 }
 
 class Process (P : Protocol) {

@@ -1,6 +1,7 @@
 module mpiez.Message;
 import mpi.mpi;
 import mpiez.ezBase;
+import base = mpiez.ezBase;
 import std.typecons;
 import std.traits;
 
@@ -74,6 +75,10 @@ class Message (int N, T ...) {
     void opCall (int procId, T params, MPI_Comm comm = MPI_COMM_WORLD) {
 	this._send (procId, params, comm);
     }
+
+    void ssend (int procId, T params, MPI_Comm comm = MPI_COMM_WORLD) {
+	this._ssend (procId, params, comm);
+    }
     
     void receive (ref T params, MPI_Comm comm = MPI_COMM_WORLD) {
 	this._recvAny (params, comm);
@@ -128,6 +133,19 @@ class Message (int N, T ...) {
 	}	
 	
 	void _send () (int procId, MPI_Comm comm) {}
+
+	void _ssend (T, TNext ...) (int procId, T param, TNext params, MPI_Comm comm) {
+	    base.ssend (procId, N, param, comm);
+	    this._ssend (procId, params, comm);
+	}
+
+	void _ssend (T : U*, U, T2 : ulong, TNext ...) (int procId, T param, T2 size, TNext params, MPI_Comm comm) {
+	    base.ssend (procId, N, param, size, comm);
+	    this._ssend (procId, params, comm);
+	}	
+	
+	void _ssend () (int procId, MPI_Comm comm) {}
+	
 	
 	void _recv (T, TNext ...) (int procId, ref T param, ref TNext params, MPI_Comm comm) {
 	    recv (procId, N, param, this._status, comm);

@@ -204,3 +204,17 @@ void syncWriteln (T ...) (T params) {
     barrier (MPI_COMM_WORLD);
 }
 
+void syncWriteln (Fst : MPI_Comm, T ...) (Fst comm, T params) {
+    import std.stdio;
+    int id, size;
+    MPI_Comm_rank (comm, &id);
+    MPI_Comm_size (comm, &size);
+    foreach (it ; 0 .. size) {
+	if (id == it)
+	    writeln (id, " => [", params, "]");
+	barrier (comm);
+    }
+    barrier (comm);
+}
+
+

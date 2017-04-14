@@ -16,10 +16,16 @@ class AdminMultipleDefinition : Exception {
 }
 
 static __gshared bool __admLaunched__ = false;
-
+static __gshared bool __finalized__ = false;
 
 alias Launchable = void function (int, int);
 Launchable [string] __skeletons__;
+
+
+void finalize () {
+    __finalized__ = true;
+    MPI_Finalize ();
+}
 
 void insertSkeleton (string name, Launchable skel) {
     __skeletons__ [name] = skel;
@@ -40,6 +46,8 @@ private bool checkT (T ...) () {
 }
 
 
+
+
 class Admin (T...)
     if (T.length == 1)
 	{
@@ -49,6 +57,8 @@ class Admin (T...)
 	    private Object _process;
 	    	    
 	    private Protocol _proto;
+	    
+	    private bool _skel;
 	    
 	    this (string [] args) {
 		if (!__admLaunched__) {
@@ -78,20 +88,25 @@ class Admin (T...)
 		auto type = Options [OptionEnum.TYPE];
 		foreach (key, value ; __skeletons__) {
 		    if (key == type) {
+			this._skel = true;
 			value (id, total);
 			return true;
 		    }
 		}
 		return false;
 	    }
-	    
+
+
 	    void finalize () {
-		MPI_Barrier (MPI_COMM_WORLD);
-		if (this._process) {
-		    delete this._process;
-		    delete this._proto;
-		}
-		MPI_Finalize ();
+		if (!__finalized__) {
+		    MPI_Barrier (MPI_COMM_WORLD);
+		    if (this._process) {
+			delete this._process;
+			delete this._proto;
+		    }
+		    __finalized__ = true;
+		    MPI_Finalize ();
+		}		
 	    }
     
 }

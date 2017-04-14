@@ -56,8 +56,9 @@ template Map (alias fun)
 	proto.send (0, array, slaveComm);
 	T2 [] res;
 	proto.res.receive (0, res, slaveComm);
+	proto.barrier (slaveComm);
+	proto.disconnect (slaveComm);
 	return res;	
-
     }
     
     void mapSlave (int id, int total) {
@@ -84,6 +85,8 @@ template Map (alias fun)
 	if (id == 0) {
 	    proto.res (0, aux, comm);
 	}
+	proto.barrier (comm);
+	proto.disconnect (comm);
     }
     
 }

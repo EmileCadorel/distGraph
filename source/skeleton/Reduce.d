@@ -51,10 +51,15 @@ template Reduce (alias fun)
 
 	nb = min (nb, array.length);
 	auto proto = new ReduceProto (0, nb);
-	auto slaveComm = proto.spawn!"#reduceSlave" (nb, ["--name", name, "--len", to!string (array.length)]);
+
+	int [4] err;
+	auto slaveComm = proto.spawn!"#reduceSlave" (nb, ["--name", name, "--size", to!string (array.length)]);	
+
 	proto.send (0, array, slaveComm);
 	T res;
 	proto.res.receive (0, res, slaveComm);
+	proto.barrier (slaveComm);
+	proto.disconnect (slaveComm);
 	return res;	
     }
 
@@ -71,7 +76,7 @@ template Reduce (alias fun)
 	auto proto = new ReduceProto (id, total);
 	auto comm = Protocol.parent ();
 
-	auto len = to!int (Options ["--len"]);
+	auto len = to!int (Options ["--size"]);
 	auto name = Options ["--name"];
 	auto func = register.get (name);
 	if (func is null)
@@ -85,7 +90,6 @@ template Reduce (alias fun)
 	T [] o;
 	scatter (0, len, array, o, MPI_COMM_WORLD);
 	auto res = reduce (o, cast (T function (T, T))(func));
-	syncWriteln (res);
 	T [] aux;
 	gather (0, total, res, aux, MPI_COMM_WORLD);
 
@@ -93,5 +97,7 @@ template Reduce (alias fun)
 	    res = reduce (aux, cast (T function (T, T))(func));
 	    proto.res (0, res, comm);
 	}
+	proto.barrier (comm);
+	proto.disconnect (comm);
     }
 }

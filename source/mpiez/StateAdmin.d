@@ -83,12 +83,15 @@ class StateAdmin (T ...) {
     }
     
     void finalize () {
-	MPI_Barrier (MPI_COMM_WORLD);
-	if (this._process) {
-	    delete this._process;
-	    delete this._proto;
+	if (!__finalized__) {
+	    MPI_Barrier (MPI_COMM_WORLD);
+	    if (this._process) {
+		delete this._process;
+		delete this._proto;
+	    }
+	    __finalized__ = true;
+	    MPI_Finalize ();
 	}
-	MPI_Finalize ();
     }
 
 }

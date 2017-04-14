@@ -74,6 +74,9 @@ template Generate (alias fun)
 	
 	T [] res;
 	proto.res.receive (0, res, slaveComm);
+	barrier (slaveComm);
+	
+	proto.disconnect (slaveComm);
 	return res;	
     }
     
@@ -101,11 +104,15 @@ template Generate (alias fun)
 	
 	T [] aux;
 	gather (0, len, res, aux, MPI_COMM_WORLD);
-	
+	barrier (MPI_COMM_WORLD);
 	if (id == 0) {
-	    proto.res (0, aux, comm);
+	    proto.res.ssend (0, aux, comm);
 	}
+	
+	barrier (comm);	
+	proto.disconnect (comm);
     }
+    
      
     
 }
