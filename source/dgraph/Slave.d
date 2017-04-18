@@ -27,17 +27,20 @@ class Slave {
 
     private static float __lambda__;
 
+    private MPI_Comm _parent;
+    
     ulong nbEdges;
     
-    this (Proto p, float lambda) {
+    this (Proto p, float lambda, MPI_Comm parent) {
 	this._proto = p;
 	__lambda__ = lambda;
+	this._parent = parent;
     }
 
     void run () {
 	while (!this._end) {
-	    this._proto.request (0, EDGE);
-	    this._proto.edge.receive (0, &this.edgeReceived);
+	    this._proto.request (0, EDGE, this._parent);
+	    this._proto.edge.receive (0, &this.edgeReceived, this._parent);
 	    if (!this._end && this._window.length % WINDOW_SIZE == 0) {
 		partitionWindow ();
 		this._window.clear ();
@@ -48,11 +51,11 @@ class Slave {
 		this._vertices.clear ();
 	    }
 	}
-	this._proto.end (0, END);
+	this._proto.end (0, END, this._parent);
     }
 
     private void partitionWindow () {
-	this._proto.state (0, (this._vertices.array));
+	this._proto.state (0, (this._vertices.array), this._parent);
 	Vertex [] vertices; ulong [] partitions;
 	stateReceive (vertices, partitions);
 	for (int it = 0, vt = 0; it < this._window.length; it ++, vt += 2) {
@@ -63,7 +66,7 @@ class Slave {
 	    auto p = selectPartitionHDRF (u, v, partitions);
 	    this._window [it].color = p;
 	}
-	this._proto.putState (0, (this._window.array));
+	this._proto.putState (0, (this._window.array), this._parent);
     }
 
     private float balanceScoreHDRF (ulong p, ulong max, ulong min, float lambda, float epsilon) {
@@ -118,7 +121,7 @@ class Slave {
     private void stateReceive (ref Vertex [] vertices, ref ulong [] partitions) {
 	ubyte * begin;
 	ulong len;
-	this._proto.getState.receive (0, begin, len, partitions);
+	this._proto.getState.receive (0, begin, len, partitions, this._parent);
 	while (len > 0) {
 	    vertices ~= Vertex.deserialize (begin, len);
 	}

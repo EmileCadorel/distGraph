@@ -12,7 +12,7 @@ class Proto : Protocol {
 	this.request = new Message!(1, byte);
 	this.edge = new Message!(2, ubyte*, ulong);
 	this.state = new Message!(3, ulong []);
-	this.getState = new Message!(4, Vertex[], ulong[]);
+	this.getState = new Message!(4, ubyte*, ulong, ulong[]);
 	this.putState = new Message!(5, Edge []);
 	this.end = new Message!(6, byte);
     }
@@ -27,7 +27,7 @@ class Proto : Protocol {
     Message!(3, ulong []) state;
 
     // l'etat courant du graphe
-    Message!(4, Vertex[], ulong []) getState;
+    Message!(4, ubyte*, ulong, ulong []) getState;
 
     // Met a jour le graphe
     Message!(5, Edge[]) putState;
@@ -46,7 +46,7 @@ struct Vertex {
     
     // On va partir du principe que pour le moment
     // il peut pas etre dans MAX_CUT partitions à la fois
-    long [MAX_CUT] partitions;
+    long [] partitions;
 
     bool isInPartition (ulong id) {
 	import std.algorithm;
@@ -63,6 +63,30 @@ struct Vertex {
 	}
 	assert (false, "Trop de découpage");
     }
+
+
+    long [] serialize () {
+	return (cast (long[]) ([this.id, this.degree, partitions.length])) ~ partitions;
+    }
+    
+    static Vertex deserialize (ref ubyte * val, ref ulong len) {
+	Vertex v;
+	auto value = cast (ulong*) val;
+	v.id = *(value);
+	v.degree = *(value + 1);
+	auto parts = cast (long*) (value + 2);
+	auto nb = *parts;
+	v.partitions = new long [nb];
+	foreach (it ; 0 .. nb) {
+	    v.partitions [it] = *(parts + it + 1);
+	}
+	
+	auto aux = cast (ubyte*) (parts + nb + 1);
+	len -= aux - val;
+	val = aux;
+	return v;
+    }
+
     
 }
 
@@ -83,16 +107,18 @@ class Graph {
 	return this._partitions;
     }
 
+
+    /++
+     Retourne le vertex (id), (le créer si il n'existe pas)
+     +/
     ref Vertex getVertex (ulong id) {
-	if (this._vertices.length <= id) {
-	    import std.algorithm;
-	    long [MAX_CUT] empty;
-	    foreach (it ; 0 .. empty.length)
-		empty [it] = -1L;
-	    
+	if (this._vertices.length <= id) {	    
 	    auto aux = new Vertex [id - this._vertices.length + 1];
-	    foreach (it ; 0 .. aux.length) 
-		aux [it] = Vertex (it + this._vertices.length, 0, empty);
+	    foreach (it ; 0 .. aux.length) {
+		aux [it] = Vertex (it + this._vertices.length, 0, new long [this._partitions.length]);
+		foreach (ref pt; aux [it].partitions)
+		    pt = -1;
+	    }
 	    this._vertices ~= aux;
 	}
 	return this._vertices [id];

@@ -51,7 +51,7 @@ class Slave {
     private void partitionWindow () {
 	this._proto.state (0, (this._vertices.array));
 	Vertex [] vertices; ulong [] partitions;
-	this._proto.getState.receive (0, vertices, partitions);
+	stateReceive (vertices, partitions);
 	for (int it = 0, vt = 0; it < this._window.length; it ++, vt += 2) {
 	    auto u = vertices [vt];
 	    auto v = vertices [vt + 1];
@@ -112,4 +112,14 @@ class Slave {
 	}
     }    
 
+    private void stateReceive (ref Vertex [] vertices, ref ulong [] partitions) {
+	ubyte * begin;
+	ulong len;
+	this._proto.getState.receive (0, begin, len, partitions);
+	while (len > 0) {
+	    vertices ~= Vertex.deserialize (begin, len);
+	}
+    }
+
+    
 }

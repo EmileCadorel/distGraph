@@ -119,12 +119,12 @@ class Master {
 
 
     private void computeState (int procId, ulong [] vertices) {
-	Vertex [] retVerts = new Vertex [vertices.length];
+	long [] retVerts;
 	foreach (it ; 0 .. vertices.length) {
-	    retVerts [it] = this._current.getVertex (vertices [it]);
+	    retVerts ~= this._current.getVertex (vertices [it]).serialize ();
 	}
 
-	this._proto.getState (procId, retVerts, this._current.partitions);
+	this._proto.getState (procId, cast (ubyte*)retVerts.ptr, retVerts.length * long.sizeof, this._current.partitions);
     }
     
     private void writeGraph () {

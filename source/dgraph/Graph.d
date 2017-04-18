@@ -29,7 +29,8 @@ class Graph {
 
     
     this (ulong nbPart) {
-	this._partitions = new ulong [nbPart];	
+	if (nbPart > 0)
+	    this._partitions = new ulong [nbPart];	
     }
 
     ref ulong [] partitions () {
@@ -78,7 +79,7 @@ class Graph {
 	    buf.writefln ("\t\tnode [style=filled];\n\t\tlabel=\"Part Cut\";\n\t\tpenwidth=10; \n\t\tcolor=blue;");
 	    ulong [][] parts = new ulong [][this._partitions.length];	    
 	    foreach (vt ; this._vertices) {
-		if (vt.partitions [1] != -1) {			
+		if (vt.partitions.length > 1 && vt.partitions [1] != -1) {			
 		    buf.writefln ("\t\t%d[label=\"%d/%d\"];", vt.id, vt.id, vt.degree);
 		} else if (vt.partitions [0] != -1) {
 		    parts [vt.partitions [0]] ~= [vt.id];

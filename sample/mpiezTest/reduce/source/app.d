@@ -19,14 +19,11 @@ void master (int id, int total) {
 	assert (false, "On a besion d'un fichier d'entrée");
 
     auto grp = DistGraphLoader.open (Options ["-i"], nb);
-    if (id == 0) {
-	writeln (grp.partitions);
-	auto filename = "out.dot";
-	if (Options.active ("-o")) filename = Options ["-o"];
-	auto file = File (filename, "w+");
-	file.write (grp.toDot (null, true).toString);
-	file.close ();
-    }
+    auto filename = "out" ~ to!string (id) ~ ".dot";
+    if (Options.active ("-o")) filename = Options ["-o"];
+    auto file = File (filename, "w+");
+    file.write (grp.toDot (null, true).toString);
+    file.close ();    
 }
 
 int main (string [] args) {
