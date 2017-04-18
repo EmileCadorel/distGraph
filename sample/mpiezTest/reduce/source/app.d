@@ -7,21 +7,26 @@ import utils.FunctionTable;
 import std.conv, std.math, std.algorithm;
 import skeleton.Reduce, skeleton.Map;
 import skeleton.Generate;
-
+import dgraph.DistGraphLoader;
 
 void master (int id, int total) {
-    import std.random;
-    auto len = to!(int) (Options ["-u"]);
     auto nb = 2;
     if (Options.active ("-n"))
 	nb = to!(int) (Options ["-n"]);
-    
-    for (int i = 0; i < 1000; i++) {
-	writeln ("Loop ", i);
-	auto array = Generate!((ulong i) => cast (int) i).run (len, nb);
-	writeln (Reduce!((int a, int b) => a + b).run (array, nb));        
-    }    
+    if (Options.active ("-l"))
+	DistGraphLoader.lambda = to!float (Options ["-l"]);
+    if (!Options.active ("-i"))
+	assert (false, "On a besion d'un fichier d'entrée");
 
+    auto grp = DistGraphLoader.open (Options ["-i"], nb);
+    if (id == 0) {
+	writeln (grp.partitions);
+	auto filename = "out.dot";
+	if (Options.active ("-o")) filename = Options ["-o"];
+	auto file = File (filename, "w+");
+	file.write (grp.toDot (null, true).toString);
+	file.close ();
+    }
 }
 
 int main (string [] args) {

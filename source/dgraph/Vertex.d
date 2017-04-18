@@ -5,85 +5,50 @@ import std.outbuffer;
 import std.traits;
 import utils.Colors, dgraph.Partition;
 
-/++
- La classe vertex représente un sommet du graphe, il est identifié par un ID unique
-+/
-class Vertex {
-    
-    /++ Cet ID doit être unique dans un graphe +/
-    private ulong _id;
 
-    private Array!Edge _edges;
+struct Vertex {
+    ulong id;
 
-    /++ Peut être différent de len (edges) en cours de chargement du graphe +/
-    /++ On lis forcement une arête pour découvrir le sommet +/
-    private ulong _degree = 1;
+    ulong degree;
     
-    private Array!ulong _partitions;
-    
-    this (ulong id) {
-	this._id = id;
-    }
-    
-    const(ulong) id () const {
-	return this._id;
-    }       
+    long [] partitions;
 
-    /++
-     Ajoute une arête au sommet.
-     +/
-    void addEdge (Edge edge) {
-	this._edges.insertBack (edge);
-    }
-
-    const (Array!ulong) partitions () const {
-	return this._partitions;
-    }
-    
-    /++
-     Retourne les partitions qui contiennent le sommet.
-     +/
-    ref Array!ulong partitions () {
-	return this._partitions;
-    }
-    
-    bool isInPartition (const ulong p) const {
+    bool isInPartition (ulong id) {
 	import std.algorithm;
-	return !(find!"a == b" (this._partitions [], p).empty);
+	return find!("a == cast(long)b") (partitions [], id).length > 0;
     }
 
-    bool addPartition (const ulong p) {
-	import std.algorithm;
-	if (find!"a == b" (this._partitions [], p).empty) {
-	    this._partitions.insertBack (p);
-	    return true;
-	}
-	return false;
-    }
-
-    ref ulong degree () {
-	return this._degree;
-    }
-    
-    /++
-     Ecris le sommet au format Dot dans le buffer
-     +/
-    OutBuffer toDot (OutBuffer buf, ulong byPart = 0) {
-	if (byPart == 0) {
-	    foreach (it; this._edges)
-		it.toDot (buf);
-	} else {
-	    foreach (it ; this._edges) {
-		if (it.color == byPart)
-		    it.toDot (buf);
+    bool addPartition (ulong id) {
+	foreach (ref it ; this.partitions) {
+	    if (it == id) return false;
+	    else if (it == -1) {
+		it = id;
+		return true;
 	    }
 	}
-	return buf;
+	assert (false, "Trop de découpage");
     }
 
-    override string toString () {
-	import std.conv;
-	return to!string (this._id);
+    long [] serialize () {
+	return (cast (long[]) ([this.id, this.degree, partitions.length])) ~ partitions;
+    }
+    
+    static Vertex deserialize (ref ubyte * val, ref ulong len) {
+	Vertex v;
+	auto value = cast (ulong*) val;
+	v.id = *(value);
+	v.degree = *(value + 1);
+	auto parts = cast (long*) (value + 2);
+	auto nb = *parts;
+	v.partitions = new long [nb];
+	foreach (it ; 0 .. nb) {
+	    v.partitions [it] = *(parts + it + 1);
+	}
+	
+	auto aux = cast (ubyte*) (parts + nb + 1);
+	len -= aux - val;
+	val = aux;
+	return v;
     }
     
 }
