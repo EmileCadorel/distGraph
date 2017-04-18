@@ -6,7 +6,7 @@ import std.traits;
 import utils.FunctionTable;
 import std.conv, std.math, std.algorithm;
 import skeleton.Reduce, skeleton.Map;
-import skeleton.Generate;
+import skeleton.Reverse, skeleton.SubGraph;
 import dgraph.DistGraphLoader;
 
 void master (int id, int total) {
@@ -19,6 +19,12 @@ void master (int id, int total) {
 	assert (false, "On a besion d'un fichier d'entrée");
 
     auto grp = DistGraphLoader.open (Options ["-i"], nb);
+    grp = Reverse (SubGraph!((Vertex v) => v.id % 2 == 0,
+			     (Edge e) => e.src % 2 == e.dst % 2).run(grp)
+    );
+    
+
+    
     auto filename = "out" ~ to!string (id) ~ ".dot";
     if (Options.active ("-o")) filename = Options ["-o"];
     auto file = File (filename, "w+");

@@ -1,7 +1,7 @@
 module dgraph.DistGraphLoader;
 import utils.Singleton;
 import std.stdio;
-import dgraph.Graph, dgraph.Edge;
+public import dgraph.Graph, dgraph.Edge, dgraph.Vertex;
 import std.string, std.conv;
 import std.container, std.algorithm;
 import dgraph.Partition;

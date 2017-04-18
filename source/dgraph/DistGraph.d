@@ -24,6 +24,19 @@ class DistGraph {
 	this._color = color;
     }
 
+    Vertex [ulong] vertices () {
+	return this._vertices;
+    }
+    
+    
+    Array!Edge edges () {
+	return this._edges;
+    }
+
+    bool hasVertex (ulong id) {
+	return (id in this._vertices) !is null;
+    }
+    
     Vertex getVertex (ulong id) {
 	auto vt = id in this._vertices;
 	if (vt is null) assert (false);
