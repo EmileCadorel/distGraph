@@ -50,6 +50,7 @@ class Master {
     }
     
     private void _next () {
+	import std.string;
 	this._read = false;
 	while (true) {
 	    auto line = this._file.readln ();
@@ -62,9 +63,13 @@ class Master {
 		    this._read = true;
 		    auto pos = this._file.tell ();
 		    auto perc = to!int (to!float (pos) / to!float(this._length) * 100.);
-		    if (perc > 50) {
+		    if (perc > this._currentPercent) {
 			this._currentPercent = perc;
-			//	writeln (this._currentPercent, "/", 100);
+			writef ("\rChargement du graphe : %s>%s%d%c",
+				leftJustify ("[", this._currentPercent, '='),
+				rightJustify ("]", 100 - this._currentPercent, ' '),
+				this._currentPercent, '%');
+			stdout.flush;
 		    }
 		    break;
 		}
