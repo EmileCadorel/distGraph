@@ -8,7 +8,10 @@ import utils.Options;
 
 
 private bool checkFunc (alias fun) () {
-    static assert ((is (typeof(&fun) U : U*) && is (U == function)) || (is (fun T2) && is(T2 == function)));
+    static assert ((is (typeof(&fun) U : U*) && (is (U == function)) ||
+		    is (typeof (&fun) U == delegate)) ||
+		   (is (fun T2) && is(T2 == function)) || isFunctionPointer!fun);
+
     alias a1 = ParameterTypeTuple! (fun);
     alias r1 = ReturnType!fun;
     static assert (a1.length == 2 && is (a1[0] == a1 [1]) && is (r1 == a1 [0]), "On a besoin de : T function (T) (T, T)");
@@ -22,7 +25,10 @@ template Reduce (alias fun)
     
     static this () {
 	insertSkeleton ("#reduceSlave", &reduceSlave);
-	register.add (fullyQualifiedName!fun, &fun);
+	static if (isFunctionPointer!fun)
+	    register.add (fullyQualifiedName!fun, fun);
+	else
+	    register.add (fullyQualifiedName!fun, &fun);
     }
 
     class ReduceProto : Protocol {

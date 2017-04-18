@@ -62,7 +62,7 @@ class Admin (T...)
 	    
 	    this (string [] args) {
 		if (!__admLaunched__) {
-		    __admLaunched__ = true;	  
+		    __admLaunched__ = true;
 		    MPI_Init (args);
 		    Options.init (args);
 		    int nprocs, id;
@@ -73,7 +73,7 @@ class Admin (T...)
 		    static if (is(T[0] : Process!P, P : Protocol)) {
 			alias Proto = TemplateArgsOf!Type [0]; 
 			this._proto = new Proto (id, nprocs);
-			this._process = new Type (this._proto);
+			this._process = new Type (cast (Proto) this._proto);
 			
 			MPI_Barrier (MPI_COMM_WORLD);
 			(cast (Type)this._process).routine ();

@@ -1065,6 +1065,7 @@ void MPI_Get_globals() {
 void MPI_Init(string[] args) {
     import std.conv, std.stdio;
     import core.stdc.stdio;
+    import std.datetime;
     
     // Convert arguments to C form
     auto argc = to!int(args.length);    
@@ -1075,11 +1076,12 @@ void MPI_Init(string[] args) {
     
     auto aux = argv.ptr;
     // Call C function
-    
+    auto begin = Clock.currTime ();
     if( MPI_Init(&argc, &aux) ) {
 	// Convert error code to an exception
 	throw new Exception("Failed to initialise MPI");
     }
+    writeln ("Init a pris ", Clock.currTime - begin);
     // Set globals
     MPI_Get_globals();
 }

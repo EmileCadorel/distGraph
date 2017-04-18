@@ -6,9 +6,11 @@ import std.algorithm;
 import std.conv;
 import utils.Options;
 
-
 private bool checkFunc (alias fun) () {
-        static assert ((is (typeof(&fun) U : U*) && is (U == function)) || (is (fun T2) && is(T2 == function)));
+    static assert ((is (typeof(&fun) U : U*) && (is (U == function)) ||
+		    is (typeof (&fun) U == delegate)) ||
+		   (is (fun T2) && is(T2 == function)) || isFunctionPointer!fun);
+    
     alias a1 = ParameterTypeTuple! (fun);
     alias r1 = ReturnType!fun;
     static if (a1.length == 1) {
@@ -30,10 +32,13 @@ template Generate (alias fun)
     static if (PARAMLENGTH == 2) {
 	alias N = ParameterTypeTuple!(fun) [1];
     }	
-
+    
     static this () {
 	insertSkeleton ("#generateSlave", &generateSlave);
-	register.add (fullyQualifiedName!fun, &fun);
+	static if (isFunctionPointer!fun)
+	    register.add (fullyQualifiedName!fun, fun);
+	else
+	    register.add (fullyQualifiedName!fun, &fun);
     }
 
     class GenerateProto : Protocol {
