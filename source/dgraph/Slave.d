@@ -28,18 +28,18 @@ class Slave {
 
     private static float __lambda__;
     
-    private DistGraph _dist;    
+    private DistGraph!(VertexD, EdgeD) _dist;    
     
     ulong nbEdges;
     
     this (Proto p, float lambda) {
 	this._proto = p;
 	__lambda__ = lambda;
-	this._dist = new DistGraph (p.id, p.total);
+	this._dist = new DistGraph!(VertexD, EdgeD) (p.id, p.total);
     }
 
 
-    DistGraph dgraph () {
+    DistGraph!(VertexD, EdgeD) dgraph () {
 	return this._dist;
     }
     
@@ -150,7 +150,7 @@ class Slave {
     }
     
     private void graphEdgeRec (Edge [] edges) {	
-	this._dist.edges = edges;
+	this._dist.setEdges(edges);
     }
     
     private void stateReceive (ref Vertex [] vertices, ref ulong [] partitions) {

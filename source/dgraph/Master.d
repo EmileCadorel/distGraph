@@ -26,21 +26,21 @@ class Master {
 
     private ulong _currentPercent;
     
-    private DistGraph _dist;    
+    private DistGraph!(VertexD, EdgeD) _dist;    
     
     
     this (Proto p, string filename, ulong size) {
 	this._proto = p;
 	this._filename = filename;
 	this._current = new Graph (size);
-	this._dist = new DistGraph (p.id, size);
+	this._dist = new DistGraph!(VertexD, EdgeD) (p.id, size);
     }
 
     Graph graph () {
 	return this._current;
     }
 
-    DistGraph dgraph () {
+    DistGraph!(VertexD, EdgeD) dgraph () {
 	return this._dist;
     }
     
@@ -71,7 +71,7 @@ class Master {
 	    } else break;	    
 	}
     }
-
+    
     private auto _open (string filename) {
 	auto file = File (filename, "r");
 	file.seek (0, SEEK_END);
@@ -132,7 +132,7 @@ class Master {
 
 	foreach (it ; 0 .. this._current.edges.length) {
 	    if (it == 0) {
-		this._dist.edges = this._current.edges [it].array ();
+		this._dist.setEdges(this._current.edges [it].array ());
 	    } else {
 		this._proto.graphEdge (cast (int) it, this._current.edges [it].array ());
 	    }

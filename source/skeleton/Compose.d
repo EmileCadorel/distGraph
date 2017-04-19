@@ -7,6 +7,8 @@ public import skeleton.Reduce;
 public import skeleton.Reverse;
 public import skeleton.SubGraph;
 public import skeleton.Zip;
+public import skeleton.MapVertices;
+public import skeleton.MapEdges;
 
 import std.typecons;
 

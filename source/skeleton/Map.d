@@ -24,10 +24,10 @@ template Map (alias fun)
     alias T2 = ReturnType!fun;
 
 
-    T2[] map (T2, T : U [], U) (T array, T2 function (U) op) {
+    T2[] map (T2, T : U [], U) (T array) {
 	T2 [] res = new T2 [array.length];
 	foreach (it ; 0 .. array.length)
-	    res [it] = op (array [it]);
+	    res [it] = fun (array [it]);
 	return res;
     }
     

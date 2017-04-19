@@ -7,6 +7,25 @@ import skeleton.Compose;
 import dgraph.DistGraphLoader;
 import std.datetime;
 
+class VertexDD (T) : VertexD  {
+
+    private T _val;
+    
+    this (Vertex v) {
+	super (v);	
+    }
+
+    ref T val () {
+	return this._val;
+    }
+
+    override string toString () {
+	import std.format;
+	return format ("\t\t%d[label=\"%d%s\"];", id(), id(), to!string(this._val));
+    }    
+    
+}
+
 void master (int id, int total) {
     auto nb = 2;
     if (Options.active ("-n"))
@@ -17,34 +36,26 @@ void master (int id, int total) {
 	assert (false, "On a besion d'un fichier d'entrée");
 
     auto grp = DistGraphLoader.open (Options ["-i"], nb);
-    grp = grp.SubGraph!((Vertex v) => v.id % 2 == 0,
-			(Edge e) => e.src % 2 == e.dst % 2).Reverse ();
     
-    auto begin = Clock.currTime;
-    auto inDeg = grp.inDegree ();
-    auto outDeg = grp.outDegree ();
-    auto totalDeg = grp.totalDegree ();
-    
-    syncWriteln (Clock.currTime - begin);
-    
-    auto maxIn = Reduce!((Ids!ulong a, Ids!ulong b) {
-	    return a.value > b.value ? a : b;
-	}) (inDeg);
-    
-    auto maxOut = Reduce!((Ids!ulong a, Ids!ulong b) {
-	    return a.value > b.value ? a : b;
-	}) (outDeg);
-    
-    auto maxTotal = Reduce!((Ids!ulong a, Ids!ulong b) {
-	    return a.value > b.value ? a : b;
-	}) (totalDeg);
-    
-    
-    syncWriteln (
-	"In (", maxIn.id, ", ", maxIn.value, ") ",
-	"Out (", maxOut.id, ", ", maxOut.value, ") ",
-	"Total (", maxTotal.id, ", ", maxTotal.value, ") "
+    auto grp2 = grp.MapVertices!((VertexD v) {	    
+	    auto res = new VertexDD!string (v.data);
+	    res.val = to!string (cast (char) (res.id + 'a'));
+	    return res;
+	}
     );
+
+    auto grp3 = grp2.MapEdges!((EdgeD e) {
+	    return new EdgeD (Edge (e.dst, e.src, e.color));	    
+	}
+    );
+    
+    auto file = File ("bout" ~ to!string (id) ~ ".dot", "w+");
+    file.write (grp.toDot ().toString);
+    file.close ();
+
+    file = File ("out" ~ to!string (id) ~ ".dot", "w+");
+    file.write (grp3.toDot ().toString);
+    file.close ();
 }
 
 int main (string [] args) {

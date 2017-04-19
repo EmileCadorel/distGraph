@@ -68,7 +68,7 @@ class DistGraphLoaderS {
 	return this._lambda;
     }
 
-    DistGraph open (string filename, int nbWorker = 2) {	
+    DistGraph!(VertexD, EdgeD) open (string filename, int nbWorker = 2) {	
 	auto info = Proto.commInfo (MPI_COMM_WORLD);
 	nbWorker = info.total < nbWorker ? info.total : nbWorker;
 	auto proto = new Proto (info.id, info.total);

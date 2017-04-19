@@ -22,7 +22,7 @@ private enum ZIP = 1;
 private enum END = 2;
 
 
-private ulong [] zipAll (DistGraph dg, ulong [] values) {
+private ulong [] zipAll (T : DistGraph!(VD, ED), VD, ED) (T dg, ulong [] values) {
     auto info = Protocol.commInfo (MPI_COMM_WORLD);
     auto proto = new Proto (info.id, info.total);
     if (info.id == 0) {
@@ -50,7 +50,7 @@ private ulong [] zipAll (DistGraph dg, ulong [] values) {
     }    
 }
 
-ulong [] inDegree (DistGraph dg) {
+ulong [] inDegree (T : DistGraph!(VD, ED), VD, ED) (T dg) {
     // On commence par calculer ce qu'on peut.
     ulong [] res = new ulong [dg.total];
 	
@@ -62,7 +62,7 @@ ulong [] inDegree (DistGraph dg) {
     return zipAll (dg, res);
 }
 
-ulong [] outDegree (DistGraph dg) {
+ulong [] outDegree (T : DistGraph!(VD, ED), VD, ED) (T dg) {
     // On commence par calculer ce qu'on peut.
     ulong [] res = new ulong [dg.total];
 	
@@ -74,7 +74,7 @@ ulong [] outDegree (DistGraph dg) {
     return zipAll (dg, res);
 }
 
-ulong [] totalDegree (DistGraph dg) {
+ulong [] totalDegree (T : DistGraph!(VD, ED), VD, ED) (T dg) {
     // On commence par calculer ce qu'on peut.
     ulong [] res = new ulong [dg.total];
 	

@@ -53,6 +53,37 @@ struct Vertex {
 	len -= aux - val;
 	val = aux;
 	return v;
+    }    
+}
+
+class VertexD {
+
+    private Vertex _data;
+
+    this (Vertex v) {
+	this._data = v;
+    }
+
+    Vertex data () {
+	return this._data;
+    }
+
+    ulong id () {
+	return this._data.id;
+    }
+
+    bool isCut () {
+	return this._data.isCut;
+    }
+    
+    long [] partitions () {
+	return this._data.partitions;
+    }
+
+    override string toString () {
+	import std.format;
+	return format ("\t\t%d[label=\"%d\"];", this.id, this.id);
     }
     
 }
+

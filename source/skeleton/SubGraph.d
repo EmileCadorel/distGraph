@@ -14,7 +14,7 @@ private bool checkFuncVert (alias fun) () {
     
     alias a1 = ParameterTypeTuple! (fun);
     alias r1 = ReturnType!fun;
-    static assert (is (a1[0] : Vertex) && is (r1 == bool), "On a besoin de : bool function (Vertex)");        
+    static assert (is (a1[0] : VertexD) && is (r1 == bool), "On a besoin de : bool function (Vertex)");        
 
     return true;
 }
@@ -26,7 +26,7 @@ private bool checkFuncEdge (alias fun) () {
     
     alias a1 = ParameterTypeTuple! (fun);
     alias r1 = ReturnType!fun;
-    static assert (is (a1[0] : Edge) && is (r1 == bool), "On a besoin de : bool function (Edge)");        
+    static assert (is (a1[0] : EdgeD) && is (r1 == bool), "On a besoin de : bool function (Edge)");        
 
     return true;
 }
@@ -34,22 +34,22 @@ private bool checkFuncEdge (alias fun) () {
 template SubGraph (X ...)
     if (X.length == 2 && checkFuncEdge!(X [1]) && checkFuncVert!(X [0])) {
 
-    DistGraph SubGraph (DistGraph grp) {
-	auto aux = new DistGraph (grp.color, grp.nbColor);
-	aux.total = grp.total;
-	foreach (key, vt ; grp.vertices) {
-	    if (X [0] (vt))
-		aux.addVertex (vt);
-	}
-
-	Array!Edge edges;
-	foreach (et ; grp.edges) {
-	    if (aux.hasVertex (et.src) && aux.hasVertex (et.dst))
-		if (X [1] (et)) edges.insertBack (et);
-	}
-	
-	aux.edges = edges.array ();	
-	return aux;
+     DistGraph!(VD, ED) SubGraph (T : DistGraph!(VD, ED), VD, ED) (T grp) {
+	 auto aux = new DistGraph!(VD, ED) (grp.color, grp.nbColor);
+	 aux.total = grp.total;
+	 foreach (key, vt ; grp.vertices) {
+	     if (X [0] (vt))
+		 aux.addVertex (vt);
+	 }
+	 
+	 Array!EdgeD edges;
+	 foreach (et ; grp.edges) {
+	     if (aux.hasVertex (et.src) && aux.hasVertex (et.dst))
+		 if (X [1] (et)) edges.insertBack (et);
+	 }
+	 
+	 aux.edges = edges.array ();	
+	 return aux;
     }
     
     
