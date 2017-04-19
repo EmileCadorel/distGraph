@@ -37,17 +37,23 @@ void master (int id, int total) {
 
     auto grp = DistGraphLoader.open (Options ["-i"], nb);
     
-    auto grp2 = grp.MapVertices!((VertexD v) {	    
+    auto grp2 = grp.MapVertices!(
+	(VertexD v) {	    
 	    auto res = new VertexDD!string (v.data);
 	    res.val = to!string (cast (char) (res.id + 'a'));
 	    return res;
 	}
     );
 
-    auto grp3 = grp2.MapEdges!((EdgeD e) {
+    auto grp3 = grp2.MapEdges!(
+	(EdgeD e) {
 	    return new EdgeD (Edge (e.dst, e.src, e.color));	    
 	}
     );
+    
+    grp3 = grp3.FilterEdges!((EdgeD e) => e.dst != 6 && e.src != 6).
+	FilterVertices!((VertexDD!string v) => v.val != "g");
+	
     
     auto file = File ("bout" ~ to!string (id) ~ ".dot", "w+");
     file.write (grp.toDot ().toString);
