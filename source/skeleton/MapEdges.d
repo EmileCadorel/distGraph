@@ -41,3 +41,5 @@ template MapEdges (alias fun)
     }    
 }
 
+alias ReverseEdgeDirection = MapEdges! ((EdgeD ed) => new EdgeD (Edge (ed.dst, ed.src, ed.color)));
+
