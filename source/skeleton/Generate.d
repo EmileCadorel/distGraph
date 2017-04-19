@@ -48,7 +48,7 @@ template Generate (alias fun) {
 	return array;
     }    
 
-    T [] run (int len) {
+    T [] Generate (int len) {
 	auto info = Protocol.commInfo (MPI_COMM_WORLD);
 	auto pos = computeLen (len, info.id, info.total);
     	auto o = new T [pos.len];
@@ -110,7 +110,7 @@ template GenerateS (alias fun)
 	return array;
     }    
     
-    T [] run (ulong len, int nb = 2) {
+    T [] Generate (ulong len, int nb = 2) {
 	import std.math;
 	auto name = fullyQualifiedName!fun;
 	auto func = register.get(name);

@@ -49,6 +49,10 @@ class Graph {
     Array!Edge [] edges () {
 	return this._edgesPart;
     }
+
+    Vertex [] verticesTotal () {
+	return this._vertices;
+    }
     
     /++
      Retourne le vertex (id), (le créer si il n'existe pas)

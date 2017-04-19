@@ -3,7 +3,7 @@ import mpiez.admin;
 import dgraph.DistGraph;
 
 DistGraph Reverse (DistGraph dg) {
-    auto aux = new DistGraph (dg.color);
+    auto aux = new DistGraph (dg.color, dg.nbColor);
     foreach (key, vt ; dg.vertices) {
 	aux.addVertex (vt);
     }

@@ -62,9 +62,9 @@ void broadcast (T : U [], U) (int root, ref T _in, MPI_Comm comm) {
     auto len = _in.length;
     broadcast (root, len, comm);
     if (info.id != root) {
-	_in = new T [len];
+	_in = new U [len];
     }
-    MPI_Bcast (_in.ptr, len * T.sizeof, MPI_BYTE, root, comm);	
+    MPI_Bcast (_in.ptr, cast (int) (len * U.sizeof), MPI_BYTE, root, comm);	
 }
 
 void scatter (T) (int root, int size, ref T [][] _in, ref T [][] _out, MPI_Comm comm) {

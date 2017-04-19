@@ -34,7 +34,7 @@ private bool checkFuncEdge (alias fun) () {
 template SubGraph (X ...)
     if (X.length == 2 && checkFuncEdge!(X [1]) && checkFuncVert!(X [0])) {
 
-    DistGraph run (DistGraph grp) {
+    DistGraph SubGraph (DistGraph grp) {
 	auto aux = new DistGraph (grp.color);
 	foreach (key, vt ; grp.vertices) {
 	    if (X [0] (vt))

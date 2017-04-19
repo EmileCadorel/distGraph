@@ -2,20 +2,32 @@ module test;
 import std.stdio;
 import mpiez.admin;
 import utils.Options;
-import std.traits;
-import utils.FunctionTable;
 import std.conv, std.math, std.algorithm;
 import skeleton.Compose;
 import dgraph.DistGraphLoader;
+import std.datetime;
 
 void master (int id, int total) {
-    auto a = Generate! ((ulong i) => 1UL).run (100000);
-    auto b = Generate!((ulong i) => 1UL).run (100000);
-    auto c = Zip! (2,(ulong i, ulong j) => i + j).run (a, b);
-    auto d = Reduce!((ulong i, ulong j) => i + j).run (c);
-    if (id == 0)
-	writeln (d);
-    
+    auto nb = 2;
+    if (Options.active ("-n"))
+	nb = to!(int) (Options ["-n"]);
+    if (Options.active ("-l"))
+	DistGraphLoader.lambda = to!float (Options ["-l"]);
+    if (!Options.active ("-i"))
+	assert (false, "On a besion d'un fichier d'entrée");
+
+    auto grp = DistGraphLoader.open (Options ["-i"], nb);
+    /*grp = Reverse (SubGraph!((Vertex v) => v.id % 2 == 0,
+			     (Edge e) => e.src % 2 == e.dst % 2).run(grp)
+			     );*/    
+
+    auto begin = Clock.currTime;
+    auto degrees = inDegree (grp);
+    syncWriteln (Clock.currTime - begin);
+    auto x = Reduce!((Ids!ulong a, Ids!ulong b) {
+	    return a.value > b.value ? a : b;
+	}) (degrees);
+    syncWriteln (x.value, " ", x.id);
 }
 
 int main (string [] args) {

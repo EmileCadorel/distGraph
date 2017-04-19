@@ -31,7 +31,7 @@ template Map (alias fun)
 	return res;
     }
     
-    U [] run (T : I []) (T a) {
+    U [] Map (T : I []) (T a) {
 	auto info = Protocol.commInfo (MPI_COMM_WORLD);
 	T [] o;
 	int len = cast (int) a.length;
@@ -78,7 +78,7 @@ template MapS (alias fun)
 	Message!(2, T2 []) res;
     }
     
-    T2 [] run (T [] array, int nb = 2) {
+    T2 [] Map (T [] array, int nb = 2) {
 	import std.math;
 	auto name = fullyQualifiedName!fun;
 	auto func = register.get(name);

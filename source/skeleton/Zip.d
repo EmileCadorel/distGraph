@@ -13,9 +13,7 @@ private bool checkFunc (int len = 2, alias fun) () {
     return true;
 }
 
-template Zip (alias fun) {
-    mixin Zip!(2, fun);
-}
+alias Zip (alias fun) = Zip!(2, fun);
 
 template Zip (int len = 2, alias fun)
     if (checkFunc!(len , fun)) {
@@ -33,7 +31,7 @@ template Zip (int len = 2, alias fun)
 	return res;
     }
 
-    U [] run (T : I [], T2 : I2 []) (T a, T2 b) {
+    U [] Zip (T : I [], T2 : I2 []) (T a, T2 b) {
 	auto info = Protocol.commInfo (MPI_COMM_WORLD);
 	T o; T2 i;
 	int len = cast (int) a.length;

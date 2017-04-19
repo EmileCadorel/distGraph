@@ -33,7 +33,7 @@ class Master {
 	this._proto = p;
 	this._filename = filename;
 	this._current = new Graph (size);
-	this._dist = new DistGraph (p.id);
+	this._dist = new DistGraph (p.id, size);
     }
 
     Graph graph () {
@@ -85,10 +85,10 @@ class Master {
 	this._file = this._open (this._filename);
 	int nb = 0;
 	while (nb < total) {	    
-	    int type; byte useless;
+	    int type; ulong useless; byte uselessb;
 	    auto status = this._proto.probe (MPI_ANY_SOURCE, MPI_ANY_TAG);
 	    if (status.MPI_TAG == 1) {
-		this._proto.request.receive (status.MPI_SOURCE, useless);
+		this._proto.request.receive (status.MPI_SOURCE, uselessb);
 		this._next ();
 		if (this._read) {
 		    Serializer!(Edge*) serial;
@@ -115,6 +115,7 @@ class Master {
 	}
 
 	disrtribute ();		
+	writeln ("");
     }
 
     private void disrtribute () {
@@ -138,8 +139,10 @@ class Master {
 	}
 
 	foreach (it ; 0 .. this._proto.total) {
-	    this._proto.end (cast (int) it, 0);	    
-	}	
+	    this._proto.end (cast (int) it, this._current.verticesTotal.length);	    
+	}
+	
+	this._dist.total = this._current.verticesTotal.length;
     }
 
     private void computeState (int procId, ulong [] vertices) {

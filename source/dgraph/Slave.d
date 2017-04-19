@@ -35,7 +35,7 @@ class Slave {
     this (Proto p, float lambda) {
 	this._proto = p;
 	__lambda__ = lambda;
-	this._dist = new DistGraph (p.id);
+	this._dist = new DistGraph (p.id, p.total);
     }
 
 
@@ -65,8 +65,9 @@ class Slave {
 	while (true) {
 	    auto status = this._proto.probe ();
 	    if (status.MPI_TAG == this._proto.end.TAG) {
-		byte useless;
-		this._proto.end.receive (0, useless);
+		ulong len;
+		this._proto.end.receive (0, len);
+		this._dist.total = len;
 		break;
 	    } else if (status.MPI_TAG == this._proto.graphVert.TAG) {
 		this._proto.graphVert.receive (0, &this.graphVertRec);

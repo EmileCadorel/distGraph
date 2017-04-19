@@ -34,7 +34,7 @@ class Proto : Protocol {
 	this.putState = new Message!(5, Edge []);
 	this.graphEdge = new Message!(7, Edge[]);
 	this.graphVert = new Message!(8, long []);
-	this.end = new Message!(6, byte);
+	this.end = new Message!(6, ulong);
     }
 
     // Id de la requete
@@ -56,7 +56,7 @@ class Proto : Protocol {
 
     Message!(8, long []) graphVert;
     
-    Message!(6, byte) end;
+    Message!(6, ulong) end;
 }
 
 

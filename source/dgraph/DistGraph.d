@@ -16,28 +16,37 @@ class DistGraph {
 
     private Vertex [ulong] _vertices;
 
-    private Array!Vertex [ulong] _cuts;
+    private Array!(Vertex) [] _cuts;
+
+    private ulong _total;
     
     private Edge[] _edges;
 
     private ulong _color;
     
-    this (ulong color) {
+    this (ulong color, ulong total) {
 	this._color = color;
+	this._cuts = new Array!Vertex [total];
     }
 
     Vertex [ulong] vertices () {
 	return this._vertices;
     }    
 
-    Array!Vertex [ulong] cuts () {
+    Array!Vertex [] cuts () {
 	return this._cuts;
     }
 
+    const (ulong) nbColor () {
+	return this._cuts.length;
+    }
+    
+    ref ulong total () {
+	return this._total;
+    }
+    
     ulong communicate (ulong color) {
-	auto nb = color in this._cuts;
-	if (nb is null) return 0;
-	else return nb.length;
+	return this._cuts [color].length;
     }    
     
     ref Edge [] edges () {
@@ -56,7 +65,7 @@ class DistGraph {
 
     void addVertex (Vertex vt) {
 	this._vertices [vt.id] = vt;
-	if (vt.isCut) {
+	if (vt.isCut) {	    
 	    foreach (it ; vt.partitions) {
 		if (it == -1) break;
 		else if (it != this._color)
