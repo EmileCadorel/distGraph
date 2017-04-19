@@ -33,11 +33,17 @@ template FilterVertices (alias fun)
     }
    
     DistGraph!(I, E) FilterVertices (T : DistGraph!(I, E), E) (T a) {
+	import std.container, std.array;
 	//TODO, synchroniser avec les autres partitions pour voir si tout le monde à le même ID.
 	auto aux = new DistGraph!(I, E) (a.color, a.nbColor);
 	aux.total = a.total;
 	aux.vertices = filter (a.vertices);
-	aux.edges = a.edges;
+	Array!E arr;
+	foreach (it ; a.edges) {
+	    if (it.src in aux.vertices && it.dst in aux.vertices)
+		arr.insertBack (it);
+	}
+	aux.edges = arr.array ();
 	return aux;	
     }    
 }

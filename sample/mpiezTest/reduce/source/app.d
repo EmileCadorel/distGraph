@@ -40,7 +40,7 @@ void master (int id, int total) {
     auto grp2 = grp.MapVertices!(
 	(VertexD v) {	    
 	    auto res = new VertexDD!string (v.data);
-	    res.val = to!string (cast (char) (res.id + 'a'));
+	    res.val = to!string (cast (char) (res.id % 26 + 'a'));
 	    return res;
 	}
     );
@@ -52,7 +52,7 @@ void master (int id, int total) {
     );
     
     grp3 = grp3.FilterEdges!((EdgeD e) => e.dst != 6 && e.src != 6).
-	FilterVertices!((VertexDD!string v) => v.val != "g");
+	FilterVertices!((VertexDD!string v) => v.val > "h");
 	
     
     auto file = File ("bout" ~ to!string (id) ~ ".dot", "w+");

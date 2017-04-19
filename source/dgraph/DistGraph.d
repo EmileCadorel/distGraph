@@ -114,7 +114,7 @@ class DistGraph (VD, ED) {
 	foreach (key, vt; this._vertices) {
 	    if (vt.partitions.length > 1 && vt.partitions [1] != -1)
 		bufCut.writefln (vt.toString);
-	    else buf.writefln (vt.toString);
+	    else buf.writefln ("%s", vt.toString);
 	}
 	
 	bufCut.writefln ("\n\t}");

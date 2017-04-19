@@ -24,10 +24,10 @@ template FilterEdges (alias fun)
     
     alias E = ParameterTypeTuple!(fun) [0];
 
-    E [] filter (E [] array) {
+    E [] filter (E [] _array) {
 	import std.container, std.array;
 	Array!E res;
-	foreach (key, value ; array) {
+	foreach (value ; _array) {
 	    if (fun (value))
 		res.insertBack (value);
 	}
