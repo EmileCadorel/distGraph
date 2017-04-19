@@ -62,10 +62,27 @@ ulong [] inDegree (DistGraph dg) {
     return zipAll (dg, res);
 }
 
-ulong [ulong] outDegree (DistGraph dg) {
-    return null;
+ulong [] outDegree (DistGraph dg) {
+    // On commence par calculer ce qu'on peut.
+    ulong [] res = new ulong [dg.total];
+	
+    foreach (et ; dg.edges) {
+	res [et.src] ++;
+    }
+
+    // Partie compliqué, il faut transmettre les infos au autres noeuds.
+    return zipAll (dg, res);
 }
 
-ulong [ulong] totalDegree (DistGraph dg) {
-    return null;
+ulong [] totalDegree (DistGraph dg) {
+    // On commence par calculer ce qu'on peut.
+    ulong [] res = new ulong [dg.total];
+	
+    foreach (et ; dg.edges) {
+	res [et.src] ++;
+	res [et.dst] ++;
+    }
+
+    // Partie compliqué, il faut transmettre les infos au autres noeuds.
+    return zipAll (dg, res);
 }

@@ -22,12 +22,30 @@ void master (int id, int total) {
 			     );*/    
 
     auto begin = Clock.currTime;
-    auto degrees = inDegree (grp);
+    auto inDeg = inDegree (grp);
+    auto outDeg = outDegree (grp);
+    auto totalDeg = totalDegree (grp);
+    
     syncWriteln (Clock.currTime - begin);
-    auto x = Reduce!((Ids!ulong a, Ids!ulong b) {
+    
+    auto maxIn = Reduce!((Ids!ulong a, Ids!ulong b) {
 	    return a.value > b.value ? a : b;
-	}) (degrees);
-    syncWriteln (x.value, " ", x.id);
+	}) (inDeg);
+    
+    auto maxOut = Reduce!((Ids!ulong a, Ids!ulong b) {
+	    return a.value > b.value ? a : b;
+	}) (outDeg);
+    
+    auto maxTotal = Reduce!((Ids!ulong a, Ids!ulong b) {
+	    return a.value > b.value ? a : b;
+	}) (totalDeg);
+    
+    
+    syncWriteln (
+	"In (", maxIn.id, ", ", maxIn.value, ") ",
+	"Out (", maxOut.id, ", ", maxOut.value, ") ",
+	"Total (", maxTotal.id, ", ", maxTotal.value, ") "
+    );
 }
 
 int main (string [] args) {
