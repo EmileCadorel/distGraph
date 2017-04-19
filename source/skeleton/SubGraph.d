@@ -35,7 +35,8 @@ template SubGraph (X ...)
     if (X.length == 2 && checkFuncEdge!(X [1]) && checkFuncVert!(X [0])) {
 
     DistGraph SubGraph (DistGraph grp) {
-	auto aux = new DistGraph (grp.color);
+	auto aux = new DistGraph (grp.color, grp.nbColor);
+	aux.total = grp.total;
 	foreach (key, vt ; grp.vertices) {
 	    if (X [0] (vt))
 		aux.addVertex (vt);

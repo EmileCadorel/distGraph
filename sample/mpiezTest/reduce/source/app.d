@@ -17,14 +17,13 @@ void master (int id, int total) {
 	assert (false, "On a besion d'un fichier d'entrée");
 
     auto grp = DistGraphLoader.open (Options ["-i"], nb);
-    /*grp = Reverse (SubGraph!((Vertex v) => v.id % 2 == 0,
-			     (Edge e) => e.src % 2 == e.dst % 2).run(grp)
-			     );*/    
-
+    grp = grp.SubGraph!((Vertex v) => v.id % 2 == 0,
+			(Edge e) => e.src % 2 == e.dst % 2).Reverse ();
+    
     auto begin = Clock.currTime;
-    auto inDeg = inDegree (grp);
-    auto outDeg = outDegree (grp);
-    auto totalDeg = totalDegree (grp);
+    auto inDeg = grp.inDegree ();
+    auto outDeg = grp.outDegree ();
+    auto totalDeg = grp.totalDegree ();
     
     syncWriteln (Clock.currTime - begin);
     
