@@ -6,6 +6,7 @@ import utils.Options;
 import dgraph.DistGraphLoader;
 import dgraph.Edge, dgraph.Vertex;
 import std.container, std.array;
+import dgraph.DistGraph;
 
 T findExtrem (alias fun, T) (T [] rng) {
     T ret = rng [0];
@@ -26,21 +27,26 @@ class Slave {
     private Array!ulong _vertices;
 
     private static float __lambda__;
-
-    private MPI_Comm _parent;
+    
+    private DistGraph _dist;    
     
     ulong nbEdges;
     
-    this (Proto p, float lambda, MPI_Comm parent) {
+    this (Proto p, float lambda) {
 	this._proto = p;
 	__lambda__ = lambda;
-	this._parent = parent;
+	this._dist = new DistGraph (p.id);
     }
 
+
+    DistGraph dgraph () {
+	return this._dist;
+    }
+    
     void run () {
 	while (!this._end) {
-	    this._proto.request (0, EDGE, this._parent);
-	    this._proto.edge.receive (0, &this.edgeReceived, this._parent);
+	    this._proto.request (0, EDGE);	    
+	    this._proto.edge.receive (0, &this.edgeReceived);
 	    if (!this._end && this._window.length % WINDOW_SIZE == 0) {
 		partitionWindow ();
 		this._window.clear ();
@@ -49,13 +55,29 @@ class Slave {
 		partitionWindow ();
 		this._window.clear ();
 		this._vertices.clear ();
-	    }
+	    }	    
 	}
-	this._proto.end (0, END, this._parent);
+	this._proto.end (0, END);
+	waitGraph ();
     }
 
+    void waitGraph () {
+	while (true) {
+	    auto status = this._proto.probe ();
+	    if (status.MPI_TAG == this._proto.end.TAG) {
+		byte useless;
+		this._proto.end.receive (0, useless);
+		break;
+	    } else if (status.MPI_TAG == this._proto.graphVert.TAG) {
+		this._proto.graphVert.receive (0, &this.graphVertRec);
+	    } else {
+		this._proto.graphEdge.receive (0, &this.graphEdgeRec);
+	    }
+	}
+    }
+    
     private void partitionWindow () {
-	this._proto.state (0, (this._vertices.array), this._parent);
+	this._proto.state (0, (this._vertices.array));
 	Vertex [] vertices; ulong [] partitions;
 	stateReceive (vertices, partitions);
 	for (int it = 0, vt = 0; it < this._window.length; it ++, vt += 2) {
@@ -66,7 +88,7 @@ class Slave {
 	    auto p = selectPartitionHDRF (u, v, partitions);
 	    this._window [it].color = p;
 	}
-	this._proto.putState (0, (this._window.array), this._parent);
+	this._proto.putState (0, (this._window.array));
     }
 
     private float balanceScoreHDRF (ulong p, ulong max, ulong min, float lambda, float epsilon) {
@@ -118,10 +140,22 @@ class Slave {
 	}
     }    
 
+    private void graphVertRec (long [] vertices) {
+	auto begin = cast (ubyte*)vertices.ptr;
+	auto len = vertices.length * long.sizeof;
+	while (len > 0) {
+	    this._dist.addVertex (Vertex.deserialize (begin, len));
+	}
+    }
+    
+    private void graphEdgeRec (Edge [] edges) {	
+	this._dist.edges = edges;
+    }
+    
     private void stateReceive (ref Vertex [] vertices, ref ulong [] partitions) {
 	ubyte * begin;
 	ulong len;
-	this._proto.getState.receive (0, begin, len, partitions, this._parent);
+	this._proto.getState.receive (0, begin, len, partitions);
 	while (len > 0) {
 	    vertices ~= Vertex.deserialize (begin, len);
 	}

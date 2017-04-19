@@ -7,9 +7,11 @@ DistGraph Reverse (DistGraph dg) {
     foreach (key, vt ; dg.vertices) {
 	aux.addVertex (vt);
     }
-	
-    foreach (it ; dg.edges) {
-	aux.addEdge (Edge (it.dst, it.src, it.color));
+
+    aux.edges = new Edge [dg.edges.length];
+    foreach (it ; 0 .. dg.edges.length) {
+	auto et = dg.edges [it];
+	aux.edges [it] = (Edge (et.dst, et.src, et.color));
     }
     return aux;
 }

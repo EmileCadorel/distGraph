@@ -25,20 +25,15 @@ class Master {
     private ulong _length;
 
     private ulong _currentPercent;
-
-    private GraphProto _graphProto;
     
     private DistGraph _dist;    
     
-    private MPI_Comm _childs;
     
-    this (Proto p, GraphProto gp, string filename, ulong size, MPI_Comm childs) {
+    this (Proto p, string filename, ulong size) {
 	this._proto = p;
 	this._filename = filename;
 	this._current = new Graph (size);
-	this._childs = childs;
-	this._graphProto = gp;
-	this._dist = new DistGraph (0);
+	this._dist = new DistGraph (p.id);
     }
 
     Graph graph () {
@@ -65,7 +60,7 @@ class Master {
 		    auto perc = to!int (to!float (pos) / to!float(this._length) * 100.);
 		    if (perc > this._currentPercent) {
 			this._currentPercent = perc;
-			writef ("\rChargement du graphe : %s>%s%d%c",
+			writef ("\rChargement du graphe %s>%s%d%c",
 				leftJustify ("[", this._currentPercent, '='),
 				rightJustify ("]", 100 - this._currentPercent, ' '),
 				this._currentPercent, '%');
@@ -89,59 +84,62 @@ class Master {
     void run (ulong total) {
 	this._file = this._open (this._filename);
 	int nb = 0;
-	while (nb < total) {
+	while (nb < total) {	    
 	    int type; byte useless;
-	    auto status = this._proto.probe (MPI_ANY_SOURCE, MPI_ANY_TAG, this._childs);
+	    auto status = this._proto.probe (MPI_ANY_SOURCE, MPI_ANY_TAG);
 	    if (status.MPI_TAG == 1) {
-		this._proto.request.receive (status.MPI_SOURCE, useless, this._childs);
+		this._proto.request.receive (status.MPI_SOURCE, useless);
 		this._next ();
 		if (this._read) {
 		    Serializer!(Edge*) serial;
 		    serial.value = &this._toSend;
-		    this._proto.edge (status.MPI_SOURCE, serial.ptr, Edge.sizeof, this._childs);
+		    this._proto.edge (status.MPI_SOURCE, serial.ptr, Edge.sizeof);
 		    // Master a envoye un arete a  procId
 		} else {
-		    this._proto.edge (status.MPI_SOURCE, null, 0, this._childs);
+		    this._proto.edge (status.MPI_SOURCE, null, 0);
 		    // Master a envoye un message vide a procId
 		}		    
 	    }  else if (status.MPI_TAG == 3) {
 		ulong [] vertices;
-		this._proto.state.receive (status.MPI_SOURCE, vertices, this._childs);
+		this._proto.state.receive (status.MPI_SOURCE, vertices);
 		computeState (status.MPI_SOURCE, vertices);
 	    } else if (status.MPI_TAG == 5) {
 		Edge [] edges;
-		this._proto.putState.receive (status.MPI_SOURCE, edges, this._childs);
-		disrtribute (edges);
+		this._proto.putState.receive (status.MPI_SOURCE, edges);
+		foreach (it ; edges)
+		    this._current.addEdge (it);
 	    } else if (status.MPI_TAG == 6) {
-		this._proto.end.receive (status.MPI_SOURCE, useless, this._childs);
+		this._proto.end.receive (status.MPI_SOURCE, useless);
 		nb ++;
 	    } else assert (false, "Pas prevu ca");
 	}
-	
+
+	disrtribute ();		
     }
 
-    private void disrtribute (Edge [] _edges) {
-	Array!(Vertex) [] verts = new Array!Vertex [this._current.partitions.length];
-	Array!(Edge) [] edges = new Array!Edge [this._current.partitions.length];
-
-	foreach (it ; _edges) {
-	    this._current.addEdge (it);
-	    verts [it.color].insertBack (this._current.getVertex (it.src));
-	    verts [it.color].insertBack (this._current.getVertex (it.dst));
-	    edges [it.color].insertBack (it);
-	}
-		
-	foreach (it ; verts [0]) this._dist.addVertex (it);
-	foreach (it ; edges [0]) this._dist.addEdge (it);
-	
-	foreach (vt ; 1 .. verts.length) {
-	    long [] retVerts;
-	    foreach (it ; 0 .. verts [vt].length) {
-		retVerts ~= verts [vt][it].serialize ();
+    private void disrtribute () {
+	foreach (it; 0 .. this._current.vertices.length) {
+	    if (it == 0) {
+		foreach (ref vt ; this._current.vertices [it])
+		    this._dist.addVertex (vt);
+	    } else {
+		long [] retVert;
+		foreach (ref vt ; this._current.vertices [it]) retVert ~= vt.serialize ();
+		this._proto.graphVert (cast (int) it, retVert);
 	    }
-		    
-	    this._graphProto.edge (cast (int) vt, cast (ubyte*) retVerts.ptr, retVerts.length * long.sizeof, edges [vt].array ());
-	}		
+	}
+
+	foreach (it ; 0 .. this._current.edges.length) {
+	    if (it == 0) {
+		this._dist.edges = this._current.edges [it].array ();
+	    } else {
+		this._proto.graphEdge (cast (int) it, this._current.edges [it].array ());
+	    }
+	}
+
+	foreach (it ; 0 .. this._proto.total) {
+	    this._proto.end (cast (int) it, 0);	    
+	}	
     }
 
     private void computeState (int procId, ulong [] vertices) {
@@ -150,17 +148,7 @@ class Master {
 	    retVerts ~= this._current.getVertex (vertices [it]).serialize ();
 	}
 
-	this._proto.getState (procId, cast(ubyte*) retVerts.ptr, retVerts.length * long.sizeof , this._current.partitions, this._childs);
-    }
-    
-    private void writeGraph () {
-	auto filename = Options ["-o"];
-	if (filename is null)
-	    filename = "out.dot";
-	auto file = File (filename, "w+");	
-	file.write (this._current.toDot (null, true).toString ());
-	file.close ();
-
+	this._proto.getState (procId, cast(ubyte*) retVerts.ptr, retVerts.length * long.sizeof , this._current.partitions);
     }
 
 }

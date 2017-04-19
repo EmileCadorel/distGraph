@@ -120,6 +120,10 @@ class Message (int N, T ...) {
 	return N;
     }
 
+    const (int) TAG () {
+	return N;
+    }
+    
     private {
 	
 	void _send (T, TNext ...) (int procId, T param, TNext params, MPI_Comm comm) {

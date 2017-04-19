@@ -24,19 +24,32 @@ class Graph {
     /++ La liste des sommets du graphe +/
     private Vertex [] _vertices;
 
-    /++ La liste des arêtes du graphes +/
-    private Array!Edge _edges;
-
+    /++ La liste des sommets rangé par partitions +/
+    private Array!Vertex [] _verticesPart;
+    
+    /++ La liste des arêtes rangé par partitions +/ 
+    private Array!Edge [] _edgesPart;
     
     this (ulong nbPart) {
-	if (nbPart > 0)
-	    this._partitions = new ulong [nbPart];	
+	if (nbPart > 0) {
+	    this._partitions = new ulong [nbPart];
+	    this._verticesPart = new Array!Vertex [nbPart];
+	    this._edgesPart = new Array!Edge [nbPart];
+	}
     }
 
     ref ulong [] partitions () {
 	return this._partitions;
     }
 
+    Array!Vertex [] vertices () {
+	return this._verticesPart;
+    }
+
+    Array!Edge [] edges () {
+	return this._edgesPart;
+    }
+    
     /++
      Retourne le vertex (id), (le créer si il n'existe pas)
      +/
@@ -57,56 +70,20 @@ class Graph {
      Ajoute une arête au graphe, met à jour les sommets associé, ainsi que la table des partitions.     
      +/
     void addEdge (Edge e) {
-	this._edges.insertBack (e);
+	//this._edges.insertBack (e);
+	this._edgesPart [e.color].insertBack (e);
 	this._vertices [e.src].degree ++;
 	this._vertices [e.dst].degree ++;
-	if (this._vertices [e.src].addPartition (e.color))
+	if (this._vertices [e.src].addPartition (e.color)) {
 	    this._partitions [e.color] ++;
-	if (this._vertices [e.dst].addPartition (e.color))
-	    this._partitions [e.color] ++;
-    }
-
-    /++
-     Ecris le graphe au format Dot dans un buffer
-     +/
-    OutBuffer toDot (OutBuffer buf = null, bool byPart = false) {
-	if (buf is null)
-	    buf = new OutBuffer;
-	buf.writefln ("digraph G {");
-	
-	if (byPart) {	    
-	    buf.writefln ("\tsubgraph cluster_cut {");
-	    buf.writefln ("\t\tnode [style=filled];\n\t\tlabel=\"Part Cut\";\n\t\tpenwidth=10; \n\t\tcolor=blue;");
-	    ulong [][] parts = new ulong [][this._partitions.length];	    
-	    foreach (vt ; this._vertices) {
-		if (vt.partitions.length > 1 && vt.partitions [1] != -1) {			
-		    buf.writefln ("\t\t%d[label=\"%d/%d\"];", vt.id, vt.id, vt.degree);
-		} else if (vt.partitions [0] != -1) {
-		    parts [vt.partitions [0]] ~= [vt.id];
-		}
-	    }	    
-	    buf.writefln ("\n\t}");
-
-	    foreach (pt ; 0 .. parts.length) {
-		buf.writefln ("\tsubgraph cluster_%d {", pt);
-		buf.writefln ("\t\tnode [style=filled; line=10];\n\t\tlabel=\"Part %d\";\n\t\tpenwidth=10;", pt);
-		foreach (vt ; parts [pt]) {
-		    buf.writefln ("\t\t%d;", vt);
-		}
-		
-		buf.writefln ("\n\t}");
-	    }	    
+	    this._verticesPart [e.color].insertBack(this._vertices [e.src]);
 	}
 	
-	foreach (vt ; this._edges) {
-	    buf.writefln ("\t%d -> %d [color=\"/%s\"]", vt.src, vt.dst,
-			  vt.color < 9 ? [EnumMembers!Color][vt.color].value : "");	    
+	if (this._vertices [e.dst].addPartition (e.color)) {
+	    this._partitions [e.color] ++;
+	    this._verticesPart [e.color].insertBack(this._vertices [e.dst]);
 	}
-		
-	buf.writefln ("}");
-	return buf;
     }
-
 }
     
 

@@ -12,7 +12,7 @@ import mpiez.admin;
 import utils.Options;
 import dgraph.DistGraph;
 
-enum WINDOW_SIZE = 16;
+enum WINDOW_SIZE = 1;
 
 enum EDGE = 0;
 enum STATE = 1;
@@ -24,19 +24,6 @@ union Serializer (T : U*, U) {
     ubyte * ptr;
 }
 
-class GraphProto : Protocol {
-    
-    this (int id, int total) {
-	super (id, total);
-	this.edge = new Message !(1, ubyte*, ulong, Edge[]);
-	this.end = new Message!(END, byte);
-    }
-
-    Message!(1, ubyte*, ulong, Edge []) edge;
-    Message!(END, byte) end;
-}
-
-
 class Proto : Protocol {
     this (int id, int total) {
 	super (id, total);
@@ -45,6 +32,8 @@ class Proto : Protocol {
 	this.state = new Message!(3, ulong []);
 	this.getState = new Message!(4, ubyte*, ulong, ulong[]);
 	this.putState = new Message!(5, Edge []);
+	this.graphEdge = new Message!(7, Edge[]);
+	this.graphVert = new Message!(8, long []);
 	this.end = new Message!(6, byte);
     }
 
@@ -63,6 +52,10 @@ class Proto : Protocol {
     // Met a jour le graphe
     Message!(5, Edge[]) putState;
 
+    Message!(7, Edge []) graphEdge;
+
+    Message!(8, long []) graphVert;
+    
     Message!(6, byte) end;
 }
 
@@ -75,59 +68,20 @@ class DistGraphLoaderS {
 	return this._lambda;
     }
 
-    static this () {
-	insertSkeleton ("#DistGraphSlave", &distGraphSlave);
-    }
-    
-    DistGraph open (string filename, int nbWorker = 2) {
+    DistGraph open (string filename, int nbWorker = 2) {	
 	auto info = Proto.commInfo (MPI_COMM_WORLD);
+	nbWorker = info.total < nbWorker ? info.total : nbWorker;
+	auto proto = new Proto (info.id, info.total);
 	if (info.id == 0) {
-	    auto slaveComm = Proto.spawn!"#DistGraphSlave" (nbWorker, ["--lambda", to!string (this._lambda)]);
-	    auto slaveInfo = Proto.commInfo (slaveComm);	
-	    auto proto = new Proto (slaveInfo.id, slaveInfo.total);
-	    auto gp = new GraphProto (info.id, info.total);
-	    auto master = new Master (proto, gp, filename, info.total, slaveComm);
-	    master.run (nbWorker);	    
-	    barrier (slaveComm);
-	    proto.disconnect (slaveComm);
-	    foreach (it ; 1 .. info.total) {
-		gp.end (it, 1);
-	    }
+	    auto master = new Master (proto, filename, info.total);
+	    master.run (nbWorker - 1);	    
 	    return master.dgraph ();
 	} else {
-	    auto grp = new DistGraph (info.total);
-	    auto proto = new GraphProto (info.id, info.total);
-	    byte useless;
-	    while (true) {
-		Edge [] edges;
-		ubyte * verts; ulong length;
-		auto status = proto.probe ();
-		if (status.MPI_TAG == END) {
-		    proto.end.receive (status.MPI_SOURCE, useless);
-		    break;		
-		} else {
-		    proto.edge.receive (0, verts, length, edges);
-		    while (length > 0)
-			grp.addVertex (Vertex.deserialize (verts, length));
-		    
-		    foreach (it ; edges)
-			grp.addEdge (it);
-		}
-	    }
-	    return grp;
+	    auto slave = new Slave (proto, this._lambda);
+	    if (info.id < nbWorker) slave.run ();
+	    else slave.waitGraph ();
+	    return slave.dgraph ();
 	}
-    }
-
-    static void distGraphSlave (int id, int total) {
-	auto parentComm = Proto.parent ();
-	auto info = Proto.commInfo (parentComm);
-	writeln ("Slave ", info.id, ", ", info.total);
-	auto proto = new Proto (info.id, info.total);
-	auto slave = new Slave (proto, to!float (Options ["--lambda"]), parentComm);
-	
-	slave.run ();
-	barrier (parentComm);
-	proto.disconnect (parentComm);
     }
     
     mixin Singleton!DistGraphLoaderS;

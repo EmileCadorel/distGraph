@@ -19,11 +19,9 @@ void master (int id, int total) {
 	assert (false, "On a besion d'un fichier d'entrée");
 
     auto grp = DistGraphLoader.open (Options ["-i"], nb);
-    grp = Reverse (SubGraph!((Vertex v) => v.id % 2 == 0,
+    /*grp = Reverse (SubGraph!((Vertex v) => v.id % 2 == 0,
 			     (Edge e) => e.src % 2 == e.dst % 2).run(grp)
-    );
-    
-
+			     );*/    
     
     auto filename = "out" ~ to!string (id) ~ ".dot";
     if (Options.active ("-o")) filename = Options ["-o"];

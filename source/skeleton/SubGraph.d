@@ -2,8 +2,8 @@ module skeleton.SubGraph;
 import mpiez.admin;
 public import skeleton.Register;
 import std.traits;
-import std.algorithm;
-import std.conv;
+import std.algorithm, std.container;
+import std.conv, std.array;
 import utils.Options;
 import dgraph.Vertex, dgraph.Edge, dgraph.DistGraph;
 
@@ -41,11 +41,13 @@ template SubGraph (X ...)
 		aux.addVertex (vt);
 	}
 
+	Array!Edge edges;
 	foreach (et ; grp.edges) {
 	    if (aux.hasVertex (et.src) && aux.hasVertex (et.dst))
-		if (X [1] (et)) aux.addEdge (et);
+		if (X [1] (et)) edges.insertBack (et);
 	}
 	
+	aux.edges = edges.array ();	
 	return aux;
     }
     

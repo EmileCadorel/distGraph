@@ -16,7 +16,7 @@ class DistGraph {
 
     private Vertex [ulong] _vertices;
 
-    private Array!Edge _edges;
+    private Edge[] _edges;
 
     private ulong _color;
     
@@ -26,10 +26,9 @@ class DistGraph {
 
     Vertex [ulong] vertices () {
 	return this._vertices;
-    }
+    }    
     
-    
-    Array!Edge edges () {
+    ref Edge [] edges () {
 	return this._edges;
     }
 
@@ -46,11 +45,7 @@ class DistGraph {
     void addVertex (Vertex vt) {
 	this._vertices [vt.id] = vt;
     }
-
-    void addEdge (Edge e) {
-	this._edges.insertBack (e);
-    }
-
+    
     ulong color () {
 	return this._color;
     }
