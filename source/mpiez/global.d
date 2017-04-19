@@ -52,6 +52,21 @@ ulong scatter (T) (int root, int size, ref T [] _in, ref T [] _out, MPI_Comm com
     }    
 }
 
+void broadcast (T) (int root, ref T _in, MPI_Comm comm) {
+    MPI_Bcast (&_in, T.sizeof, MPI_BYTE, root, comm);
+}
+
+void broadcast (T : U [], U) (int root, ref T _in, MPI_Comm comm) {
+    import mpiez.Process;
+    auto info = Protocol.commInfo (comm);
+    auto len = _in.length;
+    broadcast (root, len, comm);
+    if (info.id != root) {
+	_in = new T [len];
+    }
+    MPI_Bcast (_in.ptr, len * T.sizeof, MPI_BYTE, root, comm);	
+}
+
 void scatter (T) (int root, int size, ref T [][] _in, ref T [][] _out, MPI_Comm comm) {
     static assert ("Scatter on mutiple vector");
 }

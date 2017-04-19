@@ -22,7 +22,51 @@ private bool checkFunc (alias fun) () {
     return true;
 }
 
-template Generate (alias fun)
+template Generate (alias fun) {
+
+    alias T = ReturnType!fun;
+    alias I = ParameterTypeTuple!(fun) [0];
+    enum PARAMLENGTH = ParameterTypeTuple!(fun).length;
+    
+    static if (PARAMLENGTH == 2) {
+	alias N = ParameterTypeTuple!(fun) [1];
+    }
+
+    T generate (T : U [], U, I) (ulong begin, T array, U function (I) op) {
+	import std.conv;
+	foreach (i, it ; array) {
+	    array [i] = op (to!I (i + begin));
+	}
+	return array;
+    }
+
+    T generate (T : U [], U, I, N) (ulong begin, ulong len, T array, U function (I, N) op) {
+	import std.conv;
+	foreach (i, it ; array) {
+	    array [i] = op (to!I (i + begin), to!N (len));
+	}
+	return array;
+    }    
+
+    T [] run (int len) {
+	auto info = Protocol.commInfo (MPI_COMM_WORLD);
+	auto pos = computeLen (len, info.id, info.total);
+    	auto o = new T [pos.len];
+	T[] res;
+	static if (PARAMLENGTH == 1)
+	    res = generate (pos.begin, o, cast (T function (I))(fun));	    
+	else
+	    res = generate (pos.begin, len, o, cast (T function (I, N))(fun));
+	
+	T [] aux;
+	gather (0, len, res, aux, MPI_COMM_WORLD);
+	return aux;
+    }       
+    
+}
+
+
+template GenerateS (alias fun)
     if (checkFunc!fun) {
 
     alias T = ReturnType!fun;

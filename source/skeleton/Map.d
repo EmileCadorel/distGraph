@@ -18,6 +18,35 @@ private bool checkFunc (alias fun) () {
 }
 
 template Map (alias fun)
+    if (checkFunc!fun) {
+    
+    alias I = ParameterTypeTuple!(fun) [0];
+    alias T2 = ReturnType!fun;
+
+
+    T2[] map (T2, T : U [], U) (T array, T2 function (U) op) {
+	T2 [] res = new T2 [array.length];
+	foreach (it ; 0 .. array.length)
+	    res [it] = op (array [it]);
+	return res;
+    }
+    
+    U [] run (T : I []) (T a) {
+	auto info = Protocol.commInfo (MPI_COMM_WORLD);
+	T [] o;
+	int len = cast (int) a.length;
+	broadcast (0, cast (int) len, MPI_COMM_WORLD);
+	
+	scatter (0, len, a, o, MPI_COMM_WORLD);
+	auto res = map (o, fun);
+	T [] aux;
+	gather (0, len, res, aux, MPI_COMM_WORLD);
+	return aux;
+    }    
+}
+
+
+template MapS (alias fun)
     if (checkFunc !(fun)) {
 
     alias T = ParameterTypeTuple!(fun) [0];

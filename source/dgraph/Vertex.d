@@ -29,6 +29,10 @@ struct Vertex {
 	assert (false, "Trop de découpage");
     }
 
+    bool isCut () {
+	return this.partitions.length > 1 && this.partitions [1] != -1;
+    }    
+    
     long [] serialize () {
 	return (cast (long[]) ([this.id, this.degree, partitions.length])) ~ partitions;
     }

@@ -7,7 +7,7 @@ import std.container;
 import std.string, std.conv;
 import std.parallelism;
 import std.outbuffer;
-import std.traits;
+import std.traits, std.container;
 import utils.Colors;
 import dgraph.Graph;
 
@@ -16,6 +16,8 @@ class DistGraph {
 
     private Vertex [ulong] _vertices;
 
+    private Array!Vertex [ulong] _cuts;
+    
     private Edge[] _edges;
 
     private ulong _color;
@@ -26,6 +28,16 @@ class DistGraph {
 
     Vertex [ulong] vertices () {
 	return this._vertices;
+    }    
+
+    Array!Vertex [ulong] cuts () {
+	return this._cuts;
+    }
+
+    ulong communicate (ulong color) {
+	auto nb = color in this._cuts;
+	if (nb is null) return 0;
+	else return nb.length;
     }    
     
     ref Edge [] edges () {
@@ -44,7 +56,14 @@ class DistGraph {
 
     void addVertex (Vertex vt) {
 	this._vertices [vt.id] = vt;
-    }
+	if (vt.isCut) {
+	    foreach (it ; vt.partitions) {
+		if (it == -1) break;
+		else if (it != this._color)
+		    this._cuts [it].insertBack (vt);
+	    }
+	}
+    }    
     
     ulong color () {
 	return this._color;
@@ -68,8 +87,7 @@ class DistGraph {
 	}
     
 	foreach (vt ; this._edges) {
-	    buf.writefln ("\t%d -> %d [color=\"/%s\"]", vt.src, vt.dst,
-			  vt.color < 9 ? [EnumMembers!Color][vt.color].value : "");	    
+	    buf.writefln ("\t%d -> %d", vt.src, vt.dst);	    
 	}
 		
 	buf.writefln ("}");

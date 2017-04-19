@@ -19,6 +19,38 @@ private bool checkFunc (alias fun) () {
 }
 
 template Reduce (alias fun)
+    if (checkFunc!fun) {
+
+    alias T = ParameterTypeTuple!(fun) [0];
+
+
+    U reduce (T : U [], U) (T array, U function (U, U) op) {
+	auto res = array [0];
+	foreach (it ; 1 .. array.length) {
+	    res = op (res, array [it]);
+	}
+	return res;
+    }
+
+    T run (T [] a) {
+	auto info = Protocol.commInfo (MPI_COMM_WORLD);
+	T [] o;
+	int len = cast (int) a.length;
+	broadcast (0, cast (int) len, MPI_COMM_WORLD);
+	scatter (0, len, a, o, MPI_COMM_WORLD);
+	auto res = reduce (o, fun);
+
+	T[] aux;
+	gather (0, info.total, res, aux, MPI_COMM_WORLD);
+	if (info.id == 0)
+	    return reduce (aux, fun);
+	return T.init;
+    }
+           
+}
+
+
+template ReduceS (alias fun)
     if (checkFunc !(fun)) {
 
     alias T = ParameterTypeTuple!(fun) [0];
