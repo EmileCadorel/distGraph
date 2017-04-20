@@ -1,13 +1,11 @@
 module skeleton.Zip;
 import mpiez.admin, mpiez.Process;
 import std.traits;
+import skeleton.Compose;
 
 private bool checkFunc (int len, alias fun) () {
-    static assert ((is (typeof(&fun) U : U*) && (is (U == function)) ||
-		    is (typeof (&fun) U == delegate)) ||
-		   (is (fun T2) && is(T2 == function)) || isFunctionPointer!fun ||
-		   isDelegate!fun);
-
+    isSkeletable!fun;
+    
     alias a1 = ParameterTypeTuple! (fun);
     alias r1 = ReturnType!fun;
     static assert (a1.length == len && !is (r1 == void), "On a besoin de : T2 function (T..., T2 != void) (T)");

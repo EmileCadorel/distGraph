@@ -8,10 +8,7 @@ import utils.Options;
 import skeleton.Compose;
 
 private bool checkFunc (alias fun) () {
-    static assert ((is (typeof(&fun) U : U*) && (is (U == function)) ||
-		    is (typeof (&fun) U == delegate)) ||
-		   (is (fun T2) && is(T2 == function)) || isFunctionPointer!fun ||
-		   isDelegate!fun);
+    isSkeletable!fun;
 
     alias a1 = ParameterTypeTuple! (fun);
     alias r1 = ReturnType!fun;

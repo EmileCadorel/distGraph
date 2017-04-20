@@ -7,14 +7,10 @@ import std.conv;
 import utils.Options;
 import dgraph.Vertex;
 import dgraph.DistGraph;
+import skeleton.Compose;
 
 private bool checkFuncMap (alias fun) () {
-    static assert ((is (typeof(&fun) U : U*) && (is (U == function)) ||
-		    is (typeof (&fun) U == delegate)) ||
-		   (is (fun T2) && is(T2 == function)) ||
-		   isFunctionPointer!fun ||
-		   isDelegate!fun
-    );
+    isSkeletable!fun;
     
     alias a1 = ParameterTypeTuple! (fun);
     alias r1 = ReturnType!fun;
@@ -23,12 +19,7 @@ private bool checkFuncMap (alias fun) () {
 }
 
 private bool checkFuncReduce (alias fun, Msg) () {
-    static assert ((is (typeof(&fun) U : U*) && (is (U == function)) ||
-		    is (typeof (&fun) U == delegate)) ||
-		   (is (fun T2) && is(T2 == function)) ||
-		   isFunctionPointer!fun ||
-		   isDelegate!fun
-    );
+    isSkeletable!fun;
     
     alias a1 = ParameterTypeTuple! (fun);
     alias r1 = ReturnType!fun;

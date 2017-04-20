@@ -6,13 +6,10 @@ import std.algorithm, std.container;
 import std.conv, std.array;
 import utils.Options;
 import dgraph.Vertex, dgraph.Edge, dgraph.DistGraph;
+import skeleton.Compose;
 
 private bool checkFuncVert (alias fun) () {
-    static assert ((is (typeof(&fun) U : U*) && (is (U == function)) ||
-		    is (typeof (&fun) U == delegate)) ||
-		   (is (fun T2) && is(T2 == function)) || isFunctionPointer!fun ||
-		   isDelegate!fun);
-    
+    isSkeletable!fun;
     alias a1 = ParameterTypeTuple! (fun);
     alias r1 = ReturnType!fun;
     static assert (is (a1[0] : VertexD) && is (r1 == bool), "On a besoin de : bool function (Vertex)");        
@@ -21,10 +18,7 @@ private bool checkFuncVert (alias fun) () {
 }
 
 private bool checkFuncEdge (alias fun) () {
-    static assert ((is (typeof(&fun) U : U*) && (is (U == function)) ||
-		    is (typeof (&fun) U == delegate)) ||
-		   (is (fun T2) && is(T2 == function)) || isFunctionPointer!fun);
-    
+    isSkeletable!fun;
     alias a1 = ParameterTypeTuple! (fun);
     alias r1 = ReturnType!fun;
     static assert (is (a1[0] : EdgeD) && is (r1 == bool), "On a besoin de : bool function (Edge)");        
