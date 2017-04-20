@@ -52,7 +52,7 @@ private bool checkFuncProg (alias fun, VD, Msg) () {
 
 
 template Pregel (Fun ...)
-    if (Fun.length == 3) {
+    if (Fun.length == 3 || Fun.length == 4) {
 
     static assert (checkFuncMap!(Fun [1]));
     alias Msg = typeof (ReturnType!(Fun [1]).msg);
@@ -61,6 +61,13 @@ template Pregel (Fun ...)
     static assert (checkFuncReduce!(Fun [2], Msg));
     static assert (checkFuncProg!(Fun [0], VD, Msg));
 
+    static if (Fun.length == 4) {
+	static assert (Fun [3] == true, Fun[3].stringof);
+	enum DEBUG = true;
+    } else {
+	enum DEBUG = false;
+    }
+    
     alias VProg = Fun [0];
     alias MapFun = Fun [1];
     alias ReduceFun = Fun [2];
@@ -70,14 +77,14 @@ template Pregel (Fun ...)
 	auto messages = g.MapReduceTriplets! (MapFun, ReduceFun);
 	
 	auto activeMessages = messages.length;
-	//syncWriteln (messages);
+	static if (DEBUG) syncWriteln (messages);
 	auto i = 0;
 	while (activeMessages > 0 && i < maxIter) {
 	    g = g.JoinVertices !(VProg) (messages);
 
 	    auto olds = messages;
 	    messages = g.MapReduceTriplets! (MapFun, ReduceFun);
-	    //syncWriteln (messages);
+	    static if (DEBUG) syncWriteln (messages);
 	    activeMessages = messages.length;
 	    i ++;
 	}

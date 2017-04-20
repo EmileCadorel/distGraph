@@ -68,7 +68,8 @@ void pageRank (int id, int total) {
     auto ranked = pgraph.Pregel ! (
 	(DegVertex v, float msg) => new DegVertex (v.data, 0.15 + 0.85 * msg, v.deg),	
 	(EdgeTriplet!(DegVertex, EdgeD) e) => Iterator!float (e.dst.id, e.src.rank  / e.src.deg),	
-	(float a, float b) => a + b
+	(float a, float b) => a + b,
+	true
     ) (1.0, iter);
 
     import std.typecons;
@@ -106,27 +107,30 @@ void shortPath (int id, int total) {
 
     import std.random;
     auto begin1 = Clock.currTime;    
-    foreach (sourceId ; 0 .. grp.total) {		
-	auto begin = Clock.currTime;    
-	auto initialGraph = grp.MapVertices! (
-	    (VertexD v) {
-		if (v.id == sourceId) return new DstVertex (v.data, 0.0f);
-		else return new DstVertex (v.data, float.infinity);
-	    }
-	);
 
-	auto sssp = initialGraph.Pregel !(vprog, sendMsg, mergeMsg) (float.infinity);
-	auto end = Clock.currTime;
-
-
-	//On allege un peu la ram
-	delete sssp;
-
-	if (id == 0) {
-	    writeln ("Temps : ", end - begin, ' ', sourceId,  " / ", grp.total, " cumul : ", end - begin1);
+    auto sourceId = uniform (0, grp.total - 1);
+    broadcast (0, sourceId, MPI_COMM_WORLD);
+    syncWriteln (sourceId);
+    
+    auto begin = Clock.currTime;    
+    auto initialGraph = grp.MapVertices! (
+	(VertexD v) {
+	    if (v.id == sourceId) return new DstVertex (v.data, 0.0f);
+	    else return new DstVertex (v.data, float.infinity);
 	}
-    }    
+    );
+    
+    auto sssp = initialGraph.Pregel !(vprog, sendMsg, mergeMsg, true) (float.infinity);
+    auto end = Clock.currTime;
+        
+    if (id == 0) {
+	writeln ("Temps : ", end - begin, ' ', sourceId,  " / ", grp.total, " cumul : ", end - begin1);
+    }
 
+    auto file = File (format ("out%d.dot", id), "w+");
+    file.writeln (sssp.toDot ());
+    file.close ();
+    
 }
 
 
