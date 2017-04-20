@@ -11,6 +11,8 @@ public import skeleton.MapEdges;
 public import skeleton.FilterVertices;
 public import skeleton.FilterEdges;
 public import skeleton.MapReduceTriplets;
+public import skeleton.Pregel;
+public import skeleton.JoinVertices;
 
 import std.typecons;
 

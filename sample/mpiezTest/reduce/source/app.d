@@ -7,7 +7,28 @@ import skeleton.Compose;
 import dgraph.DistGraphLoader;
 import std.datetime;
 import std.format;
-		     
+
+class DstVertex : VertexD {
+
+    float dst;
+    
+    this (Vertex v) {
+	super (v);
+	this.dst = float.infinity;
+    }
+
+    this (Vertex v, float dst) {
+	super (v);
+	this.dst = dst;
+    }
+
+    override string toString () {
+	return format ("\t\t%d[label=\"%d, %f\"];", this.id, this.id, dst);
+    }
+    
+}
+
+
 void master (int id, int total) {
     auto nb = 2;
     if (Options.active ("-n"))
@@ -19,27 +40,37 @@ void master (int id, int total) {
 
     auto grp = DistGraphLoader.open (Options ["-i"], nb);
 
-    auto msgFun = (EdgeTriplet! (VertexD, EdgeD) triplet) =>
-	Iterator!(ulong) (triplet.dst.id, 1);
-    
-    auto reduceMsg = (ulong left, ulong right) => left + right;
+    auto vprog = (DstVertex v, float nDist) =>
+	new DstVertex (v.data, min (v.dst, nDist));    
 
-    foreach (it ; 0 .. 1000) {
-	auto begin = Clock.currTime;
-	auto deg = grp.inDegree ();
-	auto end = Clock.currTime;
-	auto res = grp.MapReduceTriplets!(msgFun, reduceMsg);
-	auto end2 = Clock.currTime ();
-	if (id == 0) {
-	    auto t1 = end - begin, t2 = end2 - end;
-	    writeln (t1, t1 > t2 ? " > " : " < ", t2);
+    auto sendMsg = (EdgeTriplet!(DstVertex, EdgeD) triplet) {
+	if (triplet.src.dst + 1 < triplet.dst.dst) 
+	    return Iterator!float (triplet.dst.id, triplet.src.dst + 1);
+	else return EmptyIterator!float;
+    };
+
+    auto mergeMsg = (float a, float b) => min (a, b);
+
+    auto begin = Clock.currTime;
+    auto sourceId = grp.total - 1;
+    auto initialGraph = grp.MapVertices! (
+	(VertexD v) {
+	    if (v.id == sourceId) return new DstVertex (v.data, 0.0f);
+	    else return new DstVertex (v.data, float.infinity);
 	}
+    );
+
+    auto sssp = initialGraph.Pregel !(vprog, sendMsg, mergeMsg) (float.infinity, 100);
+    auto end = Clock.currTime;
+
+    if (id == 0) {
+	writeln ("Temps : ", end - begin);
     }
     
-    
-    auto file = File ("out" ~ to!string (id) ~ ".dot", "w+");
-    file.write (grp.toDot ().toString);
+    auto file = File (format ("out%d.dot", id), "w+");
+    file.writeln (sssp.toDot ().toString);
     file.close ();
+    
 }
 
 int main (string [] args) {

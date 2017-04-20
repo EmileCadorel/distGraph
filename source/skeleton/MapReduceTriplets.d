@@ -11,7 +11,8 @@ import std.typecons, std.array;
 private bool checkFuncMap (alias fun) () {
     static assert ((is (typeof(&fun) U : U*) && (is (U == function)) ||
 		    is (typeof (&fun) U == delegate)) ||
-		   (is (fun T2) && is(T2 == function)) || isFunctionPointer!fun);
+		   (is (fun T2) && is(T2 == function)) || isFunctionPointer!fun ||
+		   isDelegate!fun);
     
     alias a1 = ParameterTypeTuple! (fun);
     alias r1 = ReturnType!fun;
@@ -26,7 +27,8 @@ private bool checkFuncMap (alias fun) () {
 private bool checkFuncReduce (alias fun, Msg) () {
     static assert ((is (typeof(&fun) U : U*) && (is (U == function)) ||
 		    is (typeof (&fun) U == delegate)) ||
-		   (is (fun T2) && is(T2 == function)) || isFunctionPointer!fun);
+		   (is (fun T2) && is(T2 == function)) || isFunctionPointer!fun ||
+		   isDelegate!fun);
     
     alias a1 = ParameterTypeTuple! (fun);
     alias r1 = ReturnType!fun;
@@ -35,6 +37,8 @@ private bool checkFuncReduce (alias fun, Msg) () {
 }
 
 alias Iterator (Msg) = Tuple!(ulong, "vid", Msg, "msg");
+enum EmptyIterator (Msg) = Tuple!(ulong, "vid", Msg, "msg") (ulong.max, Msg.init);
+
 alias EdgeTriplet (VD : VertexD, ED : EdgeD) = Tuple !(VD, "src", VD, "dst", ED, "edge");
 
 template MapReduceTriplets (Fun ...)
@@ -69,6 +73,7 @@ template MapReduceTriplets (Fun ...)
     auto reduce (KV [] left, ref Msg [ulong] aux) {
 	import std.parallelism;
 	foreach (it ; parallel (left)) {
+	    if (it.key == ulong.max) continue;
 	    auto inside = (it.key in aux);
 	    if (inside) *inside = ReduceFun (*inside, it.value);
 	    else aux [it.key] = it.value;
@@ -83,6 +88,7 @@ template MapReduceTriplets (Fun ...)
     	auto info = Protocol.commInfo (MPI_COMM_WORLD);
     	Msg [ulong] aux;
     	foreach (it ; msgs) {
+	    if (it.vid == ulong.max) continue;
     	    auto inside = (it.vid in aux);
     	    if (inside) *inside = ReduceFun (*inside, it.msg);
     	    else aux [it.vid] = it.msg;
