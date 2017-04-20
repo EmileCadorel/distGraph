@@ -70,16 +70,17 @@ template Pregel (Fun ...)
 	auto messages = g.MapReduceTriplets! (MapFun, ReduceFun);
 	
 	auto activeMessages = messages.length;
+	//syncWriteln (messages);
 	auto i = 0;
 	while (activeMessages > 0 && i < maxIter) {
 	    g = g.JoinVertices !(VProg) (messages);
 
 	    auto olds = messages;
 	    messages = g.MapReduceTriplets! (MapFun, ReduceFun);
+	    //syncWriteln (messages);
 	    activeMessages = messages.length;
 	    i ++;
 	}
-	
 	return g;
     }
             

@@ -29,14 +29,67 @@ class DstVertex : VertexD {
 }
 
 
-void master (int id, int total) {
-    auto nb = 2;
-    if (Options.active ("-n"))
-	nb = to!(int) (Options ["-n"]);
-    if (Options.active ("-l"))
-	DistGraphLoader.lambda = to!float (Options ["-l"]);
-    if (!Options.active ("-i"))
-	assert (false, "On a besion d'un fichier d'entrée");
+class DegVertex : VertexD {
+
+    float rank;
+    int deg;
+    
+    this (Vertex v) {
+	super (v);
+	this.rank = 1.0;
+	this.deg = 0;
+    }
+
+    this (Vertex v, float rank, int deg) {
+	super (v);
+	this.deg = deg;
+	this.rank = rank;
+    }
+
+    override string toString () {
+	return format ("\t\t%d[label=\"%d, %f, %d\"];", this.id, this.id, rank, deg);
+    }
+    
+}
+
+
+
+
+void pageRank (int id, int total) {
+    auto nb = 2, iter = 10;
+    if (Options.active ("-n")) nb = to!(int) (Options ["-n"]);
+    if (Options.active ("-l"))	DistGraphLoader.lambda = to!float (Options ["-l"]);
+    if (!Options.active ("-i"))	assert (false, "On a besion d'un fichier d'entrée");
+    if (Options.active ("--it")) iter = to!int (Options ["--it"]);
+    
+    auto grp = DistGraphLoader.open (Options ["-i"], nb);
+    auto pgraph = grp.JoinVertices! ((VertexD v, int deg) => new DegVertex (v.data, 1.0, deg)) (grp.outDegreeTest);
+
+    auto ranked = pgraph.Pregel ! (
+	(DegVertex v, float msg) => new DegVertex (v.data, 0.15 + 0.85 * msg, v.deg),	
+	(EdgeTriplet!(DegVertex, EdgeD) e) => Iterator!float (e.dst.id, e.src.rank  / e.src.deg),	
+	(float a, float b) => a + b
+    ) (1.0, iter);
+
+    import std.typecons;
+    alias TU = Tuple!(ulong, "id", float, "rank");    
+    auto max = ranked.MapReduceVertices! (
+	(DegVertex dv) => TU (dv.id, dv.rank),
+	(TU a, TU b) => a.rank > b.rank ? a : b
+    );
+    
+    if (id == 0) {
+	writeln ('(', max.id, ", ", max.rank, ')');
+    }
+    
+}
+
+
+void shortPath (int id, int total) {
+   auto nb = 2;
+    if (Options.active ("-n"))	nb = to!(int) (Options ["-n"]);
+    if (Options.active ("-l"))	DistGraphLoader.lambda = to!float (Options ["-l"]);
+    if (!Options.active ("-i"))	assert (false, "On a besion d'un fichier d'entrée");
 
     auto grp = DistGraphLoader.open (Options ["-i"], nb);
 
@@ -51,25 +104,37 @@ void master (int id, int total) {
 
     auto mergeMsg = (float a, float b) => min (a, b);
 
-    auto begin = Clock.currTime;
-    auto sourceId = grp.total - 1;
-    auto initialGraph = grp.MapVertices! (
-	(VertexD v) {
-	    if (v.id == sourceId) return new DstVertex (v.data, 0.0f);
-	    else return new DstVertex (v.data, float.infinity);
+    import std.random;
+    auto begin1 = Clock.currTime;    
+    foreach (sourceId ; 0 .. grp.total) {		
+	auto begin = Clock.currTime;    
+	auto initialGraph = grp.MapVertices! (
+	    (VertexD v) {
+		if (v.id == sourceId) return new DstVertex (v.data, 0.0f);
+		else return new DstVertex (v.data, float.infinity);
+	    }
+	);
+
+	auto sssp = initialGraph.Pregel !(vprog, sendMsg, mergeMsg) (float.infinity);
+	auto end = Clock.currTime;
+
+
+	//On allege un peu la ram
+	delete sssp;
+
+	if (id == 0) {
+	    writeln ("Temps : ", end - begin, ' ', sourceId,  " / ", grp.total, " cumul : ", end - begin1);
 	}
-    );
+    }    
 
-    auto sssp = initialGraph.Pregel !(vprog, sendMsg, mergeMsg) (float.infinity, 100);
-    auto end = Clock.currTime;
+}
 
-    if (id == 0) {
-	writeln ("Temps : ", end - begin);
-    }
-    
-    auto file = File (format ("out%d.dot", id), "w+");
-    file.writeln (sssp.toDot ().toString);
-    file.close ();
+
+void master (int id, int total) {
+    if (Options.active ("--short"))
+	shortPath (id, total);
+    else
+	pageRank (id, total);
     
 }
 

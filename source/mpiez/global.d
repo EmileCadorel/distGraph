@@ -105,7 +105,7 @@ void scatterNxM (T) (int root, int n, int m, ref T [] _in, ref T [] _out, MPI_Co
     MPI_Scatterv(_in.ptr, ind.ptr, displs.ptr, MPI_BYTE, _out.ptr, size_ * T.sizeof, MPI_BYTE, root, comm);
 }
 	
-void gather (T : U [], U)(int root, int size, ref T _in, ref T _out, MPI_Comm comm) {
+void gather (T : U [], U)(int root, int size, ref T _in, ref T _out, MPI_Comm comm) if (!is (U : Object)) {
     int nb_procs, id;
     MPI_Comm_size(comm, &nb_procs);
     MPI_Comm_rank(comm, &id);
@@ -129,7 +129,7 @@ void gather (T : U [], U)(int root, int size, ref T _in, ref T _out, MPI_Comm co
     MPI_Gatherv(_in.ptr, cast (int) (_in.length * U.sizeof), MPI_BYTE, _out.ptr, ind.ptr, displs.ptr, MPI_BYTE, root, comm);
 }
 
-void gather (T : U [], U) (int root, int size, ref U _in, ref T _out, MPI_Comm comm) {
+void gather (T : U [], U) (int root, int size, ref U _in, ref T _out, MPI_Comm comm) if (!is (U : Object)) {
     int nb_procs, id;
     MPI_Comm_size(comm, &nb_procs);
     MPI_Comm_rank(comm, &id);
@@ -153,8 +153,6 @@ void gather (T : U [], U) (int root, int size, ref U _in, ref T _out, MPI_Comm c
     
     MPI_Gatherv(&_in, cast (int) (U.sizeof), MPI_BYTE, _out.ptr, ind.ptr, displs.ptr, MPI_BYTE, root, comm);
 }
-
-
 
 void reduce (T) (int root, int size, ref T [] _in, ref T [] _out, MPI_Datatype type, MPI_Op op, MPI_Comm comm) {
     int id;

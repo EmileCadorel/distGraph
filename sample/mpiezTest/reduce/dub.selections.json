@@ -1,6 +1,7 @@
 {
 	"fileVersion": 1,
 	"versions": {
-		"dist-graph": "~master"
+		"dist-graph": "~master",
+		"orange": "1.0.0"
 	}
 }

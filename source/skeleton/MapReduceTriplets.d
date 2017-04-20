@@ -85,7 +85,7 @@ template MapReduceTriplets (Fun ...)
      TODO, Voir comment faire en sorte que les partitions ne communique qu'avec celle avec qui elle sont en lien.     
      */
     auto executeReduce (T : DistGraph!(VD, ED), VD, ED) (Iterator!Msg [] msgs, T gp) {
-    	auto info = Protocol.commInfo (MPI_COMM_WORLD);
+    	auto info = Protocol.commInfo (MPI_COMM_WORLD);		
     	Msg [ulong] aux;
     	foreach (it ; msgs) {
 	    if (it.vid == ulong.max) continue;

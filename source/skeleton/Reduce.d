@@ -48,6 +48,32 @@ template Reduce (alias fun)
 		return reduce (aux, fun);
 	    return T.init;
 	}
+
+	T Reduce (T2 : U [V], U, V : ulong) (T2 a_) if (is (Tuple!(V, U) == T)) {
+	    import std.stdio;
+	    auto info = Protocol.commInfo (MPI_COMM_WORLD);	    
+	    T [] a, o;
+	    if (info.id == 0) {
+		a = new T [a_.length];
+		ulong i = 0;
+		foreach (key, value ; a_) {
+		    a [i] = Tuple!(ulong, U) (key, value);
+		}
+	    }
+	    
+	    int len = cast (int) a.length;
+	    broadcast (0, cast (int) len, MPI_COMM_WORLD);
+	    scatter (0, len, a, o, MPI_COMM_WORLD);
+	    syncWriteln (o);
+	    auto res = reduce (o, fun);
+	    
+	    T[] aux;
+	    gather (0, info.total, res, aux, MPI_COMM_WORLD);
+	    if (info.id == 0)
+		return reduce (aux, fun);
+	    return T.init;
+	}
+
 	
     } else {	
 	T reduce (T2 : U [], U) (ulong begin, T2 array, T function (T, T) op) {
