@@ -1,7 +1,8 @@
 module dgraph.DistGraphLoader;
 import utils.Singleton;
 import std.stdio;
-public import dgraph.Graph, dgraph.Edge, dgraph.Vertex;
+import dgraph.Graph;
+public import dgraph.Edge, dgraph.Vertex;
 import std.string, std.conv;
 import std.container, std.algorithm;
 import dgraph.Partition;
@@ -10,7 +11,7 @@ import dgraph.Master, dgraph.Slave;
 import skeleton.Register;
 import mpiez.admin;
 import utils.Options;
-import dgraph.DistGraph;
+public import dgraph.DistGraph;
 
 enum WINDOW_SIZE = 1;
 

@@ -6,26 +6,8 @@ import std.conv, std.math, std.algorithm;
 import skeleton.Compose;
 import dgraph.DistGraphLoader;
 import std.datetime;
-
-class VertexDD (T) : VertexD  {
-
-    private T _val;
-    
-    this (Vertex v) {
-	super (v);	
-    }
-
-    ref T val () {
-	return this._val;
-    }
-
-    override string toString () {
-	import std.format;
-	return format ("\t\t%d[label=\"%d%s\"];", id(), id(), to!string(this._val));
-    }    
-    
-}
-
+import std.format;
+		     
 void master (int id, int total) {
     auto nb = 2;
     if (Options.active ("-n"))
@@ -36,31 +18,27 @@ void master (int id, int total) {
 	assert (false, "On a besion d'un fichier d'entrée");
 
     auto grp = DistGraphLoader.open (Options ["-i"], nb);
-    
-    auto grp2 = grp.MapVertices!(
-	(VertexD v) {	    
-	    auto res = new VertexDD!string (v.data);
-	    res.val = to!string (cast (char) (res.id % 26 + 'a'));
-	    return res;
-	}
-    );
 
-    auto grp3 = grp2.MapEdges!(
-	(EdgeD e) {
-	    return new EdgeD (Edge (e.dst, e.src, e.color));	    
+    auto msgFun = (EdgeTriplet! (VertexD, EdgeD) triplet) =>
+	Iterator!(ulong) (triplet.dst.id, 1);
+    
+    auto reduceMsg = (ulong left, ulong right) => left + right;
+
+    foreach (it ; 0 .. 1000) {
+	auto begin = Clock.currTime;
+	auto deg = grp.inDegree ();
+	auto end = Clock.currTime;
+	auto res = grp.MapReduceTriplets!(msgFun, reduceMsg);
+	auto end2 = Clock.currTime ();
+	if (id == 0) {
+	    auto t1 = end - begin, t2 = end2 - end;
+	    writeln (t1, t1 > t2 ? " > " : " < ", t2);
 	}
-    );
+    }
     
-    grp3 = grp3.FilterEdges!((EdgeD e) => e.dst != 6 && e.src != 6).
-	FilterVertices!((VertexDD!string v) => v.val > "h");
-	
     
-    auto file = File ("bout" ~ to!string (id) ~ ".dot", "w+");
+    auto file = File ("out" ~ to!string (id) ~ ".dot", "w+");
     file.write (grp.toDot ().toString);
-    file.close ();
-
-    file = File ("out" ~ to!string (id) ~ ".dot", "w+");
-    file.write (grp3.toDot ().toString);
     file.close ();
 }
 

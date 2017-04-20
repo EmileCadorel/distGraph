@@ -2,7 +2,7 @@ module skeleton.Degree;
 import mpiez.admin, mpiez.Process;
 import dgraph.DistGraph;
 import skeleton.Zip;
-
+import skeleton.MapReduceTriplets;
 
 class Proto : Protocol {
 
@@ -60,6 +60,30 @@ ulong [] inDegree (T : DistGraph!(VD, ED), VD, ED) (T dg) {
 
     // Partie compliqué, il faut transmettre les infos au autres noeuds.
     return zipAll (dg, res);
+}
+
+/**
+ Cette fonction utilise un MapReduce mais est 30 fois plus lente.
+ TODO, Optimiser le MapReduce
+ */
+int [ulong] inDegreeTest (T : DistGraph!(VD, ED), VD, ED) (T dg) {
+    auto msgFun = (EdgeTriplet!(VD, ED) triplet) =>
+	Iterator!(int) (triplet.dst.id, 1);
+
+    auto reduceMsg = (int left, int right) => left + right;
+    return dg.MapReduceTriplets!(msgFun, reduceMsg);
+}
+
+/**
+ Cette fonction utilise un MapReduce mais est 30 fois plus lente.
+ TODO, Optimiser le MapReduce
+*/
+int [ulong] outDegreeTest (T : DistGraph!(VD, ED), VD, ED) (T dg) {
+    auto msgFun = (EdgeTriplet!(VD, ED) triplet) =>
+	Iterator!(int) (triplet.src.id, 1);
+
+    auto reduceMsg = (int left, int right) => left + right;
+    return dg.MapReduceTriplets!(msgFun, reduceMsg);
 }
 
 ulong [] outDegree (T : DistGraph!(VD, ED), VD, ED) (T dg) {

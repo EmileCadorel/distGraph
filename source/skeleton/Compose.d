@@ -10,6 +10,7 @@ public import skeleton.MapVertices;
 public import skeleton.MapEdges;
 public import skeleton.FilterVertices;
 public import skeleton.FilterEdges;
+public import skeleton.MapReduceTriplets;
 
 import std.typecons;
 

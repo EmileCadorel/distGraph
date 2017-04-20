@@ -11,8 +11,7 @@ import std.traits, std.container;
 import utils.Colors;
 import dgraph.Graph;
 
-
-class DistGraph (VD, ED) {
+class DistGraph (VD : VertexD, ED : EdgeD) {
 
     private VD [ulong] _vertices;
 

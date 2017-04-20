@@ -244,4 +244,45 @@ void syncWriteln (Fst : MPI_Comm, T ...) (Fst comm, T params) {
     barrier (comm);
 }
 
+void syncWriteln (alias fun, T : U [], U) (T param, MPI_Comm comm = MPI_COMM_WORLD) {
+    import std.stdio, std.traits;
+    int id, size;
+    MPI_Comm_rank (comm, &id);
+    MPI_Comm_size (comm, &size);
+    foreach (it ; 0 .. size) {
+	if (id == it) {
+	    write (id, " => [");
+	    alias FP = ParameterTypeTuple!(fun);
+	    static if (FP.length == 2) {
+		foreach (i, pt ; param)
+		    write (fun (i, pt));
+	    } else {
+		foreach (pt ; param)
+		    write (fun (pt));
+	    }
+	    writeln ("]");
+	}
+	barrier (comm);
+    }
+    barrier (comm);
+}
+
+void syncWriteln (alias fun, T : U [V], U, V) (T param, MPI_Comm comm = MPI_COMM_WORLD) {
+    import std.stdio;
+    int id, size;
+    MPI_Comm_rank (comm, &id);
+    MPI_Comm_size (comm, &size);
+    foreach (it ; 0 .. size) {
+	if (id == it) {
+	    write (id, " => [");
+	    foreach (key, value ; param)
+		write (fun (key, value));
+	    writeln ("]");
+	}
+	barrier (comm);
+    }
+    barrier (comm);
+}
+
+
 
