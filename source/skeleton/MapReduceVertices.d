@@ -41,9 +41,7 @@ template MapReduceVertices (Fun ...)
     
           
     Msg  reduce (I [ulong] array) {
-	import std.conv;
-	array.syncWriteln !((ulong it, I i) => to!string (i.id) ~ ":" ~ to!string (i.rank) ~ ",");
-	
+	import std.conv;		
 	Msg res;
 	ulong i = 0;
 	foreach (key, value ; array) {
@@ -64,9 +62,7 @@ template MapReduceVertices (Fun ...)
     
     auto MapReduceVertices (T : DistGraph!(I, E), E) (T a) {
 	auto info = Protocol.commInfo (MPI_COMM_WORLD);
-	auto res = reduce (a.vertices);
-	syncWriteln (res);
-	
+	auto res = reduce (a.vertices);	
 	Msg [] aux;
 	gather (0, info.total, res, aux, MPI_COMM_WORLD);
 	if (info.id == 0)

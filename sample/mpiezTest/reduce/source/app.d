@@ -72,16 +72,9 @@ void pageRank (int id, int total) {
 	true
     ) (1.0, iter);
 
-    import std.typecons;
-    alias TU = Tuple!(ulong, "id", float, "rank");    
-    auto max = ranked.MapReduceVertices! (
-	(DegVertex dv) => TU (dv.id, dv.rank),
-	(TU a, TU b) => a.rank > b.rank ? a : b
-    );
-    
-    if (id == 0) {
-	writeln ('(', max.id, ", ", max.rank, ')');
-    }
+    auto file = File (format("out%d.dot", id), "w+");
+    file.writeln (ranked.toDot ());
+    file.close ();
     
 }
 

@@ -79,7 +79,6 @@ template PowerGraph (Fun ...)
 	    auto acc = glGraph.FilterEdgeTriplets! ( (EdgeTriplet! (VD, ED) e) => (cast (LV) e.src).active)
 		.MapReduceTriplets! (GatherFun, SumFun);
 
-	    syncWriteln (acc);
 	    glGraph = glGraph.JoinVertices! (
 		(VD v, Msg e) => cast (VD) new LV (ApplyFun (v, e), (cast (LV)v).active)
 	    ) (acc);
@@ -87,7 +86,6 @@ template PowerGraph (Fun ...)
 	    auto active = glGraph.FilterEdgeTriplets! ( (EdgeTriplet! (VD, ED) e) => (cast (LV) e.src).active)
 		.MapReduceTriplets! (ScatterFun, (bool a, bool b) => a || b);
 	    
-	    syncWriteln (active);
 	    glGraph = glGraph.JoinVertices! ( (VD v, bool val) => cast (VD) new LV (v, val) ) (active) ;
 
 	    nbActive = glGraph.MapReduceVertices! (

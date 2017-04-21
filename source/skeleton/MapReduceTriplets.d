@@ -34,6 +34,10 @@ private bool checkFuncReduce (alias fun, Msg) () {
 alias Iterator (Msg) = Tuple!(ulong, "vid", Msg, "msg");
 enum EmptyIterator (Msg) = Tuple!(ulong, "vid", Msg, "msg") (ulong.max, Msg.init);
 
+Iterator!Msg iterator (Msg) (ulong id, Msg msg) {
+    return Iterator!Msg (id, msg);
+}
+
 alias EdgeTriplet (VD : VertexD, ED : EdgeD) = Tuple !(VD, "src", VD, "dst", ED, "edge");
 
 template MapReduceTriplets (Fun ...)
