@@ -66,21 +66,21 @@ ulong [] inDegree (T : DistGraph!(VD, ED), VD, ED) (T dg) {
  Cette fonction utilise un MapReduce mais est 30 fois plus lente.
  TODO, Optimiser le MapReduce
  */
-int [ulong] inDegreeTest (T : DistGraph!(VD, ED), VD, ED) (T dg) {
-    auto msgFun = (EdgeTriplet!(VD, ED) triplet) =>
-	Iterator!(int) (triplet.dst.id, 1);
+// int [ulong] inDegreeTest (T : DistGraph!(VD, ED), VD, ED) (T dg) {
+//     auto msgFun = (EdgeTriplet!(VD, ED) triplet) =>
+// 	Iterator!(int) (triplet.dst.id, 1);
 
-    auto reduceMsg = (int left, int right) => left + right;
-    return dg.MapReduceTriplets!(msgFun, reduceMsg);
-}
+//     auto reduceMsg = (int left, int right) => left + right;
+//     return dg.MapReduceTriplets!(msgFun, reduceMsg);
+// }
 
 /**
  Cette fonction utilise un MapReduce mais est 30 fois plus lente.
  TODO, Optimiser le MapReduce
 */
-int [ulong] outDegreeTest (T : DistGraph!(VD, ED), VD, ED) (T dg) {
-    auto msgFun = (EdgeTriplet!(VD, ED) triplet) =>
-	Iterator!(int) (triplet.src.id, 1);
+auto outDegreeTest (T : DistGraph!(VD, ED), VD, ED) (T dg) {
+    auto msgFun = (EdgeTriplet!(VertexD, EdgeD) edge) =>
+	Iterator!(int) (edge.src.id, 1);
 
     auto reduceMsg = (int left, int right) => left + right;
     return dg.MapReduceTriplets!(msgFun, reduceMsg);

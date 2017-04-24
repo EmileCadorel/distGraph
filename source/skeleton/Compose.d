@@ -18,6 +18,7 @@ public import skeleton.PowerGraph;
 
 import std.typecons;
 import std.traits;
+import utils.Singleton;
 
 alias Ids (T) = Tuple!(ulong, "id", T, "value");
 
@@ -28,4 +29,3 @@ void isSkeletable (alias fun) () {
 		   isFunctionPointer!fun ||
 		   isDelegate!fun);
 }
-

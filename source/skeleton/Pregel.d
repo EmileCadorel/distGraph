@@ -77,7 +77,7 @@ template Pregel (Fun ...)
 	    g = g.JoinVertices !(VProg) (messages);
 
 	    auto olds = messages;
-	    messages = g.MapReduceTriplets! (MapFun, ReduceFun);
+	    messages = g.MapReduceTriplets! (MapFun, ReduceFun);	    	    
 	    static if (DEBUG) syncWriteln (messages);
 	    activeMessages = messages.length;
 	    i ++;
