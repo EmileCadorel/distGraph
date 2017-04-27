@@ -18,6 +18,20 @@ private bool checkFunc (alias fun) () {
     return true;
 }
 
+/++
+ Applique une fonction de map à tout les sommets.
+ Params:
+ fun = une fonction de map.
+ Example:
+ -----
+ // DistGraph!(VertexD, EdgeD) grp = ...;
+ 
+ auto grp2 = grp.MapVertices!(
+     (VertexD vd) => new RankVertex (vd.data, 1.0)
+ );
+
+ -----
++/
 template MapVertices (alias fun)
     if (checkFunc!fun) {
     
@@ -30,7 +44,11 @@ template MapVertices (alias fun)
 	    res [key] = fun (array [key]);
 	return res;
     }
-   
+
+    /++
+     Cette fonction peut être lancé indépendament sur chaque processus.
+     Aucune communication n'est faite.
+     +/
     DistGraph!(T2, E) MapVertices (T : DistGraph!(I, E), E) (T a) {
 	//TODO, synchroniser avec les autres partitions pour voir si tout le monde à le même ID.
 	auto aux = new DistGraph!(T2, E) (a.color, a.nbColor);

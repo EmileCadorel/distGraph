@@ -21,6 +21,22 @@ private bool checkFunc (alias fun) () {
     return true;
 }
 
+/++
+ Squelette de génération d'un tableau 
+ Params:
+ fun = un fonction soit (T function (ulong)) soit (T function (ulong, ulong)).
+
+ Example:
+ -----
+ auto tab = Generate!(
+     (ulong i, ulong len) => i * len
+ ) (100);
+ 
+ auto tab2 = Generate! ((ulong i) => i) (100);
+
+ -----
+
++/
 template Generate (alias fun) {
 
     alias T = ReturnType!fun;
@@ -47,6 +63,13 @@ template Generate (alias fun) {
 	return array;
     }    
 
+    /++
+     Génére un tableau sur le processur 0. 
+     Tout les processus de MPI_COMM_WORLD, doivent lancer se squelette.
+     Params:
+     len = la taille du tableau final
+     Returns: un tableau de taille len si id == 0 ou []
+     +/
     T [] Generate (int len) {
 	auto info = Protocol.commInfo (MPI_COMM_WORLD);
 	auto pos = computeLen (len, info.id, info.total);
@@ -64,7 +87,19 @@ template Generate (alias fun) {
     
 }
 
-
+/++
+ Génération d'un tableau.
+ Params:
+ fun = un fonction soit (T function (ulong)) soit (T function (ulong, ulong)).
+ 
+ Example:
+ -----
+ auto tab = Generate!(
+     (ulong i, ulong len) => i * len;
+ ) (100);
+ 
+ -----
++/
 template GenerateS (alias fun)
     if (checkFunc!fun) {
 
@@ -108,7 +143,15 @@ template GenerateS (alias fun)
 	}
 	return array;
     }    
-    
+
+    /++
+     Un seul processus doit lancer cette fonction.
+     Elle spawn des esclave qui génére le tableau.
+     Params:
+     len = la taille du tableau final;
+     nb = le nombre d'esclave à créer.
+     Returns: un tableau de taille len.
+     +/
     T [] Generate (ulong len, int nb = 2) {
 	import std.math;
 	auto name = fullyQualifiedName!fun;

@@ -27,6 +27,23 @@ private bool checkFuncReduce (alias fun, Msg) () {
     return true;
 }
 
+/++
+ Applique une fonction de map à tout les sommets.
+ Puis les réduit en une seule valeurs.
+ Params:
+ Fun = un fonction de map et un fonction de réduction.
+ Example:
+ ------
+ DistGraph!(VertexD, EdgeD) grp = ...;
+ 
+ // Calcule le nombre de sommets dans le graphe.
+ auto res = grp.MapReduceVertices!( 
+     (VertexD vd) => 1,
+     (int a, int b) => a + b
+ );
+
+ ------
++/
 template MapReduceVertices (Fun ...)
     if (Fun.length == 2) {
 
@@ -59,7 +76,11 @@ template MapReduceVertices (Fun ...)
 	    res = ReduceFun (res, array [it]);
 	return res;
     }
-    
+
+    /++
+     Tout les processus doivent appeler cette fonction.
+     Le résultat se trouve sur le processus 0.     
+     +/
     auto MapReduceVertices (T : DistGraph!(I, E), E) (T a) {
 	auto info = Protocol.commInfo (MPI_COMM_WORLD);
 	auto res = reduce (a.vertices);	

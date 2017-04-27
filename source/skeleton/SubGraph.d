@@ -26,6 +26,19 @@ private bool checkFuncEdge (alias fun) () {
     return true;
 }
 
+/++
+ + Génère un sous graphe à partir de deux prédicat
+ + Params:
+ + X = [un filtre sur les Sommets, un filtre sur les arêtes]
+ + Example:
+ + ------
+ + // DistGraph!(VertexD, EdgeD) grp = ...;
+ + auto sub = grp.SubGraph!(
+ +    (VertexD vd) => vd.id % 2 == 1,
+ +    (EdgeD ed) => ed.src.id + ed.dst.id < 10
+ + );
+ + ------
++/
 template SubGraph (X ...)
     if (X.length == 2 && checkFuncEdge!(X [1]) && checkFuncVert!(X [0])) {
 

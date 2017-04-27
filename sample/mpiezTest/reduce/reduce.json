@@ -1,0 +1,318 @@
+[
+ {
+  "name" : "test",
+  "kind" : "module",
+  "file" : "source/app.d",
+  "members" : [
+   {
+    "name" : "std.stdio",
+    "kind" : "import",
+    "line" : 2,
+    "char" : 8,
+    "protection" : "private"
+   },
+   {
+    "name" : "mpiez.admin",
+    "kind" : "import",
+    "line" : 3,
+    "char" : 8,
+    "protection" : "private"
+   },
+   {
+    "name" : "utils.Options",
+    "kind" : "import",
+    "line" : 4,
+    "char" : 8,
+    "protection" : "private"
+   },
+   {
+    "name" : "std.conv",
+    "kind" : "import",
+    "line" : 5,
+    "char" : 8,
+    "protection" : "private"
+   },
+   {
+    "name" : "std.math",
+    "kind" : "import",
+    "line" : 5,
+    "char" : 18,
+    "protection" : "private"
+   },
+   {
+    "name" : "std.algorithm",
+    "kind" : "import",
+    "line" : 5,
+    "char" : 28,
+    "protection" : "private"
+   },
+   {
+    "name" : "skeleton.Compose",
+    "kind" : "import",
+    "line" : 6,
+    "char" : 8,
+    "protection" : "private"
+   },
+   {
+    "name" : "dgraph.DistGraphLoader",
+    "kind" : "import",
+    "line" : 7,
+    "char" : 8,
+    "protection" : "private"
+   },
+   {
+    "name" : "std.datetime",
+    "kind" : "import",
+    "line" : 8,
+    "char" : 8,
+    "protection" : "private"
+   },
+   {
+    "name" : "std.format",
+    "kind" : "import",
+    "line" : 9,
+    "char" : 8,
+    "protection" : "private"
+   },
+   {
+    "name" : "DstVertex",
+    "kind" : "class",
+    "line" : 11,
+    "char" : 1,
+    "base" : "dgraph.Vertex.VertexD",
+    "members" : [
+     {
+      "name" : "dst",
+      "kind" : "variable",
+      "line" : 13,
+      "char" : 11,
+      "deco" : "f",
+      "offset" : 48
+     },
+     {
+      "name" : "this",
+      "kind" : "constructor",
+      "line" : 15,
+      "char" : 5,
+      "deco" : "FS6dgraph6Vertex6VertexZC4test9DstVertex",
+      "originalType" : "(Vertex v)",
+      "parameters" : [
+       {
+        "name" : "v",
+        "deco" : "S6dgraph6Vertex6Vertex"
+       }
+      ],
+      "endline" : 18,
+      "endchar" : 5
+     },
+     {
+      "name" : "this",
+      "kind" : "constructor",
+      "line" : 20,
+      "char" : 5,
+      "deco" : "FS6dgraph6Vertex6VertexfZC4test9DstVertex",
+      "originalType" : "(Vertex v, float dst)",
+      "parameters" : [
+       {
+        "name" : "v",
+        "deco" : "S6dgraph6Vertex6Vertex"
+       },
+       {
+        "name" : "dst",
+        "deco" : "f"
+       }
+      ],
+      "endline" : 23,
+      "endchar" : 5
+     },
+     {
+      "name" : "toString",
+      "kind" : "function",
+      "line" : 25,
+      "char" : 21,
+      "storageClass" : [
+       "override"
+      ],
+      "deco" : "FZAya",
+      "endline" : 27,
+      "endchar" : 5,
+      "overrides" : [
+       "dgraph.Vertex.VertexD.toString"
+      ]
+     }
+    ]
+   },
+   {
+    "name" : "DegVertex",
+    "kind" : "class",
+    "line" : 32,
+    "char" : 1,
+    "base" : "dgraph.Vertex.VertexD",
+    "members" : [
+     {
+      "name" : "rank",
+      "kind" : "variable",
+      "line" : 34,
+      "char" : 11,
+      "deco" : "f",
+      "offset" : 48
+     },
+     {
+      "name" : "deg",
+      "kind" : "variable",
+      "line" : 35,
+      "char" : 9,
+      "deco" : "i",
+      "offset" : 52
+     },
+     {
+      "name" : "this",
+      "kind" : "constructor",
+      "line" : 37,
+      "char" : 5,
+      "deco" : "FS6dgraph6Vertex6VertexZC4test9DegVertex",
+      "originalType" : "(Vertex v)",
+      "parameters" : [
+       {
+        "name" : "v",
+        "deco" : "S6dgraph6Vertex6Vertex"
+       }
+      ],
+      "endline" : 41,
+      "endchar" : 5
+     },
+     {
+      "name" : "this",
+      "kind" : "constructor",
+      "line" : 43,
+      "char" : 5,
+      "deco" : "FS6dgraph6Vertex6VertexfiZC4test9DegVertex",
+      "originalType" : "(Vertex v, float rank, int deg)",
+      "parameters" : [
+       {
+        "name" : "v",
+        "deco" : "S6dgraph6Vertex6Vertex"
+       },
+       {
+        "name" : "rank",
+        "deco" : "f"
+       },
+       {
+        "name" : "deg",
+        "deco" : "i"
+       }
+      ],
+      "endline" : 47,
+      "endchar" : 5
+     },
+     {
+      "name" : "toString",
+      "kind" : "function",
+      "line" : 49,
+      "char" : 21,
+      "storageClass" : [
+       "override"
+      ],
+      "deco" : "FZAya",
+      "endline" : 51,
+      "endchar" : 5,
+      "overrides" : [
+       "dgraph.Vertex.VertexD.toString"
+      ]
+     }
+    ]
+   },
+   {
+    "name" : "pageRank",
+    "kind" : "function",
+    "line" : 58,
+    "char" : 6,
+    "deco" : "FiiZv",
+    "parameters" : [
+     {
+      "name" : "id",
+      "deco" : "i"
+     },
+     {
+      "name" : "total",
+      "deco" : "i"
+     }
+    ],
+    "endline" : 79,
+    "endchar" : 1
+   },
+   {
+    "name" : "shortPath",
+    "kind" : "function",
+    "line" : 82,
+    "char" : 6,
+    "deco" : "FiiZv",
+    "parameters" : [
+     {
+      "name" : "id",
+      "deco" : "i"
+     },
+     {
+      "name" : "total",
+      "deco" : "i"
+     }
+    ],
+    "endline" : 124,
+    "endchar" : 1
+   },
+   {
+    "name" : "test",
+    "kind" : "function",
+    "line" : 126,
+    "char" : 6,
+    "deco" : "FiiZv",
+    "parameters" : [
+     {
+      "name" : "id",
+      "deco" : "i"
+     },
+     {
+      "name" : "total",
+      "deco" : "i"
+     }
+    ],
+    "endline" : 137,
+    "endchar" : 1
+   },
+   {
+    "name" : "master",
+    "kind" : "function",
+    "line" : 139,
+    "char" : 6,
+    "deco" : "FiiZv",
+    "parameters" : [
+     {
+      "name" : "id",
+      "deco" : "i"
+     },
+     {
+      "name" : "total",
+      "deco" : "i"
+     }
+    ],
+    "endline" : 146,
+    "endchar" : 1
+   },
+   {
+    "name" : "main",
+    "kind" : "function",
+    "line" : 148,
+    "char" : 5,
+    "deco" : "FAAyaZi",
+    "parameters" : [
+     {
+      "name" : "args",
+      "deco" : "AAya"
+     }
+    ],
+    "endline" : 152,
+    "endchar" : 1
+   }
+  ]
+ }
+]

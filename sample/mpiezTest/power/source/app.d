@@ -109,9 +109,11 @@ void pageRank (int id, int total) {
     if (!Options.active ("-i"))	assert (false, "On a besion d'un fichier d'entrée");
     
     auto grp = DistGraphLoader.open (Options ["-i"], nb);
+
+    auto begin = Clock.currTime;
     auto pgraph = grp.JoinVertices! (
 	(VertexD v, int deg) => new DegVertex (v.data, deg, 1.0, 1.0)
-    ) (grp.outDegreeTest);
+    ) (grp.outDegree);
 
     auto sssp = pgraph.PowerGraph ! (
 	(EdgeTriplet!(DegVertex, EdgeD) e) => iterator (e.dst.id, e.src.rank / e.src.deg),	
@@ -119,7 +121,9 @@ void pageRank (int id, int total) {
 	(DegVertex v, float a) => new DegVertex (v.data, v.deg, 0.15 + 0.85 * a, v.rank),						
 	(EdgeTriplet!(DegVertex, EdgeD) e) => iterator (e.src.id, true)	
     ) (10);
-
+    
+    writeln ("Temps : ", Clock.currTime - begin);
+    
     auto file = File (format("out%d.dot", id), "w+");
     file.writeln (sssp.toDot ());
     file.close ();

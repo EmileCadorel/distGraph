@@ -8,19 +8,33 @@ alias Option = Tuple!(string, "id", string, "act", string, "longAct", int, "type
 enum PARAM = 1;
 enum INFO = 0;
 
+/++
+ Liste des options standart déjà prévu
++/
 enum OptionEnum {
     TYPE = Option ("type", "-t", "--type", PARAM)    
 }
 
+/++
+ Juste pour éviter d'écrire instance à chaque fois.
++/
 alias Options = OptionsS.instance;
 
+/++
+ Classe qui parse et récupère les options passé au lancement du programme.
++/
 class OptionsS {
 
     private string _process;
     private string [string] _unknown;
     private string [Option] _options;
     private string [] _simple;
-    
+
+    /++
+     On initialise les options.
+     Params:
+     args = les arguments passé au programme.
+     +/
     void init (string [] args) {
 	ulong it;
 	this._process = args [0];
@@ -37,16 +51,29 @@ class OptionsS {
 	}
     }
 
+    /++
+     Returns: le nom du programme lancé
+     +/
     string process () {
 	return this._process;
     }
-    
+
+    /++
+     Params:
+     type = une option
+     Returns: la valeur associé à l'option (peut être null)
+     +/
     string opIndex (OptionEnum type) {
 	auto f = type in this._options;
 	if (f !is null) return *f;
 	return null;
     }
 
+    /++
+     Params:
+     name = le nom d'une option, ou une chaine qui ne fait pas partie des options standart
+     Returns: la valeur associé à l'option (peut être null)
+     +/
     string opIndex (string name) {
 	auto f = find!("a.id == b") ([EnumMembers!OptionEnum], name);
 	if (f != []) return this.opIndex (f [0]);
@@ -57,6 +84,11 @@ class OptionsS {
 	}
     }
    
+    /++
+     Params:
+     name = le nom d'une option
+     Returns: l'option à été activé au lancement du programme.
+     +/
     bool active (string name) {
 	auto f = find!("a.id == b") ([EnumMembers!OptionEnum], name);
 	if (f != []) return true;
@@ -67,6 +99,9 @@ class OptionsS {
 	}
     }
     
+    /++
+     Returns: la liste des options sans valeur.
+     +/
     string [] simple () {
 	return this._simple;
     }
@@ -114,10 +149,7 @@ class OptionsS {
 	    }	    
 	}
     }
-    
-    
-
-    
+            
     mixin Singleton!OptionsS;
 }
 

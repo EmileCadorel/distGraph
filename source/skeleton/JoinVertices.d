@@ -18,6 +18,26 @@ private bool checkFunc (alias fun) () {
     return true;
 }
 
+/++
+ Fonction de map sur les sommets d'un graphe, avec un tableau associatif des valeurs à ajouter.
+ Chaque sommet lance la fonction sur lui et la valeur associé dans le tableau.
+ Si aucun valeur n'est associé au sommet dans le tableau 
+ - soit La fonction de map retourne le même type que le sommet et le sommet est conservé
+ - soit le type est différent et une instance sans valeur associé est crée.
+
+ Params:
+ fun = une fonction (T2 function (T : VertexD, Msg, T2) (T, Msg))
+
+ Example:
+ -------
+ // DistGraph!(VertexD, EdgeD) grp = ...
+ 
+ auto grp2 = grp.JoinVertices!(
+     (VertexD vd, ulong deg) => new DegVertex (vd, deg)
+ ) (grp.outDegree); 
+ -------
+
+ +/
 template JoinVertices (alias fun)
     if (checkFunc!fun) {
     
@@ -39,7 +59,14 @@ template JoinVertices (alias fun)
 	}
 	return res;
     }
-   
+    
+    /++
+     Cette fonction ne se synchronise pas avec les autres processus
+     Elle peut être lancé indépendament.
+     Params:
+     a = le graph répartie
+     values = les valeurs associé au sommet.
+     +/
     DistGraph!(T2, E) JoinVertices (T : DistGraph!(I, E), E) (T a, Msg [ulong] values) {
 	//TODO, synchroniser avec les autres partitions pour voir si tout le monde à le même ID.
 	auto aux = new DistGraph!(T2, E) (a.color, a.nbColor);

@@ -48,6 +48,25 @@ struct EdgeTriplet (VD : VertexD, ED : EdgeD) {
     ED edge;
 }
 
+
+/++
+ Applique une fonction de map à tous les triplet!(sommet, arêtes), qui retourne un iterateur.
+ Puis applique une fonctions de réduction grouper par id de l'iterateur.
+ Params:
+ Fun = une fonction de map, et une fonction de réduction
+ 
+ Example:
+ -----
+ // DistGraph!(VertexD, EdgeD) grp = ...;
+
+ // Récupère les degré sortant des sommets d'un graphe.
+ auto degree = grp.MapReduceTriplets! (
+      (EdgeTriplet!(VertexD, EdgeD) ed) => Iterator (ed.src.id, 1),
+      (int a, int b) => a + b
+ ); 
+ -----
+ 
++/
 template MapReduceTriplets (Fun ...)
     if (Fun.length == 2) {
 
@@ -169,6 +188,10 @@ template MapReduceTriplets (Fun ...)
     }
     
 
+    /++
+     Chaque process de MPI_COMM_WORLD doit lancer cette fonction.
+     Returns: le résultat est broadcaster sur tous les process.
+     +/
     auto MapReduceTriplets (T : DistGraph!(VD, ED), VD, ED) (T gp) {
 	auto mp = executeMap (gp);
 	auto red = executeReduce (mp, gp);

@@ -14,10 +14,27 @@ private bool checkFunc (alias fun) () {
     
     alias a1 = ParameterTypeTuple! (fun);
     alias r1 = ReturnType!fun;
-    static assert (a1.length == 1 && is (a1[0] : VertexD) && is (r1 : bool), "On a besoin de : T2 function (T : VertexD, T2 : VertexD) (T)");
+    static assert (a1.length == 1 && is (a1[0] : VertexD) && is (r1 : bool), "On a besoin de : bool function (T : VertexD) (T)");
     return true;
 }
 
+/++
+ + Squelette de filtre de sommet.
+ + Params:
+ + fun = une fonction (bool function (T : VD))
+ +
+ + Example:
+ + ------
+ + // DistGraph!(DegVertex, EdgeD) grp = ...;
+ + // DegVertex contient le degré du sommet.
+ +
+ + auto grp2 = grp.FilterVertices! (
+ +     (DegVertex vd) => return vd.deg < 3
+ + );
+ +
+ + ------
+ +
+ +/
 template FilterVertices (alias fun)
     if (checkFunc!fun) {
     
@@ -30,7 +47,10 @@ template FilterVertices (alias fun)
 		res [key] = value;
 	return res;
     }
-   
+
+    /++
+     Cette fonction ne nécéssite aucune synchronisation
+     +/
     DistGraph!(I, E) FilterVertices (T : DistGraph!(I, E), E) (T a) {
 	import std.container, std.array;
 	//TODO, synchroniser avec les autres partitions pour voir si tout le monde à le même ID.

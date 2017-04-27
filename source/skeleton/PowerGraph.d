@@ -14,7 +14,9 @@ private bool checkFuncGather (alias fun) () {
     isSkeletable!fun;
     alias a1 = ParameterTypeTuple! fun;
     alias r1 = ReturnType!fun;
-    static assert (a1.length == 1 && is (a1 [0] : Tuple!(VD, "src", VD, "dst", ED, "edge"), VD, ED) && is (r1 : Tuple!(ulong, "vid", Msg, "msg"), Msg),
+    static assert (a1.length == 1 &&
+		   is (a1 [0] : EdgeTriplet!(VD, ED), VD, ED) &&
+		   is (r1 : Iterator!Msg, Msg),
 		   "On a besoin de A function (ED : EdgeTriplet!(VD, ED), VD, ED, A)");
     return true;
 }
@@ -39,7 +41,32 @@ private bool checkFuncApply (alias fun, Msg) () {
     return true;
 }
 
-
+/++
+ + Fonction de PowerGraph.
+ + Params:
+ + Fun = [une fonction de map, une fonction de réduction, une fonction de jointure, une fonction d'arret]
+ + Example:
+ + ----
+ + // DistGraph!(DstVertex, EdgeD) grp = ...;
+ + // DstVertex contient, la distance en float.
+ + 
+ + auto pgraph = grp.MapVertices !( 
+ +     (VertexD v) => v.id == 0 ? new DstVertex (v.data, 0.0, 1.0) : 
+ +                                new DstVertex (v.data, float.infinity, float.infinity)
+ + );
+ + 
+ + //Calcul des distances de 0 vers tout le monde.
+ + auto sssp = pgraph.PowerGraph ! (
+ +    (EdgeTriplet!(DstVertex, EdgeD) e) => iterator (e.dst.id, e.src.dst + 1),
+ +    (float a, float b) => min (a, b),
+ +    (DstVertex v, float a) => a < v.dst ? new DstVertex (v.data, a, v.dst) :
+ +                                          new DstVertex (v.data, v.dst, a),
+ +    (EdgeTriplet!(DstVertex, EdgeD) e) => 
+ +                iterator (e.src.id, abs (a.src.dst - a.src.old) > float.epsilon ||
+ +                                    e.src.dst == float.infinity)
+ + ) (100); // On execute 100 tour.
+ + ----
++/
 template PowerGraph (Fun ...)
     if (Fun.length == 4) {
 
@@ -58,8 +85,10 @@ template PowerGraph (Fun ...)
     alias ApplyFun = Fun [2];
     alias ScatterFun = Fun [3];
 
-    
-    class LV : VD {
+    /++
+     Classe utilisé pour savoir si le sommet est tjrs actif à l'étape X.
+     +/
+    private class LV : VD {
 
 	bool active;
 
@@ -70,7 +99,13 @@ template PowerGraph (Fun ...)
 	    this.active = active;
 	}		
     }    
-    
+
+    /++
+     Cette fonction doit être executé par tout le monde
+     Params:
+     gp = la partitions du process.
+     maxIter = le nombre maximal d'iteration (très important)
+     +/
     auto PowerGraph (T : DistGraph!(VD, ED), ED) (T gp, ulong maxIter = ulong.max) {
 	auto glGraph = gp.MapVertices! ( (VD v) => cast (VD) new LV (v, true) );
 

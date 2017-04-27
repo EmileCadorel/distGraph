@@ -22,6 +22,11 @@ import utils.Singleton;
 
 alias Ids (T) = Tuple!(ulong, "id", T, "value");
 
+/++
+ La fonction peut être utilisé comme paramètre d'un squelette.
+ Params:
+ fun = une fonction | delegate | pointeur sur fonction.
++/
 void isSkeletable (alias fun) () {
     static assert ((is (typeof(&fun) U : U*) && (is (U == function)) ||
 		    is (typeof (&fun) U == delegate)) ||

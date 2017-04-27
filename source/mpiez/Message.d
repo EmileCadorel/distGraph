@@ -5,6 +5,12 @@ import base = mpiez.ezBase;
 import std.typecons;
 import std.traits;
 
+/++
+ Réception d'un message et appel de la fonction associé
+ Params:
+ ops = une liste de fonctions
+ comm = le communicateur 
++/
 void receive (T ...) (T ops, MPI_Comm comm) {
     checkops (ops);
     MPI_Status status;
@@ -21,6 +27,13 @@ void receive (T ...) (T ops, MPI_Comm comm) {
 
 }
 
+/++
+ Réception d'un message et appel de la fonction associé
+ Params:
+ ops = une liste de fonctions
+ comm = le communicateur 
+ ids = un tableau des tag associé au fonction
++/
 void receive (int N, T ...) (T ops, MPI_Comm comm, int [N] ids) if (T.length == N) {
     checkops (ops);
     MPI_Status status;
@@ -37,6 +50,12 @@ void receive (int N, T ...) (T ops, MPI_Comm comm, int [N] ids) if (T.length == 
 
 }
 
+
+/++
+ Vérifie que les fonctions sont appelable par un receive (T...) (T ops, )
+ Params:
+ T = une liste de fonctions
++/
 private void checkops(T...)(T ops)  {
     foreach (i, t1; T)  {
 	static assert(isFunctionPointer!t1 || isDelegate!t1);
@@ -51,7 +70,11 @@ private void checkops(T...)(T ops)  {
     }
 }
 
+/++
+ Réception de tuple sur un communicateur.
++/
 private {
+    
     void __recv__ (T, TNext ...) (int procId, int tag, ref T param, ref TNext params, MPI_Comm comm, MPI_Status status) {
 	recv (procId, tag, param, status, comm);
 	__recv__ (procId, tag, params, comm, status);
@@ -65,65 +88,139 @@ private {
     void __recv__ () (int, int, MPI_Comm, MPI_Status) {}
 }
 
+/++
+ Classe utilisé dans une protocol pour communiquer entre plusieurs processus.
+ Params:
+ N = le tag du message (doît être unique dans un protocol)
+ T = la liste des paramètre du message (des types que l'on peut envoyer)
++/
 class Message (int N, T ...) {
-    
+
+    /++
+     Le status du message (évolue à chaque récéption)
+     +/
     private MPI_Status _status;
 
     this () {
     }
-    
+
+    /++
+     Envoi du message
+     Params:
+     procId = la cible
+     params = les données du messages
+     comm = le communicateur à utiliser     
+     +/
     void opCall (int procId, T params, MPI_Comm comm = MPI_COMM_WORLD) {
 	this._send (procId, params, comm);
     }
 
+    /++
+     Envoi du message par ssend.
+     Params:
+     procId = la cible
+     params = les données du messages
+     comm = le communicateur à utiliser     
+     +/
     void ssend (int procId, T params, MPI_Comm comm = MPI_COMM_WORLD) {
 	this._ssend (procId, params, comm);
     }
-    
+
+    /++
+     Réception du message.
+     Params:
+     params = les données à remplir.
+     comm = le communicateur.
+     +/
     void receive (ref T params, MPI_Comm comm = MPI_COMM_WORLD) {
 	this._recvAny (params, comm);
     }
 
+    /++
+     Réception du message.
+     Params:
+     callBack = la fonction a appeler une fois les données reçu.
+     comm = le communicateur.
+     +/
     void receive (void function(int id, T params) callBack, MPI_Comm comm = MPI_COMM_WORLD) {
 	Tuple!T tuple;
 	this._recv (MPI_ANY_SOURCE, tuple.expand, comm);
 	callBack (this._status.MPI_SOURCE, tuple.expand);
     }
-    
+
+    /++
+     Réception du message.
+     Params:
+     callBack = la fonction a appeler une fois les données reçu.
+     comm = le communicateur.
+     +/
     void receive (void delegate(int id, T params) callBack, MPI_Comm comm = MPI_COMM_WORLD) {
 	Tuple!T tuple;
 	this._recv (MPI_ANY_SOURCE, tuple.expand, comm);
 	callBack (this._status.MPI_SOURCE, tuple.expand);
     }
-
+    
+    /++
+     Réception du message.
+     Params:
+     procId = le process source
+     callBack = la fonction a appeler une fois les données reçu.
+     comm = le communicateur.
+     +/
     void receive (int procId, void function(T params) callBack, MPI_Comm comm = MPI_COMM_WORLD) {
 	Tuple!T tuple;
 	this._recv (procId, tuple.expand, comm);
 	callBack (tuple.expand);
     }
 
+    /++
+     Réception du message.
+     Params:
+     procId = le process source
+     callBack = la fonction a appeler une fois les données reçu.
+     comm = le communicateur.
+     +/    
     void receive (int procId, void delegate(T params) callBack, MPI_Comm comm = MPI_COMM_WORLD) {
 	Tuple!T tuple;
 	this._recv (procId, tuple.expand, comm);
 	callBack (tuple.expand);
     }
     
+    /++
+     Réception du message.
+     Params:
+     procId = le process source
+     params = les données à remplir
+     comm = le communicateur.
+     +/
     void receive  (int procId, ref T params, MPI_Comm comm = MPI_COMM_WORLD) {
 	this._recv (procId, params, comm);
     }
-    
+
+    /++
+     Récupère le status de la dernière récéption.
+     +/
     const (MPI_Status) status () {
 	return this._status;
     }
-    
+
+    /++
+     alias TAG.
+     +/
     immutable const (int) value () {
 	return N;
     }
 
+    /++
+     Returns: le tag du message (N).
+     +/
     const (int) TAG () {
 	return N;
     }
-    
+
+    /++
+     Toutes les fonctions suivantes servent à l'envoi et la récéption de tuple sur un communicateur.
+     +/
     private {
 	
 	void _send (T, TNext ...) (int procId, T param, TNext params, MPI_Comm comm) {

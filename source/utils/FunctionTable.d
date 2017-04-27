@@ -3,6 +3,11 @@ import std.typecons;
 import std.typetuple;
 import std.traits;
 
+/++
+ Récupère toutes les fonctions d'un module.
+ Params:
+ mod = le module 
++/
 template getFunctions(alias mod) {
     template filterPred(string name) {
         enum filterPred = is(typeof(__traits(getMember, mod, name)) ==
@@ -16,6 +21,11 @@ template getFunctions(alias mod) {
     alias getFunctions = staticMap!(mapPred, names);
 }
 
+/++
+ Génére un tableau qui contient tous les pointeurs sur fonctions associé leur nom.
+ Params:
+ modname = le nom d'un module.
++/
 auto makeFunctionTable(alias modname)() {
     mixin("import "~modname~";");
     mixin("alias funcs = getFunctions!("~modname~");");

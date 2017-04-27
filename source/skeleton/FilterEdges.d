@@ -23,11 +23,25 @@ private bool checkFuncTriplets (alias fun) () {
     
     alias a1 = ParameterTypeTuple! (fun);
     alias r1 = ReturnType!fun;
-    static assert (a1.length == 1 && is (a1[0] :  Tuple!(VD, "src", VD, "dst", ED, "edge"), VD, ED) && is (r1 : bool), "On a besoin de : bool function (T : VertexD, T2 : VertexD) (T)");
+    static assert (a1.length == 1 && is (a1[0] :  EdgeTriplet!(VD, ED), VD, ED) && is (r1 : bool), "On a besoin de : bool function (T : VertexD, T2 : VertexD) (T)");
     return true;
 }
 
-
+/++
+ + Squelette de filtre de arêtes.
+ + Récupère uniquement les arêtes qui valide le prédicat.
+ + Params:
+ + fun = une fonction (bool function (ED : EdgeD) (ED e))
+ +
+ + Example:
+ + -------
+ + //DistGraph!(VertexD, EdgeD) grp = ...;
+ + 
+ + auto grp2 = grp.FilterEdges!(
+ +      (EdgeD e) => e.src % 2 == e.dst % 2
+ + );
+ + -------
+ +/
 template FilterEdges (alias fun)
     if (checkFunc!fun) {
     
@@ -42,7 +56,12 @@ template FilterEdges (alias fun)
 	}
 	return res.array ();
     }
-   
+
+    /++
+     Cette fonction ne se synchronise pas (aucune communication)
+     Params:
+     a = un graphe distribué
+     +/
     DistGraph!(V, E) FilterEdges (T : DistGraph!(V, E), V) (T a) {
 	auto aux = new DistGraph!(V, E) (a.color, a.nbColor);
 	aux.total = a.total;
@@ -52,6 +71,24 @@ template FilterEdges (alias fun)
     }    
 }
 
+/++
+ + Squelette de filtre de arêtes.
+ + Récupère uniquement les arêtes qui valide le prédicat (on passe également les informations des sommets de l'arête). 
+ + Params:
+ + fun = une fonction (bool function (Triplets : EdgeTriplet!(VD, ED), VD, ED) (Triplets e))
+ + 
+ + Example:
+ + -------
+ + //DistGraph!(DegVertex, EdgeD) grp = ...;
+ + // DegVertex contient le degré des sommets;
+ + 
+ +
+ + auto grp2 = grp.FilterEdges!(
+ +    (EdgeTriplets!(DegVertex, EdgeD) e) => e.src.deg > e.dst.deg
+ + );
+ +-------
+ +
+ +/
 template FilterEdgeTriplets (alias fun)
     if (checkFuncTriplets!fun) {
     
@@ -68,7 +105,13 @@ template FilterEdgeTriplets (alias fun)
 	}
 	return res.array ();
     }
-   
+
+
+    /++
+     Cette fonction ne se synchronise pas (aucune communication)
+     Params:
+     a = un graphe distribué
+     +/    
     DistGraph!(V, E) FilterEdgeTriplets (T : DistGraph!(V, E), V) (T a) {
 	auto aux = new DistGraph!(V, E) (a.color, a.nbColor);
 	aux.total = a.total;

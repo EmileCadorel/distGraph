@@ -16,6 +16,17 @@ private bool checkFunc (alias fun) () {
     return true;
 }
 
+/++
+ + Réduction d'un tableau dans en une seule valeur.
+ + Params:
+ + fun = une fonction de réduction.
+ + Example:
+ + ----
+ + //auto a = [1.0, 2.0, ...];
+ + 
+ + auto b = a.Reduce!((float a, float b) => a + b);
+ + ----
++/
 template Reduce (alias fun)
     if (checkFunc!fun) {
 

@@ -18,6 +18,20 @@ private bool checkFunc (alias fun) () {
     return true;
 }
 
+/++
+ Applique une fonction de map à toutes les arêtes.
+ Params:
+ fun = la fonction de map.
+ Example:
+ -------
+ // DistGraph!(VertexD, EdgeD) grp = ...;
+ 
+ // Inverse toutes les arêtes.
+ auto grp2 = grp.MapEdges!(
+     (EdgeD ed) => new EdgeD (Edge (ed.dst, ed.src, ed.color)) 
+ ); 
+ -------
++/
 template MapEdges (alias fun)
     if (checkFunc!fun) {
     
@@ -40,5 +54,8 @@ template MapEdges (alias fun)
     }    
 }
 
+/++
+ Inverse l'orientation de toutes les arêtes du graphe.
++/
 alias ReverseEdgeDirection = MapEdges! ((EdgeD ed) => new EdgeD (Edge (ed.dst, ed.src, ed.color)));
 

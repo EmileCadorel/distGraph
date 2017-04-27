@@ -9,28 +9,46 @@ import std.stdio;
 import utils.Options;
 import std.traits, std.typecons;
 
+/++
+ Exception jeté, lorsque plusieurs instance d'admin sont créées
++/
 class AdminMultipleDefinition : Exception {
     this () {
 	super ("Cannot define mutiple administrator");
     }    
 }
 
+/++ Il existe un admin +/
 static __gshared bool __admLaunched__ = false;
+
+/++ L'admin à lancé la procedure de fin du context MPI  +/
 static __gshared bool __finalized__ = false;
 
+/++ Une fonction qui peut être lancé par l'admin doit accepter deux entiers en paramètre. +/
 alias Launchable = void function (int, int);
+
+/++ Liste des fonctions de lancement de squelette +/
 Launchable [string] __skeletons__;
 
-
+/++
+ Met fin au contexte MPI.
++/
 void finalize () {
     __finalized__ = true;
     MPI_Finalize ();
 }
 
+/++
+ Ajoute un squelette à la liste des squelette que l'admin peut lancer.
+ Doit être appeler avant l'instanciation d'un admin pour fonctionner.
++/
 void insertSkeleton (string name, Launchable skel) {
     __skeletons__ [name] = skel;
 }
 
+/++
+ Verifie que les paramètre templates sont admissible pour l'admin.
++/
 private bool checkT (T ...) () {
     foreach (i, t1 ; T) {
 	static if ((is (typeof(&t1) U : U*) && is (U == function)) ||
@@ -45,21 +63,25 @@ private bool checkT (T ...) () {
     return true;
 }
 
-
-
-
 class Admin (T...)
     if (T.length == 1)
 	{
 
 	    static assert (checkT!T);
-    
+
+	    /++ Le processus lancé par l'admin +/ 
 	    private Object _process;
-	    	    
+
+	    /++ Le protocol utilisé par le processus +/
 	    private Protocol _proto;
-	    
+
+	    /++ L'admin a lancé un squelette +/
 	    private bool _skel;
-	    
+
+	    /++
+	     Params:
+	     args = les paramètres passé au programme
+	     +/
 	    this (string [] args) {
 		if (!__admLaunched__) {
 		    __admLaunched__ = true;
@@ -84,6 +106,12 @@ class Admin (T...)
 		} else throw new AdminMultipleDefinition ();
 	    }
 
+	    /++
+	     On lance le squelette si il existe (son nom est donnée par OptionEnum.TYPE)
+	     Params:
+	     id = l'identifiant MPI
+	     total = le nombre de totaux de processus MPI dans MPI_COMM_WORLD.
+	     +/
 	    bool checkSkeletons (int id, int total) {
 		auto type = Options [OptionEnum.TYPE];
 		foreach (key, value ; __skeletons__) {
@@ -96,7 +124,10 @@ class Admin (T...)
 		return false;
 	    }
 
-
+	    /++
+	     On met fin au context MPI, si c'est pas déjà fais.
+	     On appel le destructeur du processus.
+	     +/
 	    void finalize () {
 		if (!__finalized__) {
 		    MPI_Barrier (MPI_COMM_WORLD);

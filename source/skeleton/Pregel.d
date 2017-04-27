@@ -15,9 +15,9 @@ private bool checkFuncMap (alias fun) () {
     alias a1 = ParameterTypeTuple! (fun);
     alias r1 = ReturnType!fun;
     static assert (a1.length == 1 &&
-		   is (a1[0] : Tuple!(VD, "src", VD, "dst", ED, "edge"), VD, ED) &&
-		   is (r1 : Tuple!(ulong, "vid", Msg, "msg"), Msg),
-		   "On a besoin de : T2 function (T : EdgeTriplet!(VD, ED), VD, ED, T2 != void) (T), pas (" ~ a1 [0].stringof ~ " " ~ r1.stringof);
+		   is (a1[0] : EdgeTriplet!(VD, ED), VD, ED) &&
+		   is (r1 : Iterator!Msg, Msg),
+		   "On a besoin de : T2 function (T : EdgeTriplet!(VD, ED), VD, ED, T2 : Iterator!Msg, Msg) (T), pas (" ~ a1 [0].stringof ~ " " ~ r1.stringof);
     return true;        
 }
 
@@ -45,6 +45,32 @@ private bool checkFuncProg (alias fun, VD, Msg) () {
 
 
 
+/++
+ + Fonction Pregel
+ + Params:
+ + Fun = [une fonction de jointure, une fonction de map, une fonction de réduction].
+ + Example:
+ + -----
+ + // DistGraph!(VertexD, EdgeD) grp = ...;
+ +
+ + auto initGraph = grp.MapVertices!(
+ +     (VertexD vd) => vd.id == 0 ? new DstVertex (v.data, 0.0) : 
+ +                                  new DstVertex (v.data, float.infinity)
+ + );
+ + 
+ + // Calcul de la distance de 0 vers tout le monde
+ + auto sssp = initGraph.Pregel! (
+ +     (DstVertex vd, float nDist) => new DstVertex (v.data, min (v.dst, nDist)),
+ +     (EdgeTriplet!(DstVertex, EdgeD) ed) {
+ +                if (ed.src.dst + 1 < ed.dst.dst) 
+ +                    return iterator (ed.dst.id, ed.src.dst + 1);
+ +		  else return Iterator!(float).empty;
+ +	},
+ +     (float a, float b) => min (a, b)
+ + ) (float.infinity);
+ + -----
+ +
+ +/
 template Pregel (Fun ...)
     if (Fun.length == 3 || Fun.length == 4) {
 
@@ -66,6 +92,13 @@ template Pregel (Fun ...)
     alias MapFun = Fun [1];
     alias ReduceFun = Fun [2];
 
+    /++
+     Tout les process de MPI_COMM_WORLD doivent lancer cette fonction.
+     Params:
+     gp = le graphe répartie
+     initMsg = Le message par défaut à associer au vertex
+     maxIter = le nombre d'itération maximal
+     +/
     auto Pregel (T : DistGraph!(VD, ED), ED) (T gp, Msg initMsg, ulong maxIter = ulong.max) {
 	auto g = gp.MapVertices!((VD v) => VProg (v, initMsg));
 	auto messages = g.MapReduceTriplets! (MapFun, ReduceFun);

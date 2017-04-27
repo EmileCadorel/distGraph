@@ -16,6 +16,17 @@ private bool checkFunc (alias fun) () {
     return true;
 }
 
+
+/++
+ Execute un fonction de map sur un ensemble d'élément.
+ Params:
+ fun = un fonction (T2 function (T, T2 != void) (T))
+ 
+ Example:
+ ---------
+ auto res = ([1, 2]).Map!((int i) => (cast(float) i));
+ ---------
++/
 template Map (alias fun)
     if (checkFunc!fun) {
     
@@ -30,6 +41,10 @@ template Map (alias fun)
 	return res;
     }
     
+    /++
+     Tout les processus de MPI_COMM_WORLD doivent lancer cette fonction.
+     Le résultat se trouve sur le processus 0.
+     +/
     U [] Map (T : I []) (T a) {
 	auto info = Protocol.commInfo (MPI_COMM_WORLD);
 	T [] o;
@@ -45,6 +60,16 @@ template Map (alias fun)
 }
 
 
+/++
+ Execute un fonction de map sur un ensemble d'élément.
+ Params:
+ fun = un fonction (T2 function (T, T2 != void) (T))
+ 
+ Example:
+ ---------
+ auto res = ([1, 2]).MapS!((int i) => (cast(float) i));
+ ---------
++/
 template MapS (alias fun)
     if (checkFunc !(fun)) {
 
@@ -77,6 +102,12 @@ template MapS (alias fun)
 	Message!(2, T2 []) res;
     }
     
+    /++
+     Le processus qui lance cette fonction spawn des esclave.
+     Params:
+     array = le tableau à mapper
+     nb = le nombre d'esclave à lancer.
+     +/
     T2 [] Map (T [] array, int nb = 2) {
 	import std.math;
 	auto name = fullyQualifiedName!fun;

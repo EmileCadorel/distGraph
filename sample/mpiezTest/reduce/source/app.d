@@ -56,25 +56,26 @@ class DegVertex : VertexD {
 
 
 void pageRank (int id, int total) {
-    // auto nb = 2, iter = 10;
-    // if (Options.active ("-n")) nb = to!(int) (Options ["-n"]);
-    // if (Options.active ("-l"))	DistGraphLoader.lambda = to!float (Options ["-l"]);
-    // if (!Options.active ("-i"))	assert (false, "On a besion d'un fichier d'entrée");
-    // if (Options.active ("--it")) iter = to!int (Options ["--it"]);
+    auto nb = 2, iter = 10;
+    if (Options.active ("-n")) nb = to!(int) (Options ["-n"]);
+    if (Options.active ("-l"))	DistGraphLoader.lambda = to!float (Options ["-l"]);
+    if (!Options.active ("-i"))	assert (false, "On a besion d'un fichier d'entrée");
+    if (Options.active ("--it")) iter = to!int (Options ["--it"]);
     
-    // auto grp = DistGraphLoader.open (Options ["-i"], nb);
-    // auto pgraph = grp.JoinVertices! ((VertexD v, int deg) => new DegVertex (v.data, 1.0, deg)) (grp.outDegreeTest);
+    auto grp = DistGraphLoader.open (Options ["-i"], nb);
 
-    // auto ranked = pgraph.Pregel ! (
-    // 	(DegVertex v, float msg) => new DegVertex (v.data, 0.15 + 0.85 * msg, v.deg),	
-    // 	(EdgeTriplet!(DegVertex, EdgeD) e) => Iterator!float (e.dst.id, e.src.rank  / e.src.deg),	
-    // 	(float a, float b) => a + b,
-    // 	true
-    // ) (1.0, iter);
+    auto begin = Clock.currTime;
+    auto pgraph = grp.JoinVertices! ((VertexD v, int deg) => new DegVertex (v.data, 1.0, deg)) (grp.outDegree);
+    auto ranked = pgraph.Pregel ! (
+    	(DegVertex v, float msg) => new DegVertex (v.data, 0.15 + 0.85 * msg, v.deg),	
+    	(EdgeTriplet!(DegVertex, EdgeD) e) => Iterator!float (e.dst.id, e.src.rank  / e.src.deg),	
+    	(float a, float b) => a + b
+    ) (1.0, iter);
+    writeln ("Temps : ", Clock.currTime - begin);
 
-    // auto file = File (format("out%d.dot", id), "w+");
-    // file.writeln (ranked.toDot ());
-    // file.close ();    
+    auto file = File (format("out%d.dot", id), "w+");
+    file.writeln (ranked.toDot ());
+    file.close ();    
 }
 
 
@@ -102,21 +103,17 @@ void shortPath (int id, int total) {
 
     foreach (sourceId ; 0 .. grp.total) {
 	auto begin = Clock.currTime;    
-	/*auto initialGraph = grp.MapVertices! (
+	auto initialGraph = grp.MapVertices! (
 	    (VertexD v) {
 		if (v.id == sourceId) return new DstVertex (v.data, 0.0f);
 		else return new DstVertex (v.data, float.infinity);
 	    }
 	);
     
-	auto sssp = initialGraph.Pregel !(vprog, sendMsg, mergeMsg) (float.infinity);*/
+	auto sssp = initialGraph.Pregel !(vprog, sendMsg, mergeMsg) (float.infinity);
 
-	auto deg = grp.outDegree ();
-	auto end = Clock.currTime;
-	auto deg2 = grp.outDegreeTest ();
-	auto end2 = Clock.currTime;
 	if (id == 0) {
-	    writeln ("Temps : ", end - begin, ' ', end2 - end);
+	    writeln ("Temps : ", Clock.currTime - begin);
 	}
     }
 

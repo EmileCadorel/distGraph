@@ -1,6 +1,6 @@
 module dgraph.Graph;
 public import dgraph.Vertex;
-public import dgraph.Edge, dgraph.Partition;
+public import dgraph.Edge;
 import std.math, std.algorithm;
 import std.stdio;
 import std.container;
@@ -11,10 +11,8 @@ import std.traits;
 import utils.Colors;
 
 /++
- Représentation d'un graphe
- Params:
- VD = le type de données des vertex
- ED = le type de données des arêtes
+ Représentation d'un graphe, non répartie.
+ Utilisé lors du découpage, elle ne doit pas être conservé ensuite
  +/
 class Graph {
 
@@ -29,7 +27,11 @@ class Graph {
     
     /++ La liste des arêtes rangé par partitions +/ 
     private Array!Edge [] _edgesPart;
-    
+
+    /++
+     Params:
+     nbPart = le nombre de partitions qui vont être créé
+     +/
     this (ulong nbPart) {
 	if (nbPart > 0) {
 	    this._partitions = new ulong [nbPart];
@@ -38,24 +40,38 @@ class Graph {
 	}
     }
 
+    /++
+     Returns: La tailles des partitions (rangé par id).
+     +/
     ref ulong [] partitions () {
 	return this._partitions;
     }
 
+    /++
+     Returns: la liste des sommets rangé par partitions 
+     +/
     Array!Vertex [] vertices () {
 	return this._verticesPart;
     }
 
+    /++
+     Returns: la liste des arêtes rangé par partitions 
+     +/
     Array!Edge [] edges () {
 	return this._edgesPart;
     }
 
+    /++
+     Returns: La liste des sommets, désordonnées
+     +/
     Vertex [] verticesTotal () {
 	return this._vertices;
     }
     
     /++
-     Retourne le vertex (id), (le créer si il n'existe pas)
+     Params:
+     id = un identifiant de sommet
+     Returns: le sommet identifié par id, (le créer si il n'existe pas)
      +/
     ref Vertex getVertex (ulong id) {
 	if (this._vertices.length <= id) {	    
@@ -72,6 +88,8 @@ class Graph {
 
     /++
      Ajoute une arête au graphe, met à jour les sommets associé, ainsi que la table des partitions.     
+     Params:
+     e = l'arête à ajouter
      +/
     void addEdge (Edge e) {
 	//this._edges.insertBack (e);

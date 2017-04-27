@@ -2,6 +2,10 @@ module utils.Colors;
 import std.typecons;
 
 alias Value = Tuple!(string, "value"); 
+
+/++
+ Enum de couleurs pour la génération en fichier .dot
++/
 enum Color : Value {
     ROUGE = Value ("set19/1"),
     BLEUE = Value ("set19/2"),

@@ -14,6 +14,16 @@ private bool checkFunc (int len, alias fun) () {
 
 alias Zip (alias fun) = Zip!(2, fun);
 
+/++
+ + Même fonction que Map mais avec 2 tableau en entrée.
+ + Params:
+ + fun = une fonction (T function (T) (T a, T b))
+ + Example:
+ + -----
+ + auto a = Generate!((ulong i) => i), b = Generate!((ulong i) => -i);
+ + auto c = Zip!((ulong a, ulong b) => a + b) (a, b);
+ + -----
++/
 template Zip (int len = 2, alias fun)
     if (checkFunc!(len , fun)) {
     
