@@ -101,21 +101,34 @@ class DistGraphLoaderS {
      Params:
      filename = le nom du fichier au format edge.
      nbWorker = le nombre de noeud qui vont travailler au découpage (les autres se mettent en attente d'informations d'arête et de sommets)
+     linear = la répartition va se faire dans l'ordre d'apparition ?
      Returns: Une partitions du graphe correspondant au noeud de calcul courant
      +/
-    DistGraph!(VertexD, EdgeD) open (string filename, int nbWorker = 2) {	
+    DistGraph!(VertexD, EdgeD) open (string filename, int nbWorker = 2, bool linear = true) {
 	auto info = Proto.commInfo (MPI_COMM_WORLD);
 	nbWorker = info.total < nbWorker ? info.total : nbWorker;
 	auto proto = new Proto (info.id, info.total);
-	if (info.id == 0) {
-	    auto master = new Master (proto, filename, info.total);
-	    master.run (nbWorker - 1);	    
-	    return master.dgraph ();
+	if (!linear) {
+	    if (info.id == 0) {
+		auto master = new Master (proto, filename, info.total);
+		master.run (nbWorker - 1);	    
+		return master.dgraph ();
+	    } else {
+		auto slave = new Slave (proto, this._lambda);
+		if (info.id < nbWorker) slave.run ();
+		else slave.waitGraph ();
+		return slave.dgraph ();
+	    }
 	} else {
-	    auto slave = new Slave (proto, this._lambda);
-	    if (info.id < nbWorker) slave.run ();
-	    else slave.waitGraph ();
-	    return slave.dgraph ();
+	    if (info.id == 0) {
+		auto master = new Master (proto, filename, info.total);
+		master.runLinear ();	    
+		return master.dgraph ();
+	    } else {
+		auto slave = new Slave (proto, this._lambda);
+		slave.waitGraph ();
+		return slave.dgraph ();
+	    }
 	}
     }
     

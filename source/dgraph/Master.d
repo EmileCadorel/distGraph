@@ -43,7 +43,7 @@ class Master {
     /++
      On possède un arête à envoyer à un esclave ?
      +/
-    private bool _read;
+    private bool _read = true;
 
     /++
      La taille du fichier
@@ -130,6 +130,28 @@ class Master {
 	file.seek (0, SEEK_SET);
 	return file;
     }
+
+    /++
+     Répartition des arêtes dans l'ordre d'apparition
+     +/
+    void runLinear () {
+	this._file = this._open (this._filename);
+	int nb = 0;
+	while (this._read) {
+	    this._next ();
+	    if (this._read) {
+		this._toSend.color = nb;
+		this._current.addEdge (this._toSend);
+		if (this._currentPercent >= (nb + 1) * 100 / this._proto.total) {
+		    writeln ("Partition suivante");
+		    nb ++;
+		}
+	    } else break;
+	}
+	distribute ();
+	delete this._current;
+	writeln ("\nFin de la distribution");
+    }
     
     /++
      Routine de découpage
@@ -168,15 +190,15 @@ class Master {
 	}
 
 	// Distribue le graphe tampon entre les différents noeuds
-	disrtribute ();	
+	distribute ();	
 	delete this._current; // Supprime le graphe tampon (delete demande au GC de supprimer de manière immédiate)
-	writeln ("");
+	writeln ("\nFin de la distribution");
     }
 
     /++
      Distribution du graphe tampon entre les différents partitions (même celle qui ne partitionne pas)     
      +/
-    private void disrtribute () {
+    private void distribute () {
 	foreach (it; 0 .. this._current.vertices.length) {
 	    if (it == 0) { // Ces sommets appartiennent au maître
 		foreach (ref vt ; this._current.vertices [it])

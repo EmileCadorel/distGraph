@@ -94,8 +94,8 @@ class Graph {
     void addEdge (Edge e) {
 	//this._edges.insertBack (e);
 	this._edgesPart [e.color].insertBack (e);
-	this._vertices [e.src].degree ++;
-	this._vertices [e.dst].degree ++;
+	getVertex (e.src).degree ++;
+	getVertex(e.dst).degree ++;
 	if (this._vertices [e.src].addPartition (e.color)) {
 	    this._partitions [e.color] ++;
 	    this._verticesPart [e.color].insertBack(this._vertices [e.src]);

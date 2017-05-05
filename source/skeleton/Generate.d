@@ -23,9 +23,6 @@ private bool checkFunc (alias fun) () {
 
 /++
  Squelette de génération d'un tableau 
- Params:
- fun = un fonction soit (T function (ulong)) soit (T function (ulong, ulong)).
-
  Example:
  -----
  auto tab = Generate!(
@@ -35,7 +32,6 @@ private bool checkFunc (alias fun) () {
  auto tab2 = Generate! ((ulong i) => i) (100);
 
  -----
-
 +/
 template Generate (alias fun) {
 

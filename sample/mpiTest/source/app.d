@@ -10,7 +10,7 @@ void main (string [] args) {
     int size   = MPI_Comm_size(MPI_COMM_WORLD);
     
     string greeting = format("Hello world: processor %d of %d\n", my_rank, size);
-
+    writeln ("started");
     if (my_rank == 0) {
 	writeln(greeting);
 	for (int partner = 1; partner < size; partner++){  

@@ -1,0 +1,124 @@
+[
+ {
+  "kind" : "module",
+  "file" : "source/app.d",
+  "members" : [
+   {
+    "name" : "std.stdio",
+    "kind" : "import",
+    "line" : 1,
+    "char" : 8,
+    "protection" : "private"
+   },
+   {
+    "name" : "mpiez.admin",
+    "kind" : "import",
+    "line" : 2,
+    "char" : 8,
+    "protection" : "private"
+   },
+   {
+    "name" : "Proto",
+    "kind" : "class",
+    "line" : 4,
+    "char" : 1,
+    "base" : "mpiez.Process.Protocol",
+    "members" : [
+     {
+      "name" : "this",
+      "kind" : "constructor",
+      "line" : 6,
+      "char" : 5,
+      "deco" : "FiiZC3app5Proto",
+      "originalType" : "(int id, int total)",
+      "parameters" : [
+       {
+        "name" : "id",
+        "deco" : "i"
+       },
+       {
+        "name" : "total",
+        "deco" : "i"
+       }
+      ],
+      "endline" : 10,
+      "endchar" : 5
+     },
+     {
+      "name" : "ping",
+      "kind" : "variable",
+      "line" : 12,
+      "char" : 22,
+      "deco" : "C5mpiez7Message18__T7MessageVii1TiZ7Message",
+      "originalType" : "Message!(1, int)",
+      "offset" : 24
+     },
+     {
+      "name" : "pong",
+      "kind" : "variable",
+      "line" : 13,
+      "char" : 22,
+      "deco" : "C5mpiez7Message18__T7MessageVii2TiZ7Message",
+      "originalType" : "Message!(2, int)",
+      "offset" : 32
+     }
+    ]
+   },
+   {
+    "name" : "Session",
+    "kind" : "class",
+    "line" : 16,
+    "char" : 1,
+    "base" : "mpiez.Process.Process!(app.Proto).Process",
+    "members" : [
+     {
+      "name" : "this",
+      "kind" : "constructor",
+      "line" : 18,
+      "char" : 5,
+      "deco" : "FC3app5ProtoZC3app7Session",
+      "originalType" : "(Proto p)",
+      "parameters" : [
+       {
+        "name" : "p",
+        "deco" : "C3app5Proto"
+       }
+      ],
+      "endline" : 20,
+      "endchar" : 5
+     },
+     {
+      "name" : "routine",
+      "kind" : "function",
+      "line" : 22,
+      "char" : 19,
+      "storageClass" : [
+       "override"
+      ],
+      "deco" : "FZv",
+      "endline" : 33,
+      "endchar" : 5,
+      "overrides" : [
+       "mpiez.Process.Process!(Proto).Process.routine"
+      ]
+     }
+    ]
+   },
+   {
+    "name" : "main",
+    "kind" : "function",
+    "line" : 41,
+    "char" : 6,
+    "deco" : "FAAyaZv",
+    "parameters" : [
+     {
+      "name" : "args",
+      "deco" : "AAya"
+     }
+    ],
+    "endline" : 44,
+    "endchar" : 1
+   }
+  ]
+ }
+]

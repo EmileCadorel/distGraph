@@ -15,5 +15,8 @@ install5:
 	dub build --parallel --build=release  --compiler=gdc-5
 	dub add-local .
 
+docs:
+	dub build --build=ddox
+
 clean:
 	dub clean

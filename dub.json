@@ -7,7 +7,6 @@
     "description": "D library for distributed graph computation",
     "copyright": " ",
     "license": "open",
-    "dflags" : ["-D", "-X", "-Xfdocs.json"],
     "lflags" : ["-lmpi", "$HOME/libs/mpiwrap.o"]
 }
 

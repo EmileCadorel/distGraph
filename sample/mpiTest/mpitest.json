@@ -1,0 +1,58 @@
+[
+ {
+  "kind" : "module",
+  "file" : "source/app.d",
+  "members" : [
+   {
+    "name" : "std.stdio",
+    "kind" : "import",
+    "line" : 1,
+    "char" : 8,
+    "protection" : "private"
+   },
+   {
+    "name" : "mpi.mpi",
+    "kind" : "import",
+    "line" : 2,
+    "char" : 8,
+    "protection" : "private"
+   },
+   {
+    "name" : "std.stdio",
+    "kind" : "import",
+    "line" : 3,
+    "char" : 8,
+    "protection" : "private"
+   },
+   {
+    "name" : "std.string",
+    "kind" : "import",
+    "line" : 4,
+    "char" : 8,
+    "protection" : "private"
+   },
+   {
+    "name" : "std.conv",
+    "kind" : "import",
+    "line" : 5,
+    "char" : 8,
+    "protection" : "private"
+   },
+   {
+    "name" : "main",
+    "kind" : "function",
+    "line" : 7,
+    "char" : 6,
+    "deco" : "FAAyaZv",
+    "parameters" : [
+     {
+      "name" : "args",
+      "deco" : "AAya"
+     }
+    ],
+    "endline" : 29,
+    "endchar" : 1
+   }
+  ]
+ }
+]
