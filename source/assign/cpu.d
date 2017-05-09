@@ -39,6 +39,8 @@ struct MemInfo {
     ulong vMallocChunk;
     ulong hardwareCorrupted;
     ulong anonHugePages;
+    ulong shMemHugePages;
+    ulong shMemPmdMapped;
     ulong cmaTotal;
     ulong cmaFree;
     ulong hugePagesTotal;
@@ -48,6 +50,7 @@ struct MemInfo {
     ulong hugePageSize;
     ulong directMap4k;
     ulong directMap2M;
+    ulong directMap1G;
 }
 
 class CpuInfoS {
@@ -76,11 +79,22 @@ class CpuInfoS {
 	return core.processor ();
     }
 
+    CpuInfo [] cpusInfo () {
+	return this.parseCpuFile ();
+    }
+    
     MemInfo memoryInfo () {
-	return this.parseFile ();
+	return this.parseMemFile ();
     }
 
-    private MemInfo parseFile () {
+    private CpuInfo [] parseCpuFile () {
+	import std.stdio, std.conv, std.string;
+	auto file = File ("/proc/cpuinfo");
+	file.close ();
+    }
+
+    
+    private MemInfo parseMemFile () {
 	import std.stdio, std.conv, std.string;
 	auto file = File ("/proc/meminfo");
 	MemInfo ret;
@@ -130,6 +144,8 @@ class CpuInfoS {
 		case "VmallocChunk" : ret.vMallocChunk = size; break;
 		case "HardwareCorrupted" : ret.hardwareCorrupted = size; break;
 		case "AnonHugePages" : ret.anonHugePages = size; break;
+		case "ShmemHugePages" : ret.shMemHugePages = size; break;
+		case "ShmemPmdMapped" : ret.shMemPmdMapped = size; break;
 		case "CmaTotal" : ret.cmaTotal = size; break;
 		case "CmaFree" : ret.cmaFree = size; break;
 		case "HugePages_Total" : ret.hugePagesTotal = size; break;
@@ -139,10 +155,12 @@ class CpuInfoS {
 		case "Hugepagesize" : ret.hugePageSize = size; break;
 		case "DirectMap4k" : ret.directMap4k = size; break;
 		case "DirectMap2M" : ret.directMap2M = size; break;
-		default: assert (false, "Not mapped " ~ line [0 .. index]);
+		case "DirectMap1G" : ret.directMap1G = size; break;
+ 		default: assert (false, "Not mapped " ~ line [0 .. index]);
 		}
 	    }
 	}
+	file.close ();
 	return ret;
     }
 	       
