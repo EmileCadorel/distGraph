@@ -1,9 +1,12 @@
 {
-	"name": "spawn",
-	"authors": [
-		"emile"
-	],
-	"description": "A minimal D application.",
-	"copyright": "Copyright © 2017, emile",
-	"license": "proprietary"
+    "name": "spawn",
+    "authors": [
+	"emile"
+    ],
+    "description": "A minimal D application.",
+    "copyright": "Copyright © 2017, emile",
+    "license": "proprietary",
+    "dependencies" : {
+	"dist-graph" : "*"
+    }    
 }

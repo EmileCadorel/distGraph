@@ -1,44 +1,20 @@
 import std.stdio;
-import std.concurrency;
-import std.typecons;
+import assign.fork;
+import std.typecons, std.conv;
 
-void testReceive (Tid ownerTid) {
-    receive (
-	(string value, Tid i) {
-	    writeln ("Receive string : ", value);
-	    send (i, "pong");
-	}
-    );
+int foo (uint id, uint nb) {
+    if (id % 2 == 0) {
+	send ((id + 1) % nb, id, tuple(1, [1, 2, 4]));
+    } else {
+	int _id; Tuple!(int, int[]) a;
+	receive (_id, a);
+	writeln (a);
+    }
+    return 0;
 }
 
-void testSend (Tid ownerTid) {
 
-    receive(
-        (Tid i) {
-	    writeln("Received the Tid ", i);
-	    send (i, "ping", thisTid);
-	}
-    );
+void main(string [] args) {
+    join (spawn!foo (args [1].to!uint));
 
-    receive (
-	(string value) {
-	    writeln ("Received value : ", value);
-	}
-    );
-    
-    send (ownerTid, true);
-}
-
-void main() {
-    // Start spawnedFunc in a new thread.
-    auto childTid = spawn(&testSend, thisTid);
-    auto childTid2 = spawn (&testReceive, thisTid);
-
-    // Send the number 42 to this new thread.
-    send(childTid, childTid2);
-
-    // Receive the result code.
-    auto wasSuccessful = receiveOnly!(bool);
-    assert(wasSuccessful);
-    writeln("Communication success.");
 }
