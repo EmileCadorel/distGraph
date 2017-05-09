@@ -78,6 +78,30 @@ void pageRank (int id, int total) {
     file.close ();    
 }
 
+void AggregateMessage (int id, int total) {
+    import std.random, std.typecons;
+    
+    if (!Options.active ("-i"))	assert (false, "On a besion d'un fichier d'entrée");
+    auto grp = DistGraphLoader.open (Options ["-i"]);
+
+    auto aged = grp.MapVertices!((VertexD v) => new DstVertex (v.data, uniform (0, 100)));
+    
+    auto olderFollowers = aged.MapReduceTriplets! (
+	(EdgeTriplet!(DstVertex, EdgeD) trp) {
+	    if (trp.src.dst > trp.dst.dst)
+		return iterator (trp.dst.id, tuple (1, trp.src.dst));
+	    else return Iterator!(Tuple!(int, float)).empty;
+	},
+	(Tuple!(int, float) a, Tuple!(int, float) b) => tuple(a [0] + b[0], a[1] + b[1])
+    );
+
+    auto avg = olderFollowers.Map!(
+	(Tuple!(int, float) a) => a [1] / a [0]
+    );
+    
+    writeln (avg);    
+}   
+
 void shortPath (int id, int total) {
     auto nb = 2;
     if (Options.active ("-n"))	nb = to!(int) (Options ["-n"]);
@@ -99,12 +123,13 @@ void shortPath (int id, int total) {
     auto mergeMsg = (float a, float b) => min (a, b);
 
     import std.random;
-    auto sourceId = 42;
-    
+    auto sourceId = grp.total - 1;    
     auto initialGraph = grp.MapVertices! (
 	(VertexD v) {
-	    if (v.id == sourceId) return new DstVertex (v.data, 0.0f);
-	    else return new DstVertex (v.data, float.infinity);
+	    if (v.id == sourceId) {
+		return new DstVertex (v.data, 0.0f);
+	    } 
+	    return new DstVertex (v.data, float.infinity);
 	}
     );
     
@@ -112,7 +137,12 @@ void shortPath (int id, int total) {
     
     if (id == 0) {
 	writeln ("Temps : ", Clock.currTime - begin);
-    }    
+    }
+    
+    auto file = File (format("out%d.dot", id), "w+");
+    file.writeln (sssp.toDot ());
+    file.close ();    
+    
 }
 
 void test (int id, int total) {
@@ -133,6 +163,8 @@ void master (int id, int total) {
 	shortPath (id, total);
     else if (Options.active ("--test"))
 	test (id, total);
+    else if (Options.active ("--old"))
+	AggregateMessage (id, total);
     else pageRank (id, total);
     
 }

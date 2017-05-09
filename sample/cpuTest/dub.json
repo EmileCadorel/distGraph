@@ -1,0 +1,12 @@
+{
+    "name": "cputest",
+    "authors": [
+	"emile"
+    ],
+    "description": "test de l'utilisation des informations cpu pour la distribution",
+    "copyright": "Copyright © 2017, emile",
+    "license": "proprietary",
+    "dependencies" : {
+	"dist-graph" : "*"
+    }    
+}

@@ -30,6 +30,7 @@ private bool checkFunc (alias fun) () {
 template Map (alias fun)
     if (checkFunc!fun) {
     
+    import std.typecons;
     alias I = ParameterTypeTuple!(fun) [0];
     alias T2 = ReturnType!fun;
 
@@ -40,23 +41,53 @@ template Map (alias fun)
 	    res [it] = fun (array [it]);
 	return res;
     }
+
+    Tuple!(ulong, T2) [] map2_ (T : U [], U) (T array) {
+	auto res = new Tuple!(ulong, T2) [array.length];
+	foreach (it ; 0 .. array.length)
+	    res [it] = tuple (array[it][0], fun (array [it][1]));
+	return res;
+    }       
     
     /++
      Tout les processus de MPI_COMM_WORLD doivent lancer cette fonction.
      Le résultat se trouve sur le processus 0.
      +/
-    U [] Map (T : I []) (T a) {
+    T2 [] Map (T : I []) (T a) {
 	auto info = Protocol.commInfo (MPI_COMM_WORLD);
-	T [] o;
+	I [] o;
 	int len = cast (int) a.length;
 	broadcast (0, cast (int) len, MPI_COMM_WORLD);
 	
 	scatter (0, len, a, o, MPI_COMM_WORLD);
 	auto res = map (o, fun);
-	T [] aux;
+	T2 [] aux;
 	gather (0, len, res, aux, MPI_COMM_WORLD);
 	return aux;
     }    
+
+    Tuple!(ulong, T2) [] map2 (T : I [], I) (T a) {
+	auto info = Protocol.commInfo (MPI_COMM_WORLD);
+	I [] o;
+	int len = cast (int) a.length;
+	broadcast (0, cast (int) len, MPI_COMM_WORLD);
+	
+	scatter (0, len, a, o, MPI_COMM_WORLD);
+	auto res = map2_ (o);
+	T2 [] aux;
+	gather (0, len, res, aux, MPI_COMM_WORLD);
+	return aux;
+    }    
+
+    
+    T2 [V] Map (T : I [V], V) (T a_) {
+	T2[V] res;
+	foreach (key, value ; a_) {
+	    res [key] = fun (value);
+	}
+	return res;
+    }
+
 }
 
 

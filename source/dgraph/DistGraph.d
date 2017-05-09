@@ -175,7 +175,7 @@ class DistGraph (VD : VertexD, ED : EdgeD) {
      buf = le buffer que l'on veut remplir (en créer un si null)
      Returns: Un buffer contenant la partitions sous format .dot
      +/
-    OutBuffer toDot (OutBuffer buf = null) {
+    OutBuffer toDot (OutBuffer buf = null, bool edges = true) {
 	if (buf is null) buf = new OutBuffer;
 
 	auto bufCut = new OutBuffer;
@@ -195,10 +195,11 @@ class DistGraph (VD : VertexD, ED : EdgeD) {
 	
 	bufCut.writefln ("\n\t}");
 	buf.writefln ("}\n%s", bufCut.toString);
-    
-	foreach (vt ; this._edges) {
-	    buf.writefln ("\t%d -> %d", vt.src, vt.dst);	    
-	}
+
+	if (edges) 
+	    foreach (vt ; this._edges) {
+		buf.writefln ("\t%d -> %d", vt.src, vt.dst);	    
+	    }
 		
 	buf.writefln ("}");
 	return buf;
