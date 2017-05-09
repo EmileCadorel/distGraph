@@ -30,6 +30,14 @@ alias Launchable = void function (int, int);
 /++ Liste des fonctions de lancement de squelette +/
 Launchable [string] __skeletons__;
 
+
+/++
+ Returns: Il existe un admin qui à lancer le contexte MPI ?
++/
+bool MPIContext () {
+    return __admLaunched__;
+}
+
 /++
  Met fin au contexte MPI.
 +/

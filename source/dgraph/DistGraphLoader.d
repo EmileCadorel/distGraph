@@ -128,7 +128,7 @@ class DistGraphLoaderS {
 		auto slave = new Slave (proto, this._lambda);
 		slave.waitGraph ();
 		return slave.dgraph ();
-	    }
+	    }	    
 	}
     }
     
