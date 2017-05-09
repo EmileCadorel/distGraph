@@ -1,12 +1,12 @@
 import std.stdio;
 import assign.cpu;
+import std.algorithm;
+
 
 void main() {
-    writeln (CpuInfo.hyperThreading);
-    writeln (CpuInfo.nbCoresPerCpu);
-    writeln (CpuInfo.nbThreadsPerCpu);
-    writeln (CpuInfo.nbCacheLevels);
-    writeln (CpuInfo.cacheInfo);
-    writeln (CpuInfo.toString);
-    writeln (CpuInfo.memoryInfo);
+    SystemInfo.cpusInfo.each!((a) => writeln (a));
+
+    auto a = SystemInfo.cpusInfo [0];
+    
+    writeln (SystemInfo.memoryInfo);
 }

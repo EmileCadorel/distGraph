@@ -53,7 +53,42 @@ struct MemInfo {
     ulong directMap1G;
 }
 
-class CpuInfoS {
+struct CpuInfo {
+    uint id;
+    string vendorId;
+    uint cpuFamily;
+    uint model;
+    string modelName;
+    uint stepping;
+    string microcode;
+    float mHz;
+    uint cacheSize;
+    uint physicalId;
+    uint siblings;
+    uint coreId;
+    uint cpuCores;
+    uint apicid;
+    uint initApicid;
+    bool fpu;
+    bool fpuException;
+    uint cpuidLevel;
+    bool wp;
+    string [] flags;
+    string bugs;
+    float bogoMips;
+    uint clFlushSize;
+    uint cacheAlignment;
+    uint [2] addressSizes;
+    string powerManagement;
+}
+
+bool support (CpuInfo cpu, string flag) {
+    import std.algorithm;
+    return cpu.flags.find (flag) != [];
+}
+
+
+class SystemInfoS {
     
     bool hyperThreading () {
 	return core.hyperThreading ();
@@ -88,11 +123,59 @@ class CpuInfoS {
     }
 
     private CpuInfo [] parseCpuFile () {
-	import std.stdio, std.conv, std.string;
+	import std.stdio, std.conv, std.string, std.container, std.array;
 	auto file = File ("/proc/cpuinfo");
+	Array!CpuInfo infos;
+	while (true) {
+	    auto line = file.readln ();
+	    if (line is null || (line.strip == "" && file.eof)) break;
+	    if (line.strip == "") continue;
+	    auto index = line.indexOf (":");
+	    if (index == -1) assert (false, "[" ~ line ~ "]");
+	    else {
+		switch (line [0 .. index].strip) {
+		case "processor" : infos.insertBack (CpuInfo (line [index + 1 .. $].strip.to!uint)); break;
+		case "vendor_id" : infos.back ().vendorId = line [index + 1 .. $].strip; break;
+		case "cpu family" : infos.back ().cpuFamily = line [index + 1 .. $].strip.to!uint; break;
+		case "model" : infos.back ().model = line [index + 1 .. $].strip.to!uint; break;
+		case "model name" : infos.back ().modelName = line [index + 1 .. $].strip; break;
+		case "stepping" : infos.back ().stepping = line [index + 1 .. $].strip.to!uint; break;
+		case "microcode" : infos.back ().microcode = line [index + 1 .. $].strip; break;
+		case "cpu MHz" : infos.back ().mHz = line [index + 1 .. $].strip.to!float; break;
+		case "cache size" : infos.back ().cacheSize = line [index + 1 .. $].strip [0 .. $ - 2].strip.to!uint; break;
+		case "physical id" : infos.back().physicalId = line [index + 1 .. $].strip.to!uint; break;
+		case "siblings" : infos.back().siblings = line [index + 1 .. $].strip.to!uint; break;
+		case "core id" : infos.back().coreId = line [index + 1 .. $].strip.to!uint; break;
+		case "cpu cores" : infos.back().cpuCores = line [index + 1 .. $].strip.to!uint; break;
+		case "apicid" : infos.back().apicid = line [index + 1 .. $].strip.to!uint; break;
+		case "initial apicid" : infos.back().initApicid = line [index + 1 .. $].strip.to!uint; break;
+		case "fpu" : infos.back().fpu = line [index + 1 .. $].strip == "yes" ? true : false; break;
+		case "fpu_exception" : infos.back().fpuException = line [index + 1 .. $].strip == "yes" ? true : false; break;
+		case "cpuid level" : infos.back().cpuidLevel = line [index + 1 .. $].strip.to!uint; break;
+		case "wp" : infos.back().wp = line [index + 1 .. $].strip == "yes" ? true : false; break;
+		case "flags" : infos.back().flags = line [index + 1 .. $].strip.split; break;
+		case "bugs" : infos.back ().bugs = line [index + 1 .. $]; break;
+		case "bogomips" : infos.back ().bogoMips = line [index + 1 .. $].strip.to!float; break;
+		case "clflush size" : infos.back().clFlushSize = line [index + 1 .. $].strip.to!uint; break;
+		case "cache_alignment" : infos.back().cacheAlignment = line [index + 1 .. $].strip.to!uint; break;
+		case "address sizes" : infos.back ().addressSizes = parseAddressSizes (line [index + 1 .. $]); break;
+		case "power management" : infos.back.powerManagement = line [index + 1 .. $].strip; break;
+		default : assert (false, "Not mapped " ~ line[0 .. index].strip);
+		}
+	    }
+	}
 	file.close ();
+	return infos.array ();
     }
 
+    private uint [2] parseAddressSizes (string line) {
+	import std.string, std.conv;
+	auto lines = line.split (",");
+	uint [2] ret;
+	ret [0] = lines [0].strip.split [0].to!uint;
+	ret [1] = lines [1].strip.split [0].to!uint;
+	return ret;
+    }
     
     private MemInfo parseMemFile () {
 	import std.stdio, std.conv, std.string;
@@ -168,7 +251,7 @@ class CpuInfoS {
     mixin Singleton;   
 }
 
-alias CpuInfo = CpuInfoS.instance;
+alias SystemInfo = SystemInfoS.instance;
 
 
 
