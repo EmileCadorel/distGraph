@@ -150,7 +150,7 @@ class OptionsS {
 	}
     }
             
-    mixin Singleton!OptionsS;
+    mixin Singleton;
 }
 
 

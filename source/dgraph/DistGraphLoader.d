@@ -133,7 +133,7 @@ class DistGraphLoaderS {
     }
     
     /++ C'est classe est un singleton +/
-    mixin Singleton!DistGraphLoaderS;
+    mixin Singleton;
 }
 
 /++ Alias pour éviter d'avoir à écrire .instance à chaque fois +/

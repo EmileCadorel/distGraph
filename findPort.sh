@@ -4,4 +4,4 @@ do
         PORT="`shuf -i $LOWERPORT-$UPPERPORT -n 1`"
         ss -lpn | grep -q ":$PORT " || break
 done
-echo $PORT
+echo -e $PORT

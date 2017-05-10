@@ -19,8 +19,10 @@ module utils.Singleton;
  + A.instance.print ();
  + -----
  +/
-mixin template Singleton (T) {
+mixin template Singleton () {
 
+    alias T = typeof (this);
+    
     private this () {}
 
     /++
@@ -28,12 +30,8 @@ mixin template Singleton (T) {
      +/
     static ref T instance () {
 	if (inst is null) {
-	    synchronized {
-		if (inst is null) {
-		    inst = new T;
-		}
-	    }
-	}
+	    inst = new T;
+	}	
 	return inst;
     }
 
@@ -43,11 +41,7 @@ private:
 
 }
 
-/++
- Simplification du mixin, 
- Plus besoin de mettre de paramètre template
-+/
-mixin template Singleton () {
+mixin template ThreadSafeSingleton () {
 
     alias T = typeof (this);
     

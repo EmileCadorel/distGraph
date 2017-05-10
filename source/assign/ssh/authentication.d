@@ -107,3 +107,44 @@ AuthState authenticateConsole(SSHSession session) {
     }
     return rc;
 }
+
+
+AuthState authenticatePassword (SSHSession session, string password) {
+    // Try to authenticate
+    AuthState rc = session.userauthNone(null);
+
+    auto method = session.userauthList(null);
+
+    while (rc != AuthState.Success) {
+        if ((method & AuthMethod.GSSAPIMic) != 0) {
+            rc = session.userauthGSSAPI();
+            if (rc == AuthState.Success) {
+                break;
+            }
+        }
+
+        // Try to authenticate with public key first
+        if ((method & AuthMethod.PublicKey) != 0) {
+            rc = session.userauthPublicKeyAuto(null, null);
+            if (rc == AuthState.Success) {
+                break;
+            }
+        }
+	
+        // Try to authenticate with password
+        if ((method & AuthMethod.Password) != 0) {
+            rc = session.userauthPassword(null, assumeUnique(password));
+            if (rc == AuthState.Success) {
+                break;
+            }
+        }
+        //memset(password.ptr, 0, password.length);
+    }
+
+    auto banner = session.issueBanner();
+    if (banner !is null) {
+        stdout.writefln("%s", banner);
+    }
+    return rc;
+}
+

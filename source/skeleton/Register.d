@@ -45,7 +45,7 @@ class Register {
 	return null;
     }
     
-    mixin Singleton!Register;
+    mixin Singleton;
 }
 
 alias Register.instance register;

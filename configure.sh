@@ -8,3 +8,4 @@ cd libs
 ./install.sh
 cd ..
 dub add-local .
+cp findPort.sh ~/libs/
