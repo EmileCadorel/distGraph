@@ -11,7 +11,7 @@ import std.process, std.file;
 import libssh.c_bindings.libssh;
 import std.concurrency, std.datetime;
 
-import assign.socket.Socket;
+import assign.socket.Socket, assign.socket.Protocol;
 import assign.ssh.connect_ssh;
 import utils.Singleton;
 import sock = std.socket;
@@ -27,6 +27,11 @@ immutable script_sh =
       echo -e $PORT};
 
 alias Server = ServerS.instance;
+
+T Server (T : Protocol) () {
+    return cast(T) (ServerS.instance.proto);
+}
+
 class ServerS {
 
     private Socket _socket;
@@ -37,6 +42,8 @@ class ServerS {
     
     private ushort _port;
 
+    private Protocol _proto;    
+    
     /++ Les sockets qui serve à la connexion des clients +/
     private Socket [string] _clientOuts;
 
@@ -55,6 +62,7 @@ class ServerS {
 	script_sh.toFile ("distGraph.findPort.sh");
 	this._port = executeShell ("bash distGraph.findPort.sh").output.strip.to!ushort;
 	executeShell ("rm distGraph.findPort.sh");
+	this._proto = new Protocol ();
 	start ();
     }
 
@@ -79,8 +87,12 @@ class ServerS {
 		auto pck = client.recv!(ushort);
 		auto addr = client.remoteAddress.address;
 		Server._clientIns [addr] = client;
-		send (ownerTid, addr);
+		spawn (&clientRoutine, addr);
 		if (pck != 0) {
+		    foreach (key, value; Server._clientOuts) {
+			value.send (0UL, addr, pck);
+		    }
+		    
 		    auto sock = new Socket (addr, pck);
 		    sock.connect ();
 		    Server._clientOuts [addr] = sock;
@@ -88,6 +100,7 @@ class ServerS {
 		} else {
 		    writeln ("ACK ", addr);
 		}
+		send (ownerTid, addr);
 	    }
 	} catch (sock.SocketAcceptException exp) {
 	    // Lorsqu'on kill le serveur accept jete une exception
@@ -96,6 +109,37 @@ class ServerS {
 	send (ownerTid, true);
     }
 
+    private static clientRoutine (string addr) {	
+	auto sock = Server._clientIns [addr];
+	while (!Server._end) {
+	    auto id = sock.recvId();
+	    if (id == -1) break;
+	    else if (id == 0) {
+		auto msg = sock.recv!(string, ushort);
+		Server.handShake (msg.expand);
+	    } else {
+		if (auto elem = (id in Server.proto.regMsg)) {
+		    elem.recv (sock, addr);
+		}
+	    }
+	}
+	sock.shutdown ();
+    }
+
+    public void setProtocol (T : Protocol) (T proto) {
+	this._proto = proto;
+    }
+
+    Protocol proto () {
+	return this._proto;
+    }
+
+    T to (T : Protocol) (string addr) {
+	auto sock = this._clientOuts [addr];
+	this._proto.socket = sock;
+	return cast (T) (this._proto);
+    }
+    
     public auto receiveFrom (T ... ) (string machine) {
 	return this._clientIns [machine].recv!(T);
     }
@@ -141,7 +185,11 @@ class ServerS {
 	    this._socket.shutdown ();
 	    this._socket = null;
 	    auto recv = receiveOnly!(bool)();
-	    if (!recv) assert (false, "Killing failed");	    
+	    if (!recv) assert (false, "Killing failed");
+	    foreach (key, value; this._clientIns)
+		value.shutdown ();
+	    this._clientIns.clear ();
+	    this._clientOuts.clear ();		
 	}
     }
     
