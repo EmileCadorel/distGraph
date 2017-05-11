@@ -129,9 +129,14 @@ class Socket {
     void [] recv () {
 	ulong [1] size;
 	this._socket.receive(size);
-	void[] data;
-	data.length = size[0];
-	this._socket.receive (data);
+	byte[] data = new byte [size[0]];
+	auto aux = data;
+	ulong len = 0;
+	while (len < size [0]) {
+	    auto currLen = this._socket.receive (aux);
+	    aux = aux [currLen .. $];
+	    len += currLen;
+	}
 	return data;
     }
 

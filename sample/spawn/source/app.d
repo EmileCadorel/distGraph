@@ -4,29 +4,35 @@ import assign.socket.Protocol;
 import assign.socket.Message;
 import std.typecons, std.conv;
 import std.string, core.time, core.thread;
+import std.datetime, std.algorithm;
 
 class Proto : Protocol {
 
     this () {
-	this.ping = new Message!(1, string) (this);
-	this.pong = new Message!(2, string) (this);
+	this.ping = new Message!(1, int[]) (this);
+	this.pong = new Message!(2, int[]) (this);
 	this.end = new Message!(3, bool) (this);
 	this.ready = new Message!(4, bool) (this);
     }
 
-    Message!(1, string) ping;
-    Message!(2, string) pong;
+    Message!(1, int[]) ping;
+    Message!(2, int[]) pong;
     Message!(3, bool) end;
     Message!(4, bool) ready;
 }
 
-void ping (uint addr, string msg) {
-    writeln (addr, " => ", msg);
-    Server.to!(Proto) (addr).pong ("Hi !!");	    
+__gshared SysTime [3] begins;
+
+
+
+void ping (uint addr, int[] msg) {
+    Server.to!(Proto) (addr).pong (msg);	    
+    writeln (addr, " => ");
 }
 
-void pong (uint addr, string msg) {
-    writeln (addr, " <= ", msg);    
+void pong (uint addr, int[] msg) {
+    auto end = Clock.currTime - begins [addr - 1];
+    writeln (addr, " <= ", " took : ", end);    
 }
 
 void end (uint addr, bool val) {
@@ -37,6 +43,15 @@ void end (uint addr, bool val) {
 void ready (uint addr, bool val) {
     if (val) {
 	writeln ("Machine prête");
+    }
+}
+
+void testPing () {
+    foreach (it ; 1 .. Server.lastMachine + 1) {
+	begins [it - 1] = Clock.currTime ();
+	auto a = new int [100000];
+	a.fill (1);
+	Server.to!(Proto) (it).ping (a);
     }
 }
 
@@ -55,15 +70,9 @@ void addMachine () {
 	auto ip = line [atIndex + 1 .. colonIndex].strip;
 	auto path = line [colonIndex + 1 .. croIndex].strip;
 	auto pass = line  [croIndex + 1 .. rcroIndex].strip;
-	launchInstance (user, ip, pass, path);
-
-	foreach (it ; 1 .. Server.lastMachine + 1) {
-	    Server.to!(Proto) (it).ping ("Hello");
-	}
-	
+	launchInstance (user, ip, pass, path);	
     }
 }
-
 
 void foo () {
     Server!(Proto).end.connect (&end);
@@ -77,6 +86,7 @@ void foo () {
 	    write ("? > ");
 	    auto line = readln ();
 	    if (line.strip == "stop") break;
+	    else if (line.strip == "ping") testPing ();
 	    else if (line.strip == "add") addMachine ();
 	}	
 	Server.toAll!(Proto, "end") (true);

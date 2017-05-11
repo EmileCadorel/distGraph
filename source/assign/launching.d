@@ -148,6 +148,10 @@ class ServerS {
 	    }
 	
 	    writeln ("Fin routine client ", machine);
+
+	    if (Server._clientIns.length == 0 && Server.machineId != 0)
+		Server.kill ();
+	    
 	    sock.shutdown ();
 	}
     }
@@ -190,7 +194,6 @@ class ServerS {
      
      +/
     void handShake (string addr, ushort port, uint id) {
-	writeln ("ici");
 	auto sock = new Socket (addr, port);
 	sock.connect ();
 	this._clientOuts [id] = sock;
@@ -239,11 +242,11 @@ class ServerS {
 	if (!this._end) {
 	    writeln ("Server killed on port : ", this._port);
 	    foreach (key, value; this._clientIns) {
-		writeln ("Stop connexion entrante ", key, ' ', value.remoteAddress);
+		writeln ("Stop connexion entrante ", key);
 		value.shutdown ();
 	    }
 	    foreach (key, value; this._clientOuts) {
-		writeln ("Stop connexion sortante ", key, ' ', value.remoteAddress);
+		writeln ("Stop connexion sortante ", key);
 		value.shutdown ();
 	    }
 
@@ -294,7 +297,7 @@ void launchInstance (string username, string ip, string pass, string path) {
 	
 	if (path == "" || path is null) {
 	    writeln ("Scp de l'executable ");
-	    path = "./#exec.exe";
+	    path = format("/tmp/distGraph.exec%d.exe", Server.lastMachine + 1UL);
 	    import fl = std.file;
 	    auto scp = session.newScp (SCPMode.Write | SCPMode.Recursive, path);
 	    scp.init ();

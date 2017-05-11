@@ -1,34 +1,50 @@
 module assign.socket.Package;
 import std.socket;
 import std.typecons;
+import std.traits;
 import std.stdio;
 
 /**
  System permettant l'enpaquetage des informations a transmettre par message
  */
 
-void [] unpack (T) (void [] data_, ref T elem) {
+void [] unpack (T) (void [] data_, ref T elem) if (isBasicType!(T)) {
     auto data = cast(byte[])(data_);
     elem = (cast (T*) data[0 .. T.sizeof]) [0];
     return data[T.sizeof .. data.length];    
 }
 
-void [] unpack (T : string) (void [] data_, ref T elem) {
-    auto data = cast(byte[])data_;
-    auto size = (cast(long*)data[0 .. 8])[0];
-    data = data[8 .. data.length];
-    for (int i = 0; i < size; i++) {
-	elem ~= cast (char)data[i];
+void [] unpack (T : string) (void [] data_, ref T ret) {
+    auto data = cast (byte[])data_;
+    auto size = *(cast (ulong*) data [0 .. ulong.sizeof]);
+    auto elems = new char[size];
+    foreach (it; 0 .. elems.length) {
+	elems [it] = *(cast (char*) data [(ulong.sizeof + char.sizeof * it) .. char.sizeof]);
     }
-    return data[size .. data.length];    
+    ret = cast(string) elems;
+    return cast (void[]) (data [size * char.sizeof .. $]);    
 }
 
-void [] unpack (T : T[]) (void [] data_, ref T [] elems) {
+void [] unpack(T : U[], U) (void [] data_, ref T  elems) if (isBasicType!(U)) {
+    auto data = cast (byte[])data_;
+    auto size = *(cast (ulong*) data [0 .. ulong.sizeof]);
+    elems = new U [size];
+    auto aux = data [ulong.sizeof .. ulong.sizeof + size * U.sizeof];
+    elems = cast (U[]) aux;
+    
+    /*foreach (it; 0 .. elems.length) {
+	auto index = (ulong.sizeof + U.sizeof * it);
+	elems [it] = *(cast (U*) data [index .. index + U.sizeof]);
+	}*/
+    return cast (void[]) (data [(ulong.sizeof + size * U.sizeof) .. $]);
+ }
+
+void [] unpack (T : U[], U) (void [] data_, ref T elems) if (!isBasicType!(U)) {
     ulong size;
     data_ = unpack (data_, size);
     elems.length = size;
     foreach (it ; 0 .. size) {
-	data_ = unpack ! T (data_, elems[it]);
+	data_ = unpack ! U (data_, elems[it]);
     }
     return data_;
 }
@@ -107,7 +123,24 @@ void enpack (T) (ref void [] data_, T elem) {
     data_ = cast (void[]) data;
 }
 
-void enpack (T : T[]) (ref void[] data_, T [] elem) {
+void enpack (T : U[], U) (ref void [] data_, T elem) if (isBasicType!(U)) {
+    auto data = cast (byte[])data_;
+    auto begin = data.length;
+    
+    data.length += ulong.sizeof;
+    auto inside = cast (ulong*)data [begin .. (begin + ulong.sizeof)];    
+    *inside = elem.length;
+    
+    /*
+    foreach (it ; 0 .. elem.length) {
+	auto index = begin + (ulong.sizeof + U.sizeof * it);
+	*(cast (U*) data [index .. index + U.sizeof]) = elem [it];
+	}*/
+    data_ = cast (void[])(data ~ cast(byte[])(elem));
+ }
+
+
+void enpack (T : T[]) (ref void[] data_, T [] elem) if (!isBasicType!(T)) {
     enpack (data_, elem.length);
     foreach (it ; 0 .. elem.length)
 	enpack ! T (data_, elem[it]);

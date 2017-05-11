@@ -2,6 +2,6 @@
 	"fileVersion": 1,
 	"versions": {
 		"dist-graph": "~master",
-		"libssh-d": "0.7.3-4"
+		"libssh-d": "0.7.3-1"
 	}
 }
