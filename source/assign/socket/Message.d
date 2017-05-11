@@ -9,7 +9,7 @@ import std.typecons;
 
 class MessageBase {
     ulong id ;
-    abstract void recv (sock.Socket, string);
+    abstract void recv (sock.Socket, uint);
 }
 
 /**
@@ -32,19 +32,18 @@ class Message (ulong ID, TArgs...) : MessageBase {
 	this._proto.socket.send (to_send);
     }
 
-    void connect (void delegate(string, TArgs) fun) {
+    void connect (void delegate(uint, TArgs) fun) {
 	this.connections.insertFront (fun);
     }
 
-    void connect (void function(string, TArgs) fun) {
+    void connect (void function(uint, TArgs) fun) {
 	this.foos.insertFront (fun);
     }
     
-    override void recv (sock.Socket socket, string addr) {
+    override void recv (sock.Socket socket, uint addr) {
 	auto data = socket.recv ();
-	Tuple!TArgs ret;
 	pack.Package pck = new pack.Package ();
-	pck.unpack (data, ret.expand);
+	auto ret = pck.unpack!(TArgs) (data);
 	foreach (it ; connections)
 	    it (addr, ret.expand);
 	foreach (it ; foos) 
@@ -53,7 +52,7 @@ class Message (ulong ID, TArgs...) : MessageBase {
     
 private:
        
-    SList!(void delegate(string, TArgs)) connections;
-    SList!(void function(string, TArgs)) foos;
+    SList!(void delegate(uint, TArgs)) connections;
+    SList!(void function(uint, TArgs)) foos;
     proto.Protocol _proto;
 }

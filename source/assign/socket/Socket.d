@@ -79,13 +79,13 @@ class Socket {
 	this._socket.send ([data.length]);
 	this._socket.send (data);
     }
-
+    
     void send (Package pack) {
 	this._socket.send ([pack.data.length]);
 	this._socket.send (pack.data);
     }
 
-    void send (T ...) (T elems) {
+    void sendDatas (T ...) (T elems) {
 	auto pack = new Package (elems);
 	this._socket.send ([pack.data.length]);
 	this._socket.send (pack.data);
@@ -93,13 +93,10 @@ class Socket {
     
     auto recv (T...) () if (T.length > 1) {
 	import std.typecons;
-	ulong [1] size;
-	this._socket.receive (size);
-	void [] data = new void [size [0]];
-	this._socket.receive (data);
+	auto data = this.recv ();
+	writeln (data.length, ' ', data);
 	Tuple!(T) tu;
-	Package.unpack!(T) (data, tu.expand);
-	return tu;
+	return Package.unpack!(T) (data);
     }
 
     auto recv (T...) () if (T.length == 1) {
@@ -108,9 +105,7 @@ class Socket {
 	this._socket.receive (size);
 	void [] data = new void [size [0]];
 	this._socket.receive (data);
-	T[0] tu;
-	Package.unpack!(T) (data, tu);
-	return tu;
+	return Package.unpack!(T) (data) [0];
     }
 
     

@@ -83,7 +83,17 @@ class OptionsS {
 	    return null;
 	}
     }
-   
+
+    int opApply (scope int delegate (ref string key, ref string value) dg) {
+	int result = 0;
+	foreach (key, value ; this._unknown) {
+	    result = dg (key, value);
+	    if (result) break;
+	}
+	return result;
+    }
+    
+    
     /++
      Params:
      name = le nom d'une option
@@ -98,6 +108,7 @@ class OptionsS {
 	    return false;
 	}
     }
+
     
     /++
      Returns: la liste des options sans valeur.

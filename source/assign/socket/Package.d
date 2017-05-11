@@ -1,5 +1,6 @@
 module assign.socket.Package;
 import std.socket;
+import std.typecons;
 import std.stdio;
 
 /**
@@ -45,25 +46,45 @@ void [] unpack (U, T : T[U])(void [] data_, ref T[U] elems) {
     return data_;
 }
 
-void fromArray(T : T[U], U, TArgs...) (void [] data, ref T[U] first, TArgs next) {
-    if (data.length == 0) return;
-    data = unpack ! (U, T[U]) (data, first);
-    fromArray ! TArgs (data, next);
+Tuple!(T, TArgs) fromArray(T : T[U], U, TArgs...) (void [] data) {
+    T first;
+    if (data.length != 0)
+	data = unpack ! (U, T[U]) (data, first);
+    static if (TArgs.length > 0)
+	return tuple(first, fromArray ! TArgs (data).expand);
+    else
+	return tuple(first);
 }
 
-void fromArray (T : T[], TArgs...) (void [] data, ref T[] first, TArgs next) {
-    if (data.length == 0) return;
-    data = unpack ! (T[]) (data, first);
-    fromArray ! TArgs (data, next);
+Tuple!(T, TArgs) fromArray (T : string, TArgs...) (void [] data) {
+    T first;
+    if (data.length != 0)
+	data = unpack ! (T) (data, first);
+    static if (TArgs.length > 0)
+	return tuple(cast(T) first, fromArray ! TArgs (data).expand);
+    else
+	return tuple(first);
 }
 
-void fromArray(T, TArgs...) (void [] data, ref T first, ref TArgs next) {
-    if (data.length == 0) return;
-    data = unpack ! T (data, first);
-    fromArray ! TArgs (data, next);
+Tuple!(T, TArgs) fromArray (T : U[], U, TArgs...) (void [] data) {
+    T first;
+    if (data.length != 0)
+	data = unpack ! (T) (data, first);
+    static if (TArgs.length > 0)
+	return tuple(cast(T) first, fromArray ! TArgs (data).expand);
+    else
+	return tuple(first);
 }
 
-void fromArray () (void[]) {}
+Tuple!(T, TArgs) fromArray(T, TArgs...) (void [] data) {
+    T first;
+    if (data.length != 0) 
+	data = unpack ! T (data, first);
+    static if (TArgs.length > 0)
+	return Tuple!(T, TArgs)(first, fromArray ! TArgs (data).expand);
+    else
+	return tuple(first);
+}
 
 void enpack (T : string) (ref void [] data_, T elem) {
     auto data = cast(byte[])data_;
@@ -126,8 +147,9 @@ class Package {
 	return datas;
     }
     
-    static void unpack (TArgs...) (void [] data, ref TArgs suite) {
-	fromArray !TArgs (data, suite);	
+    static Tuple!(TArgs) unpack (TArgs...) (void [] data) {
+	auto ret = fromArray!(TArgs) (data);
+	return ret;
     }
 
     void [] data () {
