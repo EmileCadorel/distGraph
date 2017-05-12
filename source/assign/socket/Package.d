@@ -175,14 +175,23 @@ class Package {
     }
 
     static void [] enpack (TArgs...) (TArgs elems) {
-	void [] datas;
-	toArray ! TArgs (datas, elems);
-	return datas;
+	static if (TArgs.length == 1 && is (TArgs[0] : U[], U)) {
+	    auto ret = cast (byte[])(elems [0]);
+	    return ret;
+	} else {
+	    void [] datas;
+	    toArray ! TArgs (datas, elems);
+	    return datas;	    
+	}
     }
     
     static Tuple!(TArgs) unpack (TArgs...) (void [] data) {
-	auto ret = fromArray!(TArgs) (data);
-	return ret;
+	static if (TArgs.length == 1 && isArray!(TArgs[0])) {
+	    return Tuple!(TArgs) (cast (TArgs[0]) (data));
+	} else {
+	    auto ret = fromArray!(TArgs) (data);
+	    return ret;
+	}
     }
 
     void [] data () {

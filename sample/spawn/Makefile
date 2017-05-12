@@ -1,5 +1,5 @@
 all:
-	dub build --parallel --compiler=gdc-5
+	dub build --parallel
 
 dmd:
 	dub build --parallel 

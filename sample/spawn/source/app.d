@@ -27,12 +27,12 @@ __gshared SysTime [3] begins;
 
 void ping (uint addr, int[] msg) {
     Server.to!(Proto) (addr).pong (msg);	    
-    writeln (addr, " => ");
+    writeln (addr, " => ", msg.length);
 }
 
 void pong (uint addr, int[] msg) {
     auto end = Clock.currTime - begins [addr - 1];
-    writeln (addr, " <= ", " took : ", end);    
+    writeln (addr, " <= ", msg.length, " took : ", end);    
 }
 
 void end (uint addr, bool val) {

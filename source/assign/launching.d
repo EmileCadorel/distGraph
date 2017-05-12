@@ -188,6 +188,15 @@ class ServerS {
 	return this._clientOuts [machine].send (values);
     }
 
+    public void sendToAll (T...) (ulong id, uint except, T values) {
+	foreach (key, value ; this._clientOuts) {
+	    if (key != except) {
+		value.sendId (id);
+		value.sendDatas (values);
+	    }
+	}
+    }
+    
     /++
      Etablis une connexion peer-to-peer avec un autre serveur
      Params:
@@ -330,9 +339,10 @@ void launchInstance (string username, string ip, string pass, string path) {
 		    assert (false, ip ~ "ne fonctionne pas " ~ addr);
 	    }
 	);
-	if (!rec) 
+	if (!rec) {
+	    Server.lastMachine -= 1;
 	    assert (false, ip ~ "ne fonctionne pas " ~ servAddr);
-	    
+	}
     } catch (SSHException ssh) {
 	import core.stdc.string : strlen;
 
