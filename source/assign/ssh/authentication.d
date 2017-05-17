@@ -130,15 +130,17 @@ AuthState authenticatePassword (SSHSession session, string password) {
                 break;
             }
         }
-	
-        // Try to authenticate with password
-        if ((method & AuthMethod.Password) != 0) {
-            rc = session.userauthPassword(null, assumeUnique(password));
-            if (rc == AuthState.Success) {
-                break;
-            }
-        }
-        //memset(password.ptr, 0, password.length);
+
+	if (password !is null && password != "") {	   
+	    // Try to authenticate with password
+	    if ((method & AuthMethod.Password) != 0) {
+		rc = session.userauthPassword(null, assumeUnique(password));
+		if (rc == AuthState.Success) {
+		    break;
+		}
+	    }
+	    memset(cast(void*)password.ptr, 0, password.length);
+	} else break;
     }
 
     auto banner = session.issueBanner();

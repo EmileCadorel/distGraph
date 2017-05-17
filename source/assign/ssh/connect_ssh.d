@@ -56,13 +56,16 @@ SSHSession sessionConnect(string host, string user, string pass, LogVerbosity ve
         session.host = host;
         session.logVerbosity = verbosity;
 
-        session.connect();
-
+        if (!session.connect()) {
+	    return null;
+	}
+	
         if (!verifyKnownhost(session)) {
             session.dispose();
             return null;
         }
 	
+	if (pass is null) pass = "";	
         auto auth = authenticatePassword(session, pass);
         if (auth == AuthState.Success) {
             return session;

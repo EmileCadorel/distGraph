@@ -12,11 +12,14 @@ import libssh.c_bindings.libssh;
 import std.concurrency, std.datetime;
 
 import assign.socket.Socket, assign.socket.Protocol;
+import assign.Job;
 import assign.ssh.connect_ssh;
 import utils.Singleton;
 import core.thread;
 import sock = std.socket;
 import std.container, core.exception;
+import std.algorithm : find;
+
 
 immutable script_sh = 
     q{read LOWERPORT UPPERPORT < /proc/sys/net/ipv4/ip_local_port_range
@@ -35,16 +38,25 @@ T Server (T : Protocol) () {
 
 class ServerS {
 
+    /++ La socket interne du serveur +/
     private Socket _socket;
 
-    private bool _end = false;
-       
+    /++ Le serveur doit il s'arreter +/
+    private bool _end = true;
+
+    /++ L'identifiant de la routine thread d'acceptation des clients +/
     private Tid _compose;
 
-    private SList!Thread _clients;
+    /++ L'identifiant du main thread +/ 
+    private Tid _global;
     
+    /++ La liste des threads des clients connecté +/
+    private SList!Thread _clients;
+
+    /++ Le port du serveur +/
     private ushort _port;
 
+    /++ Le protocol de message utilisé par le serveur +/
     private Protocol _proto;    
     
     /++ Les sockets qui serve à la connexion des clients +/
@@ -52,35 +64,54 @@ class ServerS {
 
     /++ Les sockets qui servent à recevoir des informations des clients +/
     private Socket [uint] _clientIns;        
-    
+
+    /++ L'ip de la machine qui possède le serveur +/
     private string _ownIp;
 
+    /++ Vrai lors d'un handshake +/
     private bool ownerIsWaiting = false;
 
+    /++ L'identifiant de la machine +/
     private uint _machineId = 0UL;
 
+    /++ Le dernier identifiant de machine utilisé +/
     private uint _lastMachine = 0UL;
-   
-    
-    this () {	
-	script_sh.toFile ("distGraph.findPort.sh");
-	this._port = executeShell ("bash distGraph.findPort.sh").output.strip.to!ushort;
-	executeShell ("rm distGraph.findPort.sh");
-	this._proto = new Protocol ();
-    }
 
+    /++ La liste des machines actuellement connecté +/
+    private Array!uint _connected;
+
+    /++ La liste des jobs +/
+    private JobS [string] _jobs;
+
+    this () {
+	this._global = thisTid;	
+    }
+    
     /++
      Lance le serveur qui ve servir à communiquer avec l'exterieur
      Params:
      port = le port du serveur
      +/
-    void start () {		
+    void start () {
+	script_sh.toFile ("distGraph.findPort.sh");
+	auto res = executeShell ("bash distGraph.findPort.sh");
+	if (res.status != 0) assert (false, res.status.to!string);
+	this._port = res.output.strip.to!ushort;	
+	executeShell ("rm distGraph.findPort.sh");
+	this._end = false;
+	
 	this._socket = new Socket (this._port);
 	this._socket.bind ();
 	this._socket.listen ();
 	this._compose = spawn (&run, thisTid);
     }    
 
+
+    /++
+     Routine principale du serveur. C'est ici qu'on accepte les clients.
+     Params:
+     ownerTid = le Tid du processus qui à lancé la routine     
+     +/
     private static void run (Tid ownerTid) {
 	writeln ("Server launched on port : ", Server._port);
 	try {
@@ -115,40 +146,66 @@ class ServerS {
 	send (ownerTid, true);
     }
 
+    /++ Classe interne threadé qui permet la communication avec les clients +/
     static class  clientRoutine : Thread {
 
+	/++ L'identifiant de la machine qui est connecté +/
 	private uint machine;
 	
 	this (uint machine) {
 	    super (&this.run);
 	    this.machine = machine;
 	}
-	
-	void run () {
+
+	/++ 
+	 Routine principale du déroulement du client.
+	 Envoi des signaux lorsqu'un message, ou un job est reçu.
+	 Les jobs sont identifié en négatif. 
+	 Le message 0 ferme le connexion.
+	 +/
+	void run () {	    
 	    writeln ("Debut routine client ", this.machine);
 	    auto sock = Server._clientIns [this.machine];
+	    Server._connected.insertBack (this.machine);
 	    while (!Server._end) {
-		auto id = sock.recvId ();
-		if (id == -1) break;
-		else {
+		long id;
+		if (!sock.recvId (id)) {
+		    writeln ("Socket fermé");
+		    break;
+		} else if (id > 0) {
 		    if (auto elem = (id in Server.proto.regMsg)) {
 			elem.recv (sock, machine);
 		    } else {
-			auto msg = format("%d, %s", id, sock.recv_all ().to!string);
+			auto msg = format("Pas de message (%d)=> %s", id, sock.recv_all ().to!string);
 			assert (false, msg); 
 		    }
+		} else if (id == -1) {
+		    auto pack = new Package ();
+		    auto name = pack.unpack! (string) (sock.recv ());
+		    if (auto elem = name [0] in Server._jobs) {
+			elem.recv (sock, machine);
+		    } else {
+			auto msg = format ("Pas de job (%s:%d)=> %s", name [0], sock.recv_all ().to!string);
+			assert (false, msg);
+		    }		    
 		}
 	    }
-	
+
+	    // On enleve la socket des sockets lisible en lecture.
 	    Server._clientIns.remove (machine);
 
+	    // Si on possède une socket en écriture on la supprime aussi.
 	    if (machine in Server._clientOuts) {
 		Server._clientOuts[machine].shutdown;	
 		Server._clientOuts.remove (machine);
 	    }
 	
 	    writeln ("Fin routine client ", machine);
+	    
+	    // On supprime l'identifiant de la machine dans la liste des machines connecté.
+	    Server._connected.linearRemove (Server._connected [].find (this.machine));
 
+	    // Si on ne possède plus aucune connexion et qu'on est pas le maître on ferme tout.
 	    if (Server._clientIns.length == 0 && Server.machineId != 0)
 		Server.kill ();
 	    
@@ -156,14 +213,33 @@ class ServerS {
 	}
     }
 
+    /++
+     Returns: La liste des machines actuellement connecté au serveur.
+     +/
+    Array!uint connected () {
+	return this._connected;
+    }
+
+    /++     
+     Changement du protocol des messages.
+     +/
     public void setProtocol (T : Protocol) (T proto) {
 	this._proto = proto;
     }
 
+    /++
+     Returns: le protocol des messages.
+     +/
     Protocol proto () {
 	return this._proto;
     }
 
+    /++
+     Assigne le protocol à une machine pour préparer l'envoi.
+     Params:
+     machine = l'identifiant de la machine à qui ont veut envoyé (doit être dans connected);
+     Returns: le protocol avec les bonnes sockets pour envoyer correctement.
+     +/
     T to (T : Protocol) (uint machine) {
 	writefln ("Message vers Machine %d", machine);
 	auto sock = this._clientOuts [machine];
@@ -171,6 +247,53 @@ class ServerS {
 	return cast (T) (this._proto);
     }
 
+    /++
+     Fais une demande de travail à une machine 
+     Params:
+     machine = l'identifiant de la machine
+     job = le job a effectué
+     params = les paramètres du travail
+     +/
+    void jobRequest (J : JobS, TArgs...) (uint machine, J job, uint jbId, TArgs params) {
+	auto sock = this._clientOuts [machine];
+	job.send (sock, jbId, params);	
+    }
+
+    /++
+     Effectue un envoi de résultat de travail à une machine
+     Params:
+     machine = l'identifiant de la machine
+     job = le job effectué
+     params = les paramètres du job
+     +/
+    void jobResult (J : JobS, TArgs...) (uint machine, J job, uint jbId, TArgs params) {
+	auto sock = this._clientOuts [machine];
+	job.response (sock, jbId, params);
+    }
+
+    /++
+     Envoi un message au main thread pour qu'il arrête d'attendre
+     +/
+    void sendMsg (T) (T msg) {	
+	send (this._global, msg);
+    }
+    
+    /++
+     Le thread attend un message     
+     +/
+    T waitMsg (T) () {
+	writeln ("Réception ", thisTid);
+	auto b = receiveOnly!T ();
+	return b;
+    }
+    
+    /++
+     Envoie un message du protocol à toutes les machines connecté au serveur.
+     Params:
+     T = le type de protocol utilisé
+     elem = le nom du message (un attribut de T).
+     params = les paramètres à passé au message.
+     +/
     void toAll (T : Protocol, string elem, TArgs ...) (TArgs params) {
 	auto proto = cast (T) this._proto;
 	foreach (value ; this._clientOuts) {
@@ -180,15 +303,34 @@ class ServerS {
 	}
     }
     
-    public auto receiveFrom (T ... ) (uint machine) {
+    /++
+     Reçoi un message du client (machine), utilisez le système de message et de job plutot.
+     Params:
+     machine = la machine qui a envoyer le message 
+     Returns: un tuple qui contient les valeurs reçu.
+     +/
+    deprecated public auto receiveFrom (T ... ) (uint machine) {
 	return this._clientIns [machine].recv!(T);
     }
-    
-    public void sendTo (T ...) (uint machine, T values) {
+
+    /++
+     Envoi un message à un client (machine), utilisez le système de message et de job plutot.
+     Params:
+     machin = la machine qui va recevoir le message
+     values = les paramètres du messages qui vont être enpaqueté
+     +/
+    deprecated public void sendTo (T ...) (uint machine, T values) {
 	return this._clientOuts [machine].send (values);
     }
 
-    public void sendToAll (T...) (ulong id, uint except, T values) {
+    /++
+     Envoi d'un message à tout les clients
+     Params:
+     id = l'identifiant du message
+     except = l'identifiant de la machine à qui il ne faut pas envoyer le message.
+     values = la liste des valeurs du message.
+     +/
+    deprecated public void sendToAll (T...) (ulong id, uint except, T values) {
 	foreach (key, value ; this._clientOuts) {
 	    if (key != except) {
 		value.sendId (id);
@@ -200,7 +342,9 @@ class ServerS {
     /++
      Etablis une connexion peer-to-peer avec un autre serveur
      Params:
-     
+     addr = l'adresse du deuxième serveur
+     port = le port du deuxième serveur
+     id = l'identifiant de la machine qui possède le serveur.
      +/
     void handShake (string addr, ushort port, uint id) {
 	auto sock = new Socket (addr, port);
@@ -218,6 +362,20 @@ class ServerS {
 	stdout.flush ();
     }
 
+    /++
+     Ajoute un job à la liste des jobs disponibles
+     Params:
+     job = le nouveau travail a enregistrer
+     Returns: l'identifiant de ce travail
+     +/
+    void addJob (JobS job, string name) {
+	writeln ("Nouveau Job :", name);
+	this._jobs [name] = job;
+    }
+    
+    /++
+     Returns: l'ip de la machine qui possède le serveur.
+     +/
     ref string ownIp () {
 	return this._ownIp;
     }
@@ -229,22 +387,39 @@ class ServerS {
 	return this._port;
     }
 
+    /++
+     Params:
+     id = le nouvelle identifiant de la machine.
+     +/
     void machineId (uint id) {
 	this._machineId = id;
 	writefln ("Machine identifié par %d", id);
     }
-    
+
+    /++
+     Returns: l'identifiant de la machine qui possède le serveur.
+     +/
     uint machineId () {	
 	return this._machineId;
     }
 
+    /++
+     Returns: l'identifiant de la dernière machine lancé (vrai que chez master).
+     +/
     ref uint lastMachine () {
 	return this._lastMachine;
     }
 
+    /++
+     Le serveur est lancé ?
+     +/
+    bool isStarted () {
+	return !this._end;
+    }
     
     /++
-     Arrête l'instance du serveur
+     Arrête l'instance du serveur, immédiatement.
+     Ferme toutes les connexions.
      +/
     void kill () {
 	import core.thread;
@@ -269,6 +444,10 @@ class ServerS {
 	}
     }
 
+    /++
+     Attends que le serveur ait términé son travail.
+     Il ne termine uniquement quand on appelle la fonction kill.
+     +/
     void join () {
 	import core.thread;
 	if (!this._end) {
@@ -277,7 +456,8 @@ class ServerS {
 	    assert (end);
 	}
     }
-    
+
+    /++ Le serveur est une instance de singleton (atomic, threadSafe) +/
     mixin ThreadSafeSingleton;
     
 }
@@ -289,6 +469,10 @@ class ServerS {
  pass = le mot de passe du compte
 +/
 void launchInstance (string username, string ip, string pass, string path) {
+    if (!Server.isStarted) {
+	Server.start ();
+    }
+    
     import std.path;
     scope (exit) sshFinalize ();
     
@@ -303,7 +487,8 @@ void launchInstance (string username, string ip, string pass, string path) {
 
         channel.openSession();
         scope(exit) channel.close();
-	
+
+	/// L'executable n'est pas présent sur la nouvelle machine on le lui envoi.
 	if (path == "" || path is null) {
 	    writeln ("Scp de l'executable ");
 	    path = format("/tmp/distGraph.exec%d.exe", Server.lastMachine + 1UL);
@@ -314,7 +499,7 @@ void launchInstance (string username, string ip, string pass, string path) {
 	    scp.write (fl.read (thisExePath));
 	}
 
-	
+	/// On récupère l'addresse de la machine d'après la connexion ssh.
 	auto socket = new sock.Socket (cast (sock.socket_t)session.fd, sock.AddressFamily.INET);
 	auto addr = socket.localAddress.name;
 	auto sock_in = new sock.InternetAddress (*(cast (sock.sockaddr_in*) addr));
@@ -332,13 +517,14 @@ void launchInstance (string username, string ip, string pass, string path) {
 	channel.sendEof ();
 	string servAddr;
 	Server.ownerIsWaiting = true;
-	auto rec = receiveTimeout (
+	auto rec = receiveTimeout ( // On attend que le handshake soit terminé (la machine à 5secondes pour répondre).
 	    dur!"seconds" (5),
 	    (string addr) {
 		if (addr != ip) 
 		    assert (false, ip ~ "ne fonctionne pas " ~ addr);
 	    }
 	);
+	
 	if (!rec) {
 	    Server.lastMachine -= 1;
 	    assert (false, ip ~ "ne fonctionne pas " ~ servAddr);

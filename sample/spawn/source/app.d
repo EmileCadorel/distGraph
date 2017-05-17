@@ -5,6 +5,8 @@ import assign.socket.Message;
 import std.typecons, std.conv;
 import std.string, core.time, core.thread;
 import std.datetime, std.algorithm;
+import assign.fork;
+import std.container;
 
 class Proto : Protocol {
 
@@ -47,12 +49,36 @@ void ready (uint addr, bool val) {
 }
 
 void testPing () {
-    foreach (it ; 1 .. Server.lastMachine + 1) {
+    foreach (it ; Server.connected) {
 	begins [it - 1] = Clock.currTime ();
 	auto a = new int [100000];
 	a.fill (1);
+	writeln (it);
 	Server.to!(Proto) (it).ping (a);
     }
+}
+
+void testReduce (string line) {
+    import std.algorithm, std.string;
+    import Reduce;
+    auto data = line.split ();
+    int [] datas;
+    uint nb = 1;
+    if (data.length == 3 && isNumeric (data[2])) 
+	nb = data[2].to!int;    
+    if (data.length >= 2 && isNumeric (data [1])) 
+	datas = new int [data [1].to!int];
+    else if (data.length == 1)
+	datas = new int [100000];
+    else {
+	writeln ("reduce [size]");
+	return;
+    }
+    
+    fill (datas, 1);
+    auto begin = Clock.currTime ();
+    auto res = datas.Reduce!((int a, int b) => a + b) (nb);
+    writeln ("Res => ", res, " en :", Clock.currTime - begin);
 }
 
 void addMachine () {
@@ -79,23 +105,36 @@ void foo () {
     Server!(Proto).ping.connect (&ping);
     Server!(Proto).pong.connect (&pong);
     Server!(Proto).ready.connect (&ready);
+
     
     writefln ("Machine %d correctement lancé", Server.machineId);    
-    if (Server.machineId == 0) {	
+    if (Server.machineId == 0) {
 	while (true) {
 	    write ("? > ");
 	    auto line = readln ();
 	    if (line.strip == "stop") break;
 	    else if (line.strip == "ping") testPing ();
+	    else if (line.strip.indexOf ("reduce") == 0) testReduce (line);
 	    else if (line.strip == "add") addMachine ();
 	}	
 	Server.toAll!(Proto, "end") (true);
 	Server.kill ();
+    } else {
+	writeln ("Ici");
     }
 }
 
-void main(string [] args) {    
-    auto adm = new AssignAdmin!(Proto, foo) (args);
-    adm.join ();       
+
+int spawned (uint id, uint total) {
+    int [] res;
+    scatter (id, total, res);
+    writeln ("Final res : ", id, ' ', res);
+    return 0;
+}
+
+
+void main(string [] args) {
+    auto adm = new AssignAdmin!(Proto, foo) (args);   
+    adm.join ();
     writeln ("End");
 }

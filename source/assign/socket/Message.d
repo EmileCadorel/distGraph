@@ -24,14 +24,19 @@ class Message (ulong ID, TArgs...) : MessageBase {
 	proto.register (this);
 	this._proto = proto;
     }
-        
+    
     void opCall (TArgs datas) {
 	this._proto.socket.sendId (this.id);
-	pack.Package pck = new pack.Package ();
-	auto to_send = pck.enpack (datas);
+	auto to_send = pack.Package.enpack (datas);
 	this._proto.socket.send (to_send);
     }
 
+    void opCall (proto.Protocol proto, TArgs data) {
+	proto.socket.sendId (this.id);
+	auto to_send = pack.Package.enpack (data);
+	proto.socket.send (to_send);
+    }
+    
     void connect (void delegate(uint, TArgs) fun) {
 	this.connections.insertFront (fun);
     }
@@ -42,8 +47,7 @@ class Message (ulong ID, TArgs...) : MessageBase {
     
     override void recv (sock.Socket socket, uint addr) {
 	auto data = socket.recv ();
-	pack.Package pck = new pack.Package ();
-	auto ret = pck.unpack!(TArgs) (data);
+	auto ret = pack.Package.unpack!(TArgs) (data);
 	foreach (it ; connections)
 	    it (addr, ret.expand);
 	foreach (it ; foos) 

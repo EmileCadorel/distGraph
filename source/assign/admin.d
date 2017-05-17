@@ -4,7 +4,7 @@ import utils.Options;
 public import assign.launching;
 import assign.socket.Protocol;
 import std.stdio, std.conv, std.string;
-import std.format;
+import std.format, assign.fork;
 
 static __gshared bool __assignAdmLaunched__ = false;
 
@@ -22,7 +22,7 @@ bool assignContext () {
 }
 
 
-private bool checkT (T ...) () {
+private bool checkC (T ...) () {
     foreach (i, t1 ; T) {
 	static assert ((is (typeof(&t1) U : U*) && is (U == function)) ||
 		       (is (t1 T2) && is(T2 == function)));       
@@ -33,14 +33,27 @@ private bool checkT (T ...) () {
     return true;
 }
 
-class AssignAdmin (P : Protocol, alias fun) 
-    if (checkT!(fun)) {
+private bool checkF (T ...) () {
+    foreach (i, t1 ; T) {
+	static assert ((is (typeof(&t1) U : U*) && is (U == function)) ||
+		       (is (t1 T2) && is(T2 == function)));       
+	alias a1 = ParameterTypeTuple!(t1);
+	alias r1 = ReturnType!(t1);
+	static assert (a1.length == 2 && is (a1 [0] : Mid) && is (a1[1] : uint) && is(r1 == int));	
+    }
+    return true;
+}
+
+
+class AssignAdmin (P : Protocol, alias console) 
+    if (checkC!(console)) {
+
+    private uint[] _forks;
+
     
     this (string [] args) {
 	if (assignContext) throw new AssignAdminMultiple ();
 	__assignAdmLaunched__ = true;
-	Server.setProtocol (new P);
-	Server.start ();
 	Options.init (args);
 	// L'instance est lancé depuis l'exterieur par connexion ssh
 	if (Options.active ("--ip")) {	    
@@ -53,15 +66,18 @@ class AssignAdmin (P : Protocol, alias fun)
 
 	    stdout.flush ();	   
 	    Server.machineId = Options ["--tid"].to!uint;
+
+	    Server.start ();
+	    Server.setProtocol (new P);
 	    
 	    Server.handShake (Options ["--ip"],
 			      Options ["--port"].to!ushort,
 			      Options ["--id"].to!uint);
 	    
-	    fun ();
-	} else {
-	    writeln ("la");
-	    stdout.flush ();
+	    console ();
+	} else {	    
+	    Server.setProtocol (new P);
+	    
 	    if (Options.active ("--hosts")) {
 		try {
 		    import std.file, std.json;
@@ -79,12 +95,18 @@ class AssignAdmin (P : Protocol, alias fun)
 		    writeln ("Le fichier host est corrompu ", e.msg);
 		}
 	    }
-	    fun ();
+	    console ();
 	}	
     }
 
     void join () {
+	import frk = assign.fork;
 	Server.join ();
+	foreach (i ; 0 .. this._forks.length) {
+	    send (cast(uint) i, "end");	    
+	}
+	
+	frk.join (this._forks);
     }
 
 }

@@ -49,7 +49,6 @@ class DegVertex : VertexD {
     override string toString () {
 	return format ("\t\t%d[label=\"%d, %f, %d\"];", this.id, this.id, rank, deg);
     }
-    
 }
 
 void pageRank (int id, int total) {
@@ -62,7 +61,10 @@ void pageRank (int id, int total) {
     auto begin = Clock.currTime;    
     auto grp = DistGraphLoader.open (Options ["-i"], nb);
 
-    auto pgraph = grp.JoinVertices! ((VertexD v, int deg) => new DegVertex (v.data, 1.0, deg)) (grp.outDegree);
+    auto pgraph = grp.JoinVertices! (
+	(VertexD v, int deg) => new DegVertex (v.data, 1.0, deg)
+    ) (grp.outDegree);
+    
     auto ranked = pgraph.Pregel ! (
     	(DegVertex v, float msg) => new DegVertex (v.data, 0.15 + 0.85 * msg, v.deg),	
     	(EdgeTriplet!(DegVertex, EdgeD) e) => Iterator!float (e.dst.id, e.src.rank  / e.src.deg),	

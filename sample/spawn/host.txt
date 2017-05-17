@@ -1,6 +1,7 @@
 {
     "machines" : [
 	{"user" : "Emile.Cadorel", "pass" : "", "ip" : "192.168.80.54", "path" : ""},
-	{"user" : "emile", "pass" : "truc", "ip" : "192.168.80.63", "path" : ""}
+	{"user" : "Emile.Cadorel", "pass" : "", "ip" : "192.168.80.54", "path" : ""},	
+	{"user" : "Emile.Cadorel", "pass" : "", "ip" : "192.168.80.54", "path" : ""}
     ]
 }

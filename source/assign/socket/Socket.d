@@ -1,3 +1,4 @@
+
 module assign.socket.Socket;
 public import assign.socket.Package;
 import sock = std.socket;
@@ -79,10 +80,18 @@ class Socket {
 	this._socket.send ([data.length]);
 	this._socket.send (data);
     }
+
+    void sendOnly (T) (T data) {
+	this._socket.send (cast (void[]) [data]);
+    }
     
     void send (Package pack) {
-	this._socket.send ([pack.data.length]);
-	this._socket.send (pack.data);
+	if (!pack.isSimple) {
+	    this._socket.send ([pack.data.length]);
+	    this._socket.send (pack.data);
+	} else {
+	    pack.send (this._socket);
+	}
     }
 
     void sendDatas (T ...) (T elems) {
@@ -94,7 +103,6 @@ class Socket {
     auto recv (T...) () if (T.length > 1) {
 	import std.typecons;
 	auto data = this.recv ();
-	writeln (data.length, ' ', data);
 	Tuple!(T) tu;
 	return Package.unpack!(T) (data);
     }
@@ -145,9 +153,28 @@ class Socket {
      +/
     long recvId () {
 	long [1] id;
-	auto length = this._socket.receive(id);
-	if (length == 0) return -1;
-	return id[0];
+	auto length = this._socket.receive (id);
+	if (length == 0) return 0;
+	return id [0];
+    }
+
+    /++
+     Récupère un long sur la socket
+     Returns: la socket a bien lu un long ?
+     +/
+    bool recvId (ref long _id) {
+	long [1] id;
+	auto length = this._socket.receive (id);
+	if (length == 0) return false;
+	_id = id [0];	
+	return true;
+    }
+    
+    T recvOnly (T)() {
+	T [1] id;
+	auto length = this._socket.receive (id);
+	if (length == 0) assert (false);
+	return id [0];
     }
     
     Socket accept () {
