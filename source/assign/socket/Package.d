@@ -8,11 +8,11 @@ import std.stdio;
  System permettant l'enpaquetage des informations a transmettre par message
  */
 
-void [] unpack (T) (void [] data_, ref T elem) if (isBasicType!(T)) {
+void [] unpack (T) (void [] data_, ref T elem) if (isBasicType!(T) || isAggregateType!(T)) {
     auto data = cast(byte[])(data_);
     elem = (cast (T*) data[0 .. T.sizeof]) [0];
     return data[T.sizeof .. data.length];    
-}
+ }
 
 void [] unpack(T : U[], U) (void [] data_, ref T  elems) if (isBasicType!(U)) {
     auto data = cast (byte[])data_;
@@ -217,7 +217,7 @@ class PackageS (TArgs ...) : Package {
 	sock.send ([this._len]);
 	foreach (it ; this._data) {
 	    static if (!isArray!(typeof (it))) {
-		sock.send ([it]);
+		sock.send (cast(const(void[]))[it]);
 	    } else {
 		auto toSend = cast(byte[]) it;
 		sock.send ([it.length]);

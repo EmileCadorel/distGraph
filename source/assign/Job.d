@@ -3,6 +3,7 @@ import pack = assign.socket.Package;
 import sock = assign.socket.Socket;
 import proto = assign.socket.Protocol;
 import assign.launching;
+import std.traits;
 
 import std.stdio, std.container, std.typecons;
 
@@ -19,10 +20,15 @@ class JobS {
 }
 
 class Job (alias Req, alias Resp) : JobS {
+
+    shared static ulong __tag__;
     
     static this () {
-	Server.addJob (new Job!(Req, Resp), typeid (Job!(Req, Resp)).toString);
+	__tag__ = Server.addJob (new Job!(Req, Resp));
     }
+
+    alias TArgsIn = ParameterTypeTuple!(Req) [1 .. $];
+    alias TArgsOut = ParameterTypeTuple!(Resp) [1 .. $];
     
     override void recv (sock.Socket sock, uint addr) {
 	import std.traits;
@@ -30,30 +36,30 @@ class Job (alias Req, alias Resp) : JobS {
 	auto ret = sock.recvOnly!bool ();
 	if (ret == true) {
 	    auto data = sock.recv ();
-	    auto ret_ = pck.unpack!(ParameterTypeTuple!(Req) [1 .. $]) (data);
+	    auto ret_ = pck.unpack!(TArgsIn) (data);
 	    Req (addr, ret_.expand);	
 	} else {
 	    auto data = sock.recv ();
-	    auto ret_ = pck.unpack!(ParameterTypeTuple!(Resp) [1 .. $]) (data);
+	    auto ret_ = pck.unpack!(TArgsOut) (data);
 	    Resp (addr, ret_.expand);
 	}
     }
 
-    void response (TArgs...) (sock.Socket sock, uint jbId, TArgs params) {
+    void response (sock.Socket sock, TArgsOut params) {
 	sock.sendId (-1);
 	pack.Package pck = new pack.Package ();
-	auto name = pck.enpack (typeid (this).toString);
-	auto to_send = pck.enpack (jbId, params);
+	auto name = pck.enpack (__tag__);
+	auto to_send = pck.enpack (params);
 	sock.send (name);
 	sock.sendOnly (false);
 	sock.send (to_send);
     }
     
-    void send (TArgs...) (sock.Socket sock, uint jbId, TArgs params) {
+    void send (sock.Socket sock, TArgsIn params) {
 	sock.sendId (-1);
 	pack.Package pck = new pack.Package ();
-	auto name = pck.enpack (typeid (this).toString);
-	auto to_send = pck.enpack (jbId, params);
+	auto name = pck.enpack (__tag__);
+	auto to_send = pck.enpack (params);
 	sock.send (name);
 	sock.sendOnly (true);
 	sock.send (to_send);

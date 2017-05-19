@@ -5,6 +5,7 @@ public import assign.launching;
 import assign.socket.Protocol;
 import std.stdio, std.conv, std.string;
 import std.format, assign.fork;
+import core.stdc.stdlib;
 
 static __gshared bool __assignAdmLaunched__ = false;
 
@@ -21,36 +22,8 @@ bool assignContext () {
     return __assignAdmLaunched__;
 }
 
+class AssignAdmin {
 
-private bool checkC (T ...) () {
-    foreach (i, t1 ; T) {
-	static assert ((is (typeof(&t1) U : U*) && is (U == function)) ||
-		       (is (t1 T2) && is(T2 == function)));       
-	alias a1 = ParameterTypeTuple!(t1);
-	alias r1 = ReturnType!(t1);
-	static assert (a1.length == 0 && is(r1 == void));	
-    }
-    return true;
-}
-
-private bool checkF (T ...) () {
-    foreach (i, t1 ; T) {
-	static assert ((is (typeof(&t1) U : U*) && is (U == function)) ||
-		       (is (t1 T2) && is(T2 == function)));       
-	alias a1 = ParameterTypeTuple!(t1);
-	alias r1 = ReturnType!(t1);
-	static assert (a1.length == 2 && is (a1 [0] : Mid) && is (a1[1] : uint) && is(r1 == int));	
-    }
-    return true;
-}
-
-
-class AssignAdmin (P : Protocol, alias console) 
-    if (checkC!(console)) {
-
-    private uint[] _forks;
-
-    
     this (string [] args) {
 	if (assignContext) throw new AssignAdminMultiple ();
 	__assignAdmLaunched__ = true;
@@ -67,21 +40,20 @@ class AssignAdmin (P : Protocol, alias console)
 	    stdout.flush ();	   
 	    Server.machineId = Options ["--tid"].to!uint;
 
-	    Server.start ();
-	    Server.setProtocol (new P);
-	    
+	    Server.start ();	    
 	    Server.handShake (Options ["--ip"],
 			      Options ["--port"].to!ushort,
 			      Options ["--id"].to!uint);
-	    
-	    console ();
-	} else {	    
-	    Server.setProtocol (new P);
-	    
-	    if (Options.active ("--hosts")) {
+	    this.join ();
+	    exit (0);
+	} else {	    	    
+	    if (Options.active ("--hosts") || Options.active ("-h")) {
+		string name;
+		if (Options.active ("-h")) name = Options ["-h"];
+		else name = Options ["--hosts"];
 		try {
 		    import std.file, std.json;
-		    auto json = parseJSON (readText (Options ["--hosts"]));
+		    auto json = parseJSON (readText (name));
 		    foreach (it ; json ["machines"].array) {
 			auto user = it ["user"].str.strip;
 			auto pass = it ["pass"].str.strip;
@@ -95,21 +67,16 @@ class AssignAdmin (P : Protocol, alias console)
 		    writeln ("Le fichier host est corrompu ", e.msg);
 		}
 	    }
-	    console ();
 	}	
     }
-
+    
     void join () {
-	import frk = assign.fork;
 	Server.join ();
-	foreach (i ; 0 .. this._forks.length) {
-	    send (cast(uint) i, "end");	    
-	}
-	
-	frk.join (this._forks);
     }
 
+    ~this () {
+	Server.kill ();
+    }    
 }
-
 
 

@@ -80,7 +80,7 @@ class Socket {
 	this._socket.send ([data.length]);
 	this._socket.send (data);
     }
-
+    
     void sendOnly (T) (T data) {
 	this._socket.send (cast (void[]) [data]);
     }

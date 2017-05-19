@@ -26,7 +26,6 @@ class Proto : Protocol {
 __gshared SysTime [3] begins;
 
 
-
 void ping (uint addr, int[] msg) {
     Server.to!(Proto) (addr).pong (msg);	    
     writeln (addr, " => ", msg.length);
@@ -58,28 +57,24 @@ void testPing () {
     }
 }
 
-void testReduce (string line) {
-    import std.algorithm, std.string;
-    import Reduce;
-    auto data = line.split ();
-    int [] datas;
-    uint nb = 1;
-    if (data.length == 3 && isNumeric (data[2])) 
-	nb = data[2].to!int;    
-    if (data.length >= 2 && isNumeric (data [1])) 
-	datas = new int [data [1].to!int];
-    else if (data.length == 1)
-	datas = new int [100000];
-    else {
-	writeln ("reduce [size]");
-	return;
-    }
+void testAlloc () {
+    import assign.data.Array;
+    import assign.skeleton.Init;
+    import assign.skeleton.Reduce;
     
-    fill (datas, 1);
-    auto begin = Clock.currTime ();
-    auto res = datas.Reduce!((int a, int b) => a + b) (nb);
-    writeln ("Res => ", res, " en :", Clock.currTime - begin);
+    auto a = new DistArray!double (10_000_000);
+    a.Init!(
+	(ulong i) {
+	    immutable n = 10_000_000;    
+	    return (4.0) / (1.0 + (( i - 0.5 ) * (1.0 / n)) * (( i - 0.5 ) * (1.0 / n)));
+	}
+    );
+    
+    auto res = a.Reduce!((double a, double b) => a + b);
+    writeln (res);
+    delete a;
 }
+
 
 void addMachine () {
     import std.algorithm : any;
@@ -105,23 +100,18 @@ void foo () {
     Server!(Proto).ping.connect (&ping);
     Server!(Proto).pong.connect (&pong);
     Server!(Proto).ready.connect (&ready);
-
     
     writefln ("Machine %d correctement lancé", Server.machineId);    
-    if (Server.machineId == 0) {
-	while (true) {
-	    write ("? > ");
-	    auto line = readln ();
-	    if (line.strip == "stop") break;
-	    else if (line.strip == "ping") testPing ();
-	    else if (line.strip.indexOf ("reduce") == 0) testReduce (line);
-	    else if (line.strip == "add") addMachine ();
-	}	
-	Server.toAll!(Proto, "end") (true);
-	Server.kill ();
-    } else {
-	writeln ("Ici");
-    }
+    while (true) {
+	write ("? > ");
+	auto line = readln ();
+	if (line.strip == "stop") break;
+	else if (line.strip == "ping") testPing ();
+	else if (line.strip == "alloc") testAlloc ();
+	else if (line.strip == "add") addMachine ();
+    }	
+    Server.toAll!(Proto, "end") (true);
+    Server.kill ();    
 }
 
 
@@ -134,7 +124,8 @@ int spawned (uint id, uint total) {
 
 
 void main(string [] args) {
-    auto adm = new AssignAdmin!(Proto, foo) (args);   
+    auto adm = new AssignAdmin!(Proto, foo) (args);
+    foo ();
     adm.join ();
     writeln ("End");
 }

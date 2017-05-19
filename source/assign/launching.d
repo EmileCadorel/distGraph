@@ -81,7 +81,7 @@ class ServerS {
     private Array!uint _connected;
 
     /++ La liste des jobs +/
-    private JobS [string] _jobs;
+    private Array!JobS _jobs;
 
     this () {
 	this._global = thisTid;	
@@ -181,9 +181,9 @@ class ServerS {
 		    }
 		} else if (id == -1) {
 		    auto pack = new Package ();
-		    auto name = pack.unpack! (string) (sock.recv ());
-		    if (auto elem = name [0] in Server._jobs) {
-			elem.recv (sock, machine);
+		    auto name = pack.unpack! (ulong) (sock.recv ());
+		    if (Server._jobs.length >= name [0]) {
+			Server._jobs [name [0] - 1].recv (sock, machine);
 		    } else {
 			auto msg = format ("Pas de job (%s:%d)=> %s", name [0], sock.recv_all ().to!string);
 			assert (false, msg);
@@ -220,6 +220,17 @@ class ServerS {
 	return this._connected;
     }
 
+    /++
+     La machine est elle connecté à une machine id
+     Params:
+     id = l'identifiant de la machine exterieur
+     Retunrs: La connexion est présente ?
+     +/
+    bool isConnected (uint id) {
+	import std.algorithm;
+	return !(this._connected[].find (id).empty);
+    }
+    
     /++     
      Changement du protocol des messages.
      +/
@@ -269,12 +280,36 @@ class ServerS {
     void jobResult (J : JobS, TArgs...) (uint machine, J job, uint jbId, TArgs params) {
 	auto sock = this._clientOuts [machine];
 	job.response (sock, jbId, params);
-    }
-
+    }       
+    
+    /++
+     Effectue un requêtes au autres machines pour connaître leurs capacité mémoire
+     Returns: un tableau assoc taille [id].
+     +/
+    ulong [uint] getMachinesFreeMemory () {
+	import assign.cpu, assign.defaultJob;
+			
+	ulong [uint] sizes;	
+	sizes [this.machineId] = SystemInfo.memoryInfo.memAvailable;
+	
+	foreach (it ; this._connected) {
+	    jobRequest (it, new MemoryJob (), 0U);
+	    sizes [it] = this.waitMsg!(ulong) ();
+	}
+	return sizes;
+    }    
+    
     /++
      Envoi un message au main thread pour qu'il arrête d'attendre
      +/
-    void sendMsg (T) (T msg) {	
+    void sendMsg (T) (T msg) {
+	send (this._global, msg);
+    }
+    
+    /++
+     Envoi un message au main thread pour qu'il arrête d'attendre
+     +/
+    void sendMsg (T) (shared T msg) {
 	send (this._global, msg);
     }
     
@@ -282,7 +317,6 @@ class ServerS {
      Le thread attend un message     
      +/
     T waitMsg (T) () {
-	writeln ("Réception ", thisTid);
 	auto b = receiveOnly!T ();
 	return b;
     }
@@ -368,9 +402,10 @@ class ServerS {
      job = le nouveau travail a enregistrer
      Returns: l'identifiant de ce travail
      +/
-    void addJob (JobS job, string name) {
-	writeln ("Nouveau Job :", name);
-	this._jobs [name] = job;
+    ulong addJob (JobS job) {
+	writeln ("Nouveau job ", this._jobs.length + 1);
+	this._jobs.insertBack (job);
+	return this._jobs.length;
     }
     
     /++

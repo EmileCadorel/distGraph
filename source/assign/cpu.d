@@ -87,7 +87,6 @@ bool support (CpuInfo cpu, string flag) {
     return cpu.flags.find (flag) != [];
 }
 
-
 class SystemInfoS {
     
     bool hyperThreading () {

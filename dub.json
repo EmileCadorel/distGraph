@@ -10,7 +10,7 @@
     "lflags" : ["-lmpi", "$HOME/libs/mpiwrap.o"],
     "libs" : ["libssh"],
     "dependencies" : {
-	"libssh-d": "~>0.7.3-4"
+	"libssh-d": "~>0.7.3-1"
     }
 }
 
