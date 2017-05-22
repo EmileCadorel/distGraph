@@ -41,6 +41,18 @@ struct Feeder {
     bool isTask () {
 	return this._task !is null;
     }
+
+    Task task () {
+	return this._task;
+    }
+
+    Feeder clone () {
+	if (this._task) {
+	    return Feeder (this._task.clone());
+	} else {
+	    return this;
+	}
+    }
     
 }
 
@@ -64,31 +76,53 @@ class Task {
      Execution de la tâches
      Returns: la valeur de la tâche.
      +/
-    abstract Feeder run ();
+    abstract Feeder run () ;
 
     /++
      Le nombre de donnée requise par la tâche
      +/
-    abstract uint arity ();
-
+    abstract uint arity () ;
+    
     /++
      Ajoute une données dans la tâche, qu'elle devra consommé.
      Params:
      data = la données à consommer.
      +/
-    abstract void feed (Feeder data);
+    abstract void feed (Feeder data) ;    
 
+    /++
+     La tâche est la première à être lancé
+     +/
+    Feeder runAsFirst () {
+	return this.run;
+    }
+
+    /++
+     Divise un ensemble de données en vue d'une parallélisation
+     Params:
+     nb = le nombre de division nécéssaire
+     data = les données à diviser
+     Returns: un tableau de division (assert (return.length == nb)).
+     +/
+    abstract Feeder[] divide (ulong nb, Feeder data) ;    
+    
     /++
      Returns: La tâche qui va ếtre éfféctué immédiatement après.
      +/
     ref Feeder next () @property {
 	return this._next;
     }
-
+    
     /++
      Remise à zéro des données de la tâche.
      +/
     void reset ();
+
+    /++
+     Crée un clone de la tâche
+     Returns: le clone
+     +/
+    Task clone ();
     
 }
 
