@@ -93,11 +93,13 @@ class ServerS {
      port = le port du serveur
      +/
     void start () {
-	script_sh.toFile ("distGraph.findPort.sh");
+	auto file = File ("distGraph.findPort.sh", "w");
+	file.write (script_sh);
 	auto res = executeShell ("bash distGraph.findPort.sh");
 	if (res.status != 0) assert (false, res.status.to!string);
 	this._port = res.output.strip.to!ushort;	
 	executeShell ("rm distGraph.findPort.sh");
+	file.close ();
 	this._end = false;
 	
 	this._socket = new Socket (this._port);
@@ -467,9 +469,9 @@ class ServerS {
 		writeln ("Stop connexion sortante ", key);
 		value.shutdown ();
 	    }
-
-	    this._clientIns.clear ();
-	    this._clientOuts.clear ();
+	    
+	    this._clientIns = null;
+	    this._clientOuts = null;
 
 	    // On coupe la boucle principale
 	    this._socket.shutdown ();

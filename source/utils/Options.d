@@ -9,13 +9,6 @@ enum PARAM = 1;
 enum INFO = 0;
 
 /++
- Liste des options standart déjà prévu
-+/
-enum OptionEnum {
-    TYPE = Option ("type", "-t", "--type", PARAM)    
-}
-
-/++
  Juste pour éviter d'écrire instance à chaque fois.
 +/
 alias Options = OptionsS.instance;
@@ -60,28 +53,13 @@ class OptionsS {
 
     /++
      Params:
-     type = une option
-     Returns: la valeur associé à l'option (peut être null)
-     +/
-    string opIndex (OptionEnum type) {
-	auto f = type in this._options;
-	if (f !is null) return *f;
-	return null;
-    }
-
-    /++
-     Params:
      name = le nom d'une option, ou une chaine qui ne fait pas partie des options standart
      Returns: la valeur associé à l'option (peut être null)
      +/
     string opIndex (string name) {
-	auto f = find!("a.id == b") ([EnumMembers!OptionEnum], name);
-	if (f != []) return this.opIndex (f [0]);
-	else {
-	    auto it = name in this._unknown;
-	    if (it !is null) return *it;
-	    return null;
-	}
+	auto it = name in this._unknown;
+	if (it !is null) return *it;
+	return null;    
     }
 
     int opApply (scope int delegate (ref string key, ref string value) dg) {
@@ -100,13 +78,9 @@ class OptionsS {
      Returns: l'option à été activé au lancement du programme.
      +/
     bool active (string name) {
-	auto f = find!("a.id == b") ([EnumMembers!OptionEnum], name);
-	if (f != []) return true;
-	else {
-	    if (auto it = name in this._unknown)
-		return true;
-	    return false;
-	}
+	if (auto it = name in this._unknown)
+	    return true;
+	return false;	
     }
 
     
@@ -120,37 +94,10 @@ class OptionsS {
     
     private ulong parseArgument (ulong it, string [] args) {
 	if (args [it].length >= 2 && args [it] [1] != '-') {
-	    auto ot = find!("a.act == b") ([EnumMembers!OptionEnum], args [it]);
-	    if (ot == []) {
-		this._unknown [args [it]] = args [it + 1];
-		return it + 1;
-	    } else if (ot [0].type == PARAM) {
-		this._options [ot [0]] = args [it + 1];
-		return it + 1;
-	    } else {
-		this._options [ot [0]] = "";
-		return it;
-	    }
+	    this._unknown [args [it]] = args [it + 1];
+	    return it + 1;
 	} else {
-	    auto index = indexOf (args [it], "=");
-	    foreach (ot ; [EnumMembers!OptionEnum]) {
-		if (index == -1) { // --op
-		    if (ot.longAct == args [it]) {
-			if (ot.type == PARAM) {
-			    this._options [ot] = "";
-			    return it;
-			} else {
-			    this._options [ot] = args [it + 1];
-			    return it + 1;
-			}
-		    }
-		} else if (index != -1) { // --op=elem
-		    if (ot.longAct == args [it] [0 .. index]) {
-			this._options [ot] = args [it] [index + 1 .. $];
-			return it ;
-		    }
-		}
-	    }
+	    auto index = indexOf (args [it], "=");	    
 	    if (index != -1) {
 		this._unknown [args [it][0 .. index]] = args [it][index .. $];
 		return it;

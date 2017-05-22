@@ -203,7 +203,7 @@ class DistArray (T) : DistArrayS {
 	
 	// Somme en byte de la taille de la mémoire distribué, en double pour pouvoir faire un %
 	double sum = cast (double) (
-	    (sizes.values.fold!"a + b" () * 1000 /*La taille est lu en Kb  */)
+	    (sizes.values.reduce!"a + b" () * 1000 /*La taille est lu en Kb  */)
 	    / T.sizeof
 	);	
 	

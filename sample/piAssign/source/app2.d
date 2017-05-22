@@ -388,9 +388,6 @@ void main2 () {
 	),
 	Reduce !(
 	    (double a, double b) => a + b
-	),
-	Map !(
-	    (double a) => 4. * a
 	)
     );
         

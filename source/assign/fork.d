@@ -2,13 +2,13 @@ module assign.fork;
 import std.stdio, std.array;
 import utils.Singleton;
 import std.traits;
+import core.stdc.stdlib;
 
 private {
     extern (C) int fork ();
     extern (C) int getpid ();
     extern (C) void pipe2 (int *, int);
     extern (C) void close (int);
-    extern (C) void exit (int);
     extern (C) void write (int, void*, int);
     extern (C) void read (int, void*, int);
     extern (C) void wait (int, int*, int);
@@ -215,7 +215,7 @@ private void receiveWPipe (T) (int pipe, ref T msg) if (is (T a == struct)) {
  }
 
 
-auto countChild (uint id, uint total) {
+uint countChild (uint id, uint total) {
     if (id >= total) return 0;
     else {
 	return 1 +
