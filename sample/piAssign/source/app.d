@@ -5,10 +5,13 @@ import assign.skeleton.Reduce;
 import assign.admin;
 import std.datetime;
 import std.conv;
+import app2 = app2;
 
 enum n = 1_000_000;
 
 void main (string [] args) {
+    app2.main2 ();
+    
     auto adm = new AssignAdmin (args);
     scope (exit) delete adm;
     

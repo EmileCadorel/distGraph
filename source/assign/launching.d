@@ -403,7 +403,6 @@ class ServerS {
      Returns: l'identifiant de ce travail
      +/
     ulong addJob (JobS job) {
-	writeln ("Nouveau job ", this._jobs.length + 1);
 	this._jobs.insertBack (job);
 	return this._jobs.length;
     }
