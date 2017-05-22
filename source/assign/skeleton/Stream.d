@@ -2,33 +2,33 @@ module assign.skeleton.Stream;
 import std.container;
 
 struct Feeder {
-    
-    void * a;
-    void [] ax;
+    enum MAX_LEN = 8;
+    byte [MAX_LEN] a;
+    void * ax;
+    ulong length;
     Task _task;
 
     this (Task task) {
 	this._task = task;
     }
-    
-    this (T : U [], U) (T a) {
-	this.ax = a;
+
+    this (T : U [], U) (T a) @nogc {
+	this.ax = cast (byte*) a.ptr;
+	this.length = a.length;
     }
     
-    this (T) (T a) {
-	this.a = new T (a);
+    this (T) (T a) @nogc {
+	T [1] aux;
+	aux [0] = a;
+	this.a [0 .. T.sizeof] = cast (byte[T.sizeof]) aux ;
     }
-    
-    void set (T) (T t) @nogc {
-	*(cast(T*) this.a) = t;
-    }
-    
+        
     T get (T) () @nogc {	
-	return *(cast (T*) (this.a));
+	return (cast (T[1]) (cast (byte[T.sizeof]) (this.a [0 .. T.sizeof]))) [0];
     }
 
     T get (T : U[], U) () @nogc {	
-	return (cast (U[]) (this.ax));
+	return (cast (U*)this.ax) [0 .. this.length];
     }    
 
     Feeder run (Feeder fed) {

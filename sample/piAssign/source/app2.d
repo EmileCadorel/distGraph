@@ -103,7 +103,7 @@ class Elem (T) : Task {
 	    }
 	    res [i / this._task.arity] = this._task.run ().get!T;
 	}
-
+	
 	for (uint j = 0; (j + i) < data.length; j ++) {
 	    res [j + (i / this._task.arity)] = data [i + j];
 	}
@@ -138,7 +138,7 @@ class IndexedElem (T) : Task {
 	this._get = true;
     }
 
-    override Feeder run () {
+    override Feeder run () {	
 	ulong data;
 	if (this.next.isTask) {
 	    data = this.next.run (this._data).get!ulong;
@@ -153,10 +153,12 @@ class IndexedElem (T) : Task {
 	for (; (i + this._task.arity) <= data; i += this._task.arity) {
 	    this._task.reset;
 	    for (ulong j = 0; j < this._task.arity; j++) {
-		this._task.feed (Feeder (i + j));
+		auto aux = i + j;
+		this._task.feed (Feeder (aux));
 	    }
 	    res [i / this._task.arity] = this._task.run ().get!T;
-	}	
+	}
+
 	return Feeder (res);
     }    
     
@@ -169,8 +171,6 @@ class IndexedElem (T) : Task {
     }
            
 };
-
-
 
 class Repeat(T) : Task {
 
@@ -227,7 +227,6 @@ template Reduce (alias fun) {
 	    )
 	);
     }
-
 }
 
 template Map (alias fun) {
@@ -251,7 +250,6 @@ template Generate (alias fun) {
     }
     
 }
-			     
 
 void main2 () {    
     auto stream = new Stream;
@@ -262,15 +260,13 @@ void main2 () {
 	    (ulong i) {
 		return (1.0 / n) / ( 1.0 + (( i - 0.5 ) * (1.0 / n)) * (( i - 0.5 ) * (1.0 / n)));
 	    }
-	), Reduce! (
-	    (double a, double b) => a + b
 	),
-	Map! (
-	    (double a) => 4.0 * a
+	Reduce !(
+	    (double a, double b) => a + b
 	)
     );
-
-    auto res = stream.run (cast (ulong) n).get!(double[]) [0];
-    writefln ("%.12f %s", res, Clock.currTime - begin);
+        
+    auto res = stream.run (cast (ulong) n).get!(double[]);
+    writefln ("%s %s", res, Clock.currTime - begin);
 }
 
