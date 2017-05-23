@@ -6,6 +6,7 @@ import std.concurrency;
 import std.typecons;
 
 class Elem (alias fun) : Task {
+    mixin NominateTask;
 
     static assert (checkFun !(fun));
     enum __ARITY__ = ParameterTypeTuple!(fun).length;
@@ -90,7 +91,9 @@ class Elem (alias fun) : Task {
 };
        		  
 class IndexedElem (alias fun) : Task {
+    mixin NominateTask;
 
+    
     static assert (checkFun !(fun));
     enum __ARITY__ = ParameterTypeTuple!(fun).length;
     alias T = ReturnType!fun;
@@ -174,11 +177,15 @@ class IndexedElem (alias fun) : Task {
 };
 
 class Repeat(T) : Task {
+    mixin NominateTask;
 
+    
     private Feeder _data;
     private bool _get = false;
     private Task _task;
 
+    this () {}
+    
     this (Task task) {
 	this._task = task;
     }
@@ -319,7 +326,8 @@ void main2 () {
 	    (double a) => 4. * a
 	)
     );
-        
+
+    writeln (stream.serialize);
     auto res = stream.run (cast (ulong) n).get!(double[]);
     writefln ("%s %s", res, Clock.currTime - begin);
 }
