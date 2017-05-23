@@ -3,30 +3,29 @@ import std.container;
 
 struct Feeder {
 
-    byte [8] a;
+    ulong a;
     void * ax;
-    ulong length;
     Task _task;
-
+    
     this (Task task) {
 	this._task = task;
     }
 
     this (T : U [], U) (T a) @nogc {
 	this.ax = cast (byte*) a.ptr;
-	this.length = a.length;
+	this.a = a.length;
     }
     
     this (T) (T a) @nogc {
-	*(cast (T*) this.a.ptr) = a;
+	*(cast (T*) &this.a) = a;
     }
         
     T get (T) () @nogc {	
-	return *(cast (T*) this.a);
+	return *(cast (T*) &this.a);
     }
 
     T get (T : U[], U) () @nogc {	
-	return (cast (U*)this.ax) [0 .. this.length];
+	return (cast (U*)this.ax) [0 .. this.a];
     }    
 
     Feeder run (Feeder fed) {
@@ -34,15 +33,15 @@ struct Feeder {
 	return this._task.run ();
     }
     
-    bool isArray () {
+    bool isArray () @nogc {
 	return this.ax !is null;
     }
 
-    bool isTask () {
+    bool isTask () @nogc {
 	return this._task !is null;
     }
 
-    Task task () {
+    Task task () @nogc {
 	return this._task;
     }
 

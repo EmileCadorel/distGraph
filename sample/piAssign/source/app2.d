@@ -3,98 +3,30 @@ import std.stdio;
 import std.traits;
 import std.datetime;
 import std.concurrency;
+import std.typecons;
 
-class ReduceOp (alias fun) : Task {
+class Elem (alias fun) : Task {
 
-    alias T = ReturnType!fun;
-
-    private T [2] _data;
-    private ulong _nbData = 0;
+    static assert (checkFun !(fun));
+    enum __ARITY__ = ParameterTypeTuple!(fun).length;
+    alias T = ParameterTypeTuple!(fun) [0];
+    alias TUPLE = Tuple!(ParameterTypeTuple!(fun));
     
-    override bool full () {
-	return this._nbData == 2;
-    }
-
-    override Feeder run () {
-	auto res = fun (this._data [0], this._data [1]);
-	return Feeder (res);
-    }
-
-    override uint arity () {
-	return 2;
-    }
+    static bool checkFun (alias fun) () {
+	static if (is (ReturnType!fun : void)) return false;
+	alias t1 = ParameterTypeTuple!(fun);	
+	static if (t1.length == 1) return true;
+	else {
+	    foreach (i, it ; t1) {
+		static if (!is (t1 [i] : t1 [0]))
+		    return false;
+	    }
+	    return true;
+	}
+    }    
     
-    override void feed (Feeder data) {
-	this._data [this._nbData] = data.get!T;
-	this._nbData ++;
-    }
-
-    override Feeder[] divide (ulong nb, Feeder fd) {
-	assert (false);
-    }
-
-    override void reset () {
-	this._nbData = 0;
-    }
-    
-    override Task clone () {
-	auto ret = new ReduceOp!fun ();
-	ret.next = this.next;
-	return ret;
-    }
-
-};
-
-class MapOp (alias fun) : Task {
-
-    alias T = ReturnType!fun;
-    alias U = ParameterTypeTuple!(fun) [0];
-
-    private U _data;
-    private bool _get = false;
-    
-    override bool full () {
-	return this._get;
-    }
-
-    override void feed (Feeder data) {
-	this._data = data.get!(U);
-	this._get = true;
-    }
-
-    override uint arity () {
-	return 1;
-    }
-
-    override Feeder run () {
-	return Feeder (fun (this._data));
-    }
-
-    override Feeder[] divide (ulong nb, Feeder fd) {
-	assert (false);
-    }
-
-    override void reset () {
-	this._get = false;
-    }
-
-    override Task clone () {
-	auto ret = new MapOp!fun ();
-	ret.next = this.next;
-	return ret;
-    }
-
-    
-}
-			  
-class Elem (T) : Task {
-
     private Feeder _data;
-    private Task _task;
-
-    this (Task task) {
-	this._task = task;
-    }
+    private T [__ARITY__] _aux;
 
     override bool full () {
 	return true;
@@ -113,20 +45,21 @@ class Elem (T) : Task {
 	}
 	
 	uint i = 0;
-	for (; (i + this._task.arity) <= data.length; i += this._task.arity) {
-	    this._task.reset;
-	    for (uint j = 0; j < this._task.arity; j++) {
-		this._task.feed (Feeder (data [i + j]));
+	for (; (i + __ARITY__) <= data.length; i += __ARITY__) {
+	    for (uint j = 0; j < __ARITY__; j++) {
+		this._aux [j] = data [i + j];
 	    }
-	    data [i / this._task.arity] = this._task.run ().get!T;
+	    
+	    TUPLE tu = this._aux;
+	    data [i / __ARITY__] = fun (tu.expand);
 	}
 	
 	for (uint j = 0; (j + i) < data.length; j ++) {
-	    data [j + (i / this._task.arity)] = data [i + j];
+	    data [j + (i / __ARITY__)] = data [i + j];
 	}
 	
-	return Feeder (data [0 .. (data.length / this._task.arity
-				   + data.length % this._task.arity)]);
+	return Feeder (data [0 .. (data.length / __ARITY__
+				   + data.length % __ARITY__)]);
     }    
 
     override Feeder [] divide (ulong nb, Feeder data) {
@@ -142,13 +75,13 @@ class Elem (T) : Task {
     }
     
     override uint arity () {
-	return this._task.arity;
+	return __ARITY__;
     }
 
     override void reset () {}
 
     override Task clone () {
-	auto ret = new Elem!T (this._task.clone);
+	auto ret = new Elem!fun ();
 	ret.next = this.next;
 	return ret;
     }
@@ -156,15 +89,21 @@ class Elem (T) : Task {
     
 };
        		  
-class IndexedElem (T) : Task {
+class IndexedElem (alias fun) : Task {
 
+    static assert (checkFun !(fun));
+    enum __ARITY__ = ParameterTypeTuple!(fun).length;
+    alias T = ReturnType!fun;
+    
+    static bool checkFun (alias fun) () {
+	static if (is (ReturnType!fun : void)) return false;
+	alias t1 = ParameterTypeTuple!(fun);	
+	static if (t1.length == 1 && is (t1 [0] : ulong)) return true;
+	else return false;
+    }    
+    
     private Feeder _data;
     private bool _get = false;
-    private Task _task;
-
-    this (Task task) {
-	this._task = task;
-    }
 
     override bool full () {
 	return this._get;
@@ -194,16 +133,11 @@ class IndexedElem (T) : Task {
 	    }
 	}
 
-       	auto res = new T [len / this._task.arity
-			  + len % this._task.arity];
+       	auto res = new T [len];
 
 	uint i = 0;
-	for (; (i + this._task.arity) <= len; i += this._task.arity) {
-	    this._task.reset;
-	    for (ulong j = 0; j < this._task.arity; j++) {
-		this._task.feed (Feeder (i + j + begin));
-	    }
-	    res [i / this._task.arity] = this._task.run ().get!T;
+	for (; (i + 1) <= len; i += 1) {
+	    res [i] = fun (i + begin);
 	}
 
 	return Feeder (res);
@@ -224,7 +158,7 @@ class IndexedElem (T) : Task {
     }
     
     override uint arity () {
-	return this._task.arity;
+	return 1;
     }
 
     override void reset () {
@@ -232,7 +166,7 @@ class IndexedElem (T) : Task {
     }
 
     override Task clone () {
-	auto ret = new IndexedElem!T (this._task.clone);
+	auto ret = new IndexedElem!fun;
 	ret.next = this.next;
 	return ret;
     }
@@ -347,9 +281,7 @@ template Reduce (alias fun) {
 
     auto Reduce () {
 	return new Repeat!T (
-	    new Elem!(T) (
-		new ReduceOp!(fun)
-	    )
+	    new Elem!(fun) 	    
 	);
     }
 }
@@ -358,10 +290,7 @@ template Map (alias fun) {
     alias T = ReturnType!fun;
 
     auto Map () {
-	return 
-	    new Elem!(T) (
-		new MapOp!(fun)
-	    );	
+	return new Elem!(fun);	    
     }
 }
 
@@ -369,9 +298,7 @@ template Generate (alias fun) {
     alias T = ReturnType!fun;
 
     auto Generate () {
-	return new IndexedElem!T (
-	    new MapOp!(fun)
-	);
+	return new IndexedElem!fun;	
     }
     
 }
@@ -388,6 +315,8 @@ void main2 () {
 	),
 	Reduce !(
 	    (double a, double b) => a + b
+	), Map!(
+	    (double a) => 4. * a
 	)
     );
         
