@@ -215,7 +215,7 @@ private void receiveWPipe (T) (int pipe, ref T msg) if (is (T a == struct)) {
  }
 
 
-uint countChild (uint id, uint total) {
+uint countChild (uint id, uint total) @nogc {
     if (id >= total) return 0;
     else {
 	return 1 +

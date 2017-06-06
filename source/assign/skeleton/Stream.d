@@ -126,6 +126,10 @@ class Task {
      +/
     void reset ();
 
+    
+    abstract Task simpleClone ();
+    abstract void set (ulong, Object);
+    
     /++
      Crée un clone de la tâche
      Returns: le clone
@@ -157,6 +161,22 @@ mixin template BindableDef () {
 	return __std__;
     }    
 
+    final override void set (ulong attr, Object elem) {
+	
+	void set (ulong nb) (ulong attr, Object elem) {
+	    static if (nb < this.tupleof.length) {		
+		if (nb == attr) {
+		    static if (is (typeof(this.tupleof [nb]) : Object)) 
+			this.tupleof [nb] = cast (typeof(this.tupleof [nb])) elem;
+		} else {
+		    set!(nb + 1) (attr, elem);
+		}
+	    }
+	}
+	
+	set!0 (attr, elem);		
+    }
+    
     private {	       
 	static void init (T) () {
 	    T elem;
@@ -212,11 +232,18 @@ mixin template NominateTask () {
 	} else return null;
     }
 
+    final override Task simpleClone () {
+	return new typeof (this);
+    }
+    
     /++
      Surcharge de la serialisation
      +/
     final override string serialize () {
 	auto buf = new OutBuffer ();
+	if (this.next.isTask) 
+	    buf.writef ("%s:", this.next.serialize);
+	
 	buf.writef ("%s", __id__);
 	foreach (key, value ; __std__) {
 	    if (auto task = isTask!0 (key.loc, this)) {
@@ -225,8 +252,6 @@ mixin template NominateTask () {
 	    }
 	}
 	
-	if (this.next.isTask) 
-	    buf.writef (":%s", this.next.serialize);
 	return buf.toString;
     }        
 }
@@ -235,7 +260,8 @@ mixin template NominateTask () {
  Classe utilisé pour définir un flux de données entre les différents squelettes.
 +/
 class Stream {
-
+    import utils.syntax.Lexer;
+    
     private SList!Feeder _tasks;
 
     this () {}
@@ -258,6 +284,45 @@ class Stream {
 	}
     }
 
+    private static Task readTask (Lexer lex) {
+	import std.conv, std.stdio;
+	auto ident = lex.next ();
+	if (!ident.isEof) {	
+	    auto num = ident.str.to!(ulong);
+	    auto task = Task.__initializer__ [num].simpleClone ();
+	    auto next = lex.next ();
+	    if (next == Tokens.DIESE) {
+		lex.next (Tokens.GPAR);
+		while (true) {
+		    next = lex.next ();
+		    auto attr = next.str.to!(ulong);
+		    lex.next (Tokens.EXL);
+		    next = lex.next ();
+		    num = next.str.to!(ulong);
+		    auto insideTask = Task.__initializer__ [num].simpleClone ();
+		    task.set (attr, insideTask);
+		    next = lex.next (Tokens.DPAR, Tokens.VIRG);
+		    if (next == Tokens.DPAR) break;
+		}
+	    } else lex.rewind ();
+	    return task;
+	}
+	return null;
+    }
+    
+    static Stream deserialize (string name) {
+	auto lex = new StringLexer (name, [Tokens.SPACE, Tokens.RET, Tokens.RRET]);
+	auto stream = new Stream;
+	while (true) {
+	    auto task = readTask (lex);	    
+	    if (task is null) break;
+	    else stream.compose (task);
+	    auto next = lex.next (Tokens.DPOINT);
+	    if (next.isEof) break;
+	}
+	return stream;
+    }
+    
     string serialize () {
 	if (!this._tasks.empty)
 	    return this._tasks.front.serialize ();

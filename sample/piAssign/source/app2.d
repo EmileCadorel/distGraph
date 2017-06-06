@@ -328,7 +328,10 @@ void main2 () {
     );
 
     writeln (stream.serialize);
+    stream = stream.deserialize (stream.serialize);
+    writeln (stream.serialize);
     auto res = stream.run (cast (ulong) n).get!(double[]);
+    
     writefln ("%s %s", res, Clock.currTime - begin);
 }
 

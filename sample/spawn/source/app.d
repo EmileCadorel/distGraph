@@ -124,7 +124,7 @@ int spawned (uint id, uint total) {
 
 
 void main(string [] args) {
-    auto adm = new AssignAdmin!(Proto, foo) (args);
+    auto adm = new AssignAdmin (args);
     foo ();
     adm.join ();
     writeln ("End");
