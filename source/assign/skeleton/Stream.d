@@ -81,10 +81,12 @@ class Task {
     abstract Feeder run (Feeder) ;
 
     /++
-     Le nombre de donnée requise par la tâche
+     Returns: La tâche n'a pas besoin de synchronisation à la fin, pour que les données soit valide  
      +/
-    abstract uint arity () ;
-    
+    bool isOutCuttable () {
+	return true;
+    }
+        
     /++
      Divise un ensemble de données en vue d'une parallélisation
      Params:
@@ -101,16 +103,10 @@ class Task {
      Returns: un nouvelle ensemble
      +/
     abstract Feeder merge (Feeder [] data);
-
-    /++ 
-     A besoin d'une nouvelle execution après un merge
-     +/
-    bool needNewExec () {
-	return false;
-    }
     
 
     abstract Task simpleClone ();
+
     abstract void set (ulong, Object);
     
     /++
@@ -264,44 +260,75 @@ class Stream {
 
 import std.stdio;
 
-private void spawned (Tid own, shared Feeder *sdata, shared Stream sstr) {
+private void spawned (Tid own, shared Feeder *sdata) {
     auto fed = (cast (Feeder) *sdata);
-    auto str = cast (Stream) sstr;
     
-    foreach (it ; str._tasks) {
-	fed = it.run (fed);
+    while (true) {
+	auto task = cast (Task) receiveOnly!(shared (Task));
+	if (task !is null) {
+	    fed = task.run (fed);
+	    if (!task.isOutCuttable) break; // Besoin d'une synchronisation
+	} else break;
     }
     
     *sdata = cast (shared(Feeder)) fed;
     send (own, true);
 }
 
+private Feeder execTask (Task t, Feeder datas, ref ulong nb, shared (Feeder)* [] ptr, Tid [] sp) {
+    foreach (it ; 1 .. nb) {
+	send (sp [it - 1], cast (shared (Task)) t.clone ());
+    }
+	    
+    auto feed = t.run (datas);
+    if (!t.isOutCuttable) { // Besoin d'une synchro
+	Array!Feeder res = make!(Array!Feeder) (feed);
+	foreach (it ; 1 .. nb) {
+	    receiveOnly!bool;
+	    res.insertBack (cast (Feeder) *ptr [it]);
+	}
+	nb = 1;
+	return t.merge (res.array ());
+    }
+    return feed;
+}
+
+shared(Feeder)* [] spawnHelp (ulong nb, Feeder data, Task task, ref Tid [] sp) {
+    auto div = task.divide (nb, data);
+    if (div !is null) {
+	shared (Feeder)* [] ptr = new shared (Feeder*) [div.length];
+	foreach (it ; 0 .. div.length)
+	    ptr [it] = cast (shared (Feeder)*) &div [it];	
+
+	sp = new Tid [nb - 1];
+	foreach (it ; 1 .. nb) {
+	    sp [it - 1] = spawn (&spawned, thisTid, ptr [it]);
+	}
+	return ptr;
+    }
+    return null;
+}
+
 Feeder run (T) (Stream str, T data) {
     return run (str, Feeder (data));
 }
 
-
 Feeder run (Stream str, Feeder data) {
-    ulong nb = 2;
+    ulong nb = 1, totalHelp = 2;
     auto feed = Feeder (data);
-    auto div = str._tasks.front.divide (nb, feed);
 
-    shared (Feeder)* [] ptr = new shared (Feeder*) [div.length];
-    foreach (it ; 0 .. div.length)
-	ptr [it] = cast (shared (Feeder)*) &div [it];
-    
-    foreach (it ; 1 .. nb) {
-	spawn (&spawned, thisTid,
-	       ptr [it],
-	       cast (shared Stream) str.clone);
-    }
-    
-    feed = div [0];
-    
+    shared (Feeder)* [] ptr;
+    Tid [] ids;
     foreach (it ; str._tasks) {
-	feed = it.run (feed);
-    }
-    
+	if (nb < totalHelp) {
+	    ptr = spawnHelp (totalHelp, feed, it, ids);
+	    if (ptr !is null) {
+		feed = cast (Feeder) *ptr [0];
+		nb = totalHelp;
+	    }
+	}
+	feed = execTask (it, feed, nb, ptr, ids);
+    }    
 
     Array!Feeder res = make!(Array!Feeder) (feed);
     foreach (it ; 1 .. nb) {
@@ -309,13 +336,5 @@ Feeder run (Stream str, Feeder data) {
 	res.insertBack (cast (Feeder) *ptr [it]);
     }
 
-    feed = str._tasks.front.merge (res.array ());
-
-    foreach (it ; str._tasks) {
-	if (it.needNewExec) {
-	    feed = it.run (feed);
-	}
-    }
-    
-    return feed;
+    return str._tasks.back.merge (res.array ());    
 }

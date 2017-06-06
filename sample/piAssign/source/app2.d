@@ -34,8 +34,10 @@ class Elem (alias fun) : Task {
     }    
     
     override Feeder [] divide (ulong nb, Feeder data) {
-	auto ret = new Feeder [nb];
 	auto datas = data.get!(T[]);
+	if (datas.length == 1) return null;
+
+	auto ret = new Feeder [nb];
 	foreach (it ; 0 .. nb) {
 	    if (it < nb - 1)
 		ret [nb] = Feeder (datas [(datas.length / nb * it) .. (datas.length / nb ) * (it + 1)]);
@@ -53,10 +55,6 @@ class Elem (alias fun) : Task {
 	return res;
     }
     
-    override uint arity () {
-	return __ARITY__;
-    }
-
     override Task clone () {
 	auto ret = new Elem!fun ();
 	return ret;
@@ -74,7 +72,6 @@ class IndexedElem (alias fun) : Task {
             
     override Feeder run (Feeder data) {	
 	ulong begin, len;
-
 	if (data.isArray) {
 	    begin = data.get! (ulong[]) [0];
 	    len = data.get! (ulong[]) [1];
@@ -112,10 +109,6 @@ class IndexedElem (alias fun) : Task {
 	    res = Feeder (res.get!(T[]) ~ elem [it].get!(T[]));
 	
 	return res;
-    }
-    
-    override uint arity () {
-	return 1;
     }
 
     override Task clone () {
@@ -163,14 +156,10 @@ class Repeat(T) : Task {
 	return ret;
     }
 
-    override bool needNewExec () {
-	return true;
+    override bool isOutCuttable () {
+	return false;
     }
     
-    override uint arity () {
-	return this._task.arity;
-    }
-
     override Task clone () {
 	auto ret = new Repeat!T (this._task.clone);
 	return ret;
