@@ -43,7 +43,7 @@ class Lexer {
     this (Token [] skips, Token[2][] comments) {
 	this._line = 1;
 	this._column = 1;
-	this._tokens = [EnumMembers!Tokens];
+	this._tokens = Tokens.alls;
 	foreach (it ; skips) 
 	    this._skips[it] = true;
 	this._comments = comments;
@@ -54,7 +54,7 @@ class Lexer {
     this (string filename, Token [] skips, Token[2][] comments) {
 	this._line = 1;
 	this._column = 1;
-	this._tokens = [EnumMembers!Tokens];
+	this._tokens = Tokens.alls;
 	foreach (it ; skips) 
 	    this._skips[it] = true;
 	this._comments = comments;

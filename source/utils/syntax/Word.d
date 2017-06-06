@@ -56,7 +56,7 @@ struct Word {
     }
     
     static bool checkToken (string token) {
-	return find!"a.descr == b" ([EnumMembers!Tokens], token) != [];
+	return find!"a.descr == b" (Tokens.alls, token) != [];
     }
 
     void setEof () {

@@ -1,5 +1,6 @@
 module assign.skeleton.Stream;
-import std.container;
+import std.concurrency;
+import std.container, std.array;
 
 struct Feeder {
 
@@ -28,9 +29,12 @@ struct Feeder {
 	return (cast (U*)this.ax) [0 .. this.a];
     }    
 
+    ulong length (T) () {
+	return this.get!(T[]).length;
+    }
+    
     Feeder run (Feeder fed) {
-	this._task.feed (fed);
-	return this._task.run ();
+	return this._task.run (fed);
     }
     
     bool isArray () @nogc {
@@ -71,20 +75,10 @@ class Task {
     __gshared static Array!Task __initializer__;
     
     /++
-     La tâche suivante à éffectuer.
-     +/
-    private Feeder _next;
-
-    /++
-     La tâche possède assez de données pour être lancé
-     +/
-    abstract bool full ();
-
-    /++
      Execution de la tâches
      Returns: la valeur de la tâche.
      +/
-    abstract Feeder run () ;
+    abstract Feeder run (Feeder) ;
 
     /++
      Le nombre de donnée requise par la tâche
@@ -92,41 +86,30 @@ class Task {
     abstract uint arity () ;
     
     /++
-     Ajoute une données dans la tâche, qu'elle devra consommé.
-     Params:
-     data = la données à consommer.
-     +/
-    abstract void feed (Feeder data) ;    
-
-    /++
-     La tâche est la première à être lancé
-     +/
-    Feeder runAsFirst () {
-	return this.run;
-    }
-
-    /++
      Divise un ensemble de données en vue d'une parallélisation
      Params:
      nb = le nombre de division nécéssaire
      data = les données à diviser
      Returns: un tableau de division (assert (return.length == nb)).
      +/
-    abstract Feeder[] divide (ulong nb, Feeder data) ;    
-    
+    abstract Feeder[] divide (ulong nb, Feeder data) ;
+
     /++
-     Returns: La tâche qui va ếtre éfféctué immédiatement après.
+     Fusionne plusieurs ensemble en vue d'une récupération des éléments parallélisé
+     Params:
+     data = les données à fusionner
+     Returns: un nouvelle ensemble
      +/
-    ref Feeder next () @property {
-	return this._next;
+    abstract Feeder merge (Feeder [] data);
+
+    /++ 
+     A besoin d'une nouvelle execution après un merge
+     +/
+    bool needNewExec () {
+	return false;
     }
     
-    /++
-     Remise à zéro des données de la tâche.
-     +/
-    void reset ();
 
-    
     abstract Task simpleClone ();
     abstract void set (ulong, Object);
     
@@ -241,8 +224,6 @@ mixin template NominateTask () {
      +/
     final override string serialize () {
 	auto buf = new OutBuffer ();
-	if (this.next.isTask) 
-	    buf.writef ("%s:", this.next.serialize);
 	
 	buf.writef ("%s", __id__);
 	foreach (key, value ; __std__) {
@@ -262,72 +243,79 @@ mixin template NominateTask () {
 class Stream {
     import utils.syntax.Lexer;
     
-    private SList!Feeder _tasks;
+    private DList!Task _tasks;
 
     this () {}
 
     void compose (T : Task, TNext ...) (T task, TNext nexts) {
-	if (!this._tasks.empty) {
-	    task.next = this._tasks.front;
-	}
-	
-	this._tasks.insertFront (Feeder (task));	
-	static if (nexts.length != 0)
-	    compose (nexts);		
-    }
-    
-    Feeder run (T) (T data) {
-	if (!this._tasks.empty) {
-	    return this._tasks.front.run (Feeder (data));
-	} else {
-	    assert (false, "Run empty stream");
-	}
+	static if (nexts.length > 0) 
+	    compose (nexts);
+	this._tasks.insertFront (task);
     }
 
-    private static Task readTask (Lexer lex) {
-	import std.conv, std.stdio;
-	auto ident = lex.next ();
-	if (!ident.isEof) {	
-	    auto num = ident.str.to!(ulong);
-	    auto task = Task.__initializer__ [num].simpleClone ();
-	    auto next = lex.next ();
-	    if (next == Tokens.DIESE) {
-		lex.next (Tokens.GPAR);
-		while (true) {
-		    next = lex.next ();
-		    auto attr = next.str.to!(ulong);
-		    lex.next (Tokens.EXL);
-		    next = lex.next ();
-		    num = next.str.to!(ulong);
-		    auto insideTask = Task.__initializer__ [num].simpleClone ();
-		    task.set (attr, insideTask);
-		    next = lex.next (Tokens.DPAR, Tokens.VIRG);
-		    if (next == Tokens.DPAR) break;
-		}
-	    } else lex.rewind ();
-	    return task;
+    private Stream clone () {
+	auto res = new Stream;
+	foreach (it ; this._tasks)
+	    res._tasks.insertBack (it.clone ());
+	return res;
+    }
+    
+}
+
+import std.stdio;
+
+private void spawned (Tid own, shared Feeder *sdata, shared Stream sstr) {
+    auto fed = (cast (Feeder) *sdata);
+    auto str = cast (Stream) sstr;
+    
+    foreach (it ; str._tasks) {
+	fed = it.run (fed);
+    }
+    
+    *sdata = cast (shared(Feeder)) fed;
+    send (own, true);
+}
+
+Feeder run (T) (Stream str, T data) {
+    return run (str, Feeder (data));
+}
+
+
+Feeder run (Stream str, Feeder data) {
+    ulong nb = 2;
+    auto feed = Feeder (data);
+    auto div = str._tasks.front.divide (nb, feed);
+
+    shared (Feeder)* [] ptr = new shared (Feeder*) [div.length];
+    foreach (it ; 0 .. div.length)
+	ptr [it] = cast (shared (Feeder)*) &div [it];
+    
+    foreach (it ; 1 .. nb) {
+	spawn (&spawned, thisTid,
+	       ptr [it],
+	       cast (shared Stream) str.clone);
+    }
+    
+    feed = div [0];
+    
+    foreach (it ; str._tasks) {
+	feed = it.run (feed);
+    }
+    
+
+    Array!Feeder res = make!(Array!Feeder) (feed);
+    foreach (it ; 1 .. nb) {
+	receiveOnly!bool;
+	res.insertBack (cast (Feeder) *ptr [it]);
+    }
+
+    feed = str._tasks.front.merge (res.array ());
+
+    foreach (it ; str._tasks) {
+	if (it.needNewExec) {
+	    feed = it.run (feed);
 	}
-	return null;
     }
     
-    static Stream deserialize (string name) {
-	auto lex = new StringLexer (name, [Tokens.SPACE, Tokens.RET, Tokens.RRET]);
-	auto stream = new Stream;
-	while (true) {
-	    auto task = readTask (lex);	    
-	    if (task is null) break;
-	    else stream.compose (task);
-	    auto next = lex.next (Tokens.DPOINT);
-	    if (next.isEof) break;
-	}
-	return stream;
-    }
-    
-    string serialize () {
-	if (!this._tasks.empty)
-	    return this._tasks.front.serialize ();
-	else
-	    assert (false, "Serialize empty stream");
-    }
-    
+    return feed;
 }

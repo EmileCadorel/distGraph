@@ -4,6 +4,9 @@ all:
 dmd:
 	dub build --parallel 
 
+ldc2:
+	dub build --parallel --compiler=ldc2 
+
 gdc6:
 	dub build --parallel --compiler=gdc-6 
 
@@ -15,6 +18,11 @@ release:
 
 release6:
 	dub build --parallel --compiler=gdc-6 --build=release
+
+
+release2:
+	dub build --parallel --compiler=ldc2 --build=release
+
 
 force:
 	dub build --parallel --force
