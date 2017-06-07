@@ -4,10 +4,12 @@ import std.traits;
 import std.datetime;
 import std.concurrency;
 import std.typecons;
+import std.functional;
 
-class Elem (alias fun) : Task {
+class Elem (alias FUN) : Task {
     mixin NominateTask;
 
+    alias fun = binaryFun!FUN;
     enum __ARITY__ = ParameterTypeTuple!(fun).length;
     alias T = ParameterTypeTuple!(fun) [0];
     alias TUPLE = Tuple!(ParameterTypeTuple!(fun));
@@ -63,10 +65,10 @@ class Elem (alias fun) : Task {
     
 };
        		  
-class IndexedElem (alias fun) : Task {
+class IndexedElem (alias FUN) : Task {
     mixin NominateTask;
 
-    
+    alias fun = binaryFun!FUN;
     enum __ARITY__ = ParameterTypeTuple!(fun).length;
     alias T = ReturnType!fun;
             
@@ -156,10 +158,6 @@ class Repeat(T) : Task {
 	return ret;
     }
 
-    override bool isOutCuttable () {
-	return false;
-    }
-    
     override Task clone () {
 	auto ret = new Repeat!T (this._task.clone);
 	return ret;
@@ -168,18 +166,18 @@ class Repeat(T) : Task {
 };
 
 template Reduce (alias fun) {
-
     alias T = ReturnType!fun;
 
-    auto Reduce () {
-	return new Repeat!T (
-	    new Elem!(fun) 	    
+    auto Reduce () {       
+	return new SyncTask (
+	    new Repeat!T (
+		new Elem!(fun) 	    
+	    )
 	);
     }
 }
 
 template Map (alias fun) {
-    alias T = ReturnType!fun;
 
     auto Map () {
 	return new Elem!(fun);	    
@@ -187,8 +185,6 @@ template Map (alias fun) {
 }
 
 template Generate (alias fun) {
-    alias T = ReturnType!fun;
-
     auto Generate () {
 	return new IndexedElem!fun;	
     }
@@ -199,20 +195,16 @@ void main2 () {
     auto stream = new Stream;
     auto gen = new Stream;
     
-    enum n = 1_000_000UL;
+    enum n = 10UL;
     auto begin = Clock.currTime;
-    stream.compose (
+    stream.pipe (
 	Generate! (
-	    (ulong i) {
-		return (1.0 / n) / ( 1.0 + (( i - 0.5 ) * (1.0 / n)) * (( i - 0.5 ) * (1.0 / n)));
-	    }
-	),
-	Reduce !(
-	    (double a, double b) => a + b
-	), Map! ((double a) => 4.0 * a)
+	    (ulong i) =>  (1.0 / n) / ( 1.0 + (( i - 0.5 ) * (1.0 / n)) * (( i - 0.5 ) * (1.0 / n)))
+	)
     );
-
-    auto res = stream.run (n).get!(double []);    
-    writefln ("%s %s", res, Clock.currTime - begin);
+    
+    auto res = stream.run (n).get!(double[]);
+    writeln (res);
+    
 }
 

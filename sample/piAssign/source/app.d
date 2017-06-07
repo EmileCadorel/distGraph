@@ -27,6 +27,6 @@ void main (string [] args) {
     );
     
     auto end = Clock.currTime ();
-    
-    writeln ("Pi = ", 4 * res, " :(", end - begin, ")");        
+
+    writefln ("Pi = %.18f :(%s)", 4.0 * res, (end - begin).to!string);        
 }
