@@ -11,8 +11,13 @@ struct Feeder {
 	this.ax = cast (byte*) a.ptr;
 	this.a = a.length * U.sizeof;
     }
+
+    this (T : U*, U) (T a) @nogc {
+	this.ax = null;
+	this.a = 0;
+    }
     
-    this (T) (T a) @nogc {
+    this (T) (T a) @nogc {	
 	*(cast (T*) &this.a) = a;
     }
         
@@ -47,8 +52,6 @@ struct Feeder {
 	} else if (other.isArray) {
 	    this.ax = other.ax;
 	    this.a = other.a;
-	} else if (!this.isArray) {
-	    assert (false, "Concat ne fonctionne qu'avec des tableaux");
 	}
     }
     
