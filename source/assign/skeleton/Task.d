@@ -9,7 +9,7 @@ struct Feeder {
     
     this (T : U [], U) (T a) @nogc {
 	this.ax = cast (byte*) a.ptr;
-	this.a = a.length;
+	this.a = a.length * U.sizeof;
     }
     
     this (T) (T a) @nogc {
@@ -20,8 +20,8 @@ struct Feeder {
 	return *(cast (T*) &this.a);
     }
 
-    T get (T : U[], U) () @nogc {	
-	return (cast (U*)this.ax) [0 .. this.a];
+    T get (T : U[], U) () @nogc {
+	return (cast (U*)this.ax) [0 .. (this.a / U.sizeof)];
     }    
 
     T opIndexAssign (T) (ulong id, T data) @nogc {
@@ -37,6 +37,21 @@ struct Feeder {
 	return this.ax !is null;
     }
 
+    void concat (Feeder other) {
+	if (this.isArray && other.isArray) {
+	    auto begin = this.get!(ubyte[]);
+	    auto end = other.get!(ubyte[]);
+	    auto a = begin ~ end;
+	    this.ax = cast (byte*) (a).ptr;
+	    this.a = a.length;
+	} else if (other.isArray) {
+	    this.ax = other.ax;
+	    this.a = other.a;
+	} else if (!this.isArray) {
+	    assert (false, "Concat ne fonctionne qu'avec des tableaux");
+	}
+    }
+    
     ref ulong id () {
 	return this._id;
     }    
@@ -57,9 +72,9 @@ class Task {
      Execution de la tâches
      Params:
      i = l'entrée du flux
-     o = la sortie du flux
+     Returns: la sortie du flux
      +/
-    abstract void run (Feeder i, Feeder o) ;
+    abstract Feeder run (Feeder i) ;
         
     /++
      Divise un ensemble de données en vue d'une parallélisation
@@ -68,17 +83,7 @@ class Task {
      i = les données en entrée à diviser
      Returns: un tableau de division (assert (return.length == nb)).
      +/
-    abstract Feeder [][3] divide (ulong nb, Feeder i) ;
-
-    /++
-     Cette execution se fait sur un seul noeud, après la synchronisation de tout le reste
-     Params:
-     _in = les données en entrées
-     Returns: le resultat de la finalisation
-     +/
-    Feeder finalize (Feeder _in) {
-	return _in;
-    }
+    abstract Feeder [] divide (ulong nb, Feeder i) ;
     
     /++
      Clone la tâche sans ses attributs (pour la sérialisation)
@@ -216,4 +221,16 @@ mixin template NominateTask () {
 	
 	return buf.toString;
     }        
+}
+
+class SyncTask : Task {
+
+    /++
+     Cette execution se fait sur un seul noeud, après la synchronisation de tout le reste
+     Params:
+     _in = les données en entrées
+     Returns: le resultat de la finalisation
+     +/
+    abstract Feeder finalize (Feeder[] _in);
+    
 }

@@ -14,41 +14,36 @@ class Elem (alias FUN) : Task {
     alias T = ParameterTypeTuple!(fun) [0];
     alias TUPLE = Tuple!(ParameterTypeTuple!(fun));
 
-    override void run (Feeder _in, Feeder _out) {
+    override Feeder run (Feeder _in) {
 	T [__ARITY__] aux;
-	T [] data = _in.get!(T[]);		
+	T [] data = _in.get!(T[]);
+	auto _out = new T [(data.length / __ARITY__) + (data.length % __ARITY__)];
 	uint i = 0;
+	
 	for (; (i + __ARITY__) <= data.length; i += __ARITY__) {
 	    for (uint j = 0; j < __ARITY__; j++) {
 		aux [j] = data [i + j];
 	    }
 	    
 	    TUPLE tu = aux;
-	    _out.get!(T[]) [i / __ARITY__] = fun (tu.expand);
+	    _out [i / __ARITY__] = fun (tu.expand);
 	}
 	
 	for (uint j = 0; (j + i) < data.length; j ++) {
-	    _out.get!(T[]) [j + (i / __ARITY__)] = data [i + j];
-	}	
+	    _out [j + (i / __ARITY__)] = data [i + j];
+	}
+	return Feeder (_out);
     }    
     
-    override Feeder [][3] divide (ulong nb, Feeder _inF) {
+    override Feeder [] divide (ulong nb, Feeder _inF) {
 	auto _in = _inF.get!(T[]);
-	auto _out = new T [(_in.length / __ARITY__) + (_in.length % __ARITY__)];	
-	if (_in.length == 1) return [[Feeder (_in)], [Feeder (_out)], [Feeder (_out)]];
 
-	Feeder [][3] ret;
-	ret[0] = new Feeder [nb];
-	ret[1] = new Feeder [nb];
-	ret[2] = [Feeder (_out)];
-	
+	Feeder [] ret = new Feeder [nb];	
 	foreach (it ; 0 .. nb) {
 	    if (it < nb - 1) {		
-		ret [0][it] = Feeder (_in [($ / nb * it) .. ($ / nb) * (it + 1)]);
-		ret [1][it] = Feeder (_out [($ / nb * it) .. ($ / nb) * (it + 1)]); 
+		ret [it] = Feeder (_in [($ / nb * it) .. ($ / nb) * (it + 1)]);
 	    } else {
-		ret [0][it] = Feeder (_in [($ / nb) * it .. $]);
-		ret [1][it] = Feeder (_out [($ / nb * it) .. $]);
+		ret [it] = Feeder (_in [($ / nb) * it .. $]);
 	    }
 	}
 	return ret;
@@ -69,7 +64,7 @@ class IndexedElem (alias FUN) : Task {
     enum __ARITY__ = ParameterTypeTuple!(fun).length;
     alias T = ReturnType!fun;
             
-    override void run (Feeder _in, Feeder _out) {	
+    override Feeder run (Feeder _in) {	
 	ulong begin, len;
 	if (_in.isArray) {
 	    begin = _in.get! (ulong[]) [0];
@@ -77,30 +72,23 @@ class IndexedElem (alias FUN) : Task {
 	} else {
 	    len = _in.get!ulong;
 	}
-	
+	auto _out = new T [len];
 	uint i = 0;
 	for (; (i + 1) <= len; i += 1) {
-	    _out.get!(T[]) [i] = fun (i + begin);
+	    _out [i] = fun (i + begin);
 	}
+	return Feeder (_out);
     }    
 
-    override Feeder [][3] divide (ulong nb, Feeder _in) {
-	Feeder [][3] ret;
-	ret [0] = new Feeder [nb];
-	ret [1] = new Feeder [nb];
-	ret [2] = new Feeder [1];
-	
-	auto len = _in.get!ulong;
-	auto aux = new T [len];
-	ret [2][0] = Feeder (aux);
+    override Feeder [] divide (ulong nb, Feeder _in) {
+	Feeder [] ret = new Feeder [nb];
+	auto len = _in.get!(ulong);
 	
 	foreach (it ; 0 .. nb) {
 	    if (it < nb - 1) {
-		ret [0][it] = Feeder ([len / nb * it, len / nb * (it + 1)]);
-		ret [1][it] = Feeder (aux [len / nb * it .. len / nb * (it + 1)]); 
+		ret [it] = Feeder ([len / nb * it, len / nb * (it + 1)]);
 	    } else {
-		ret [0][it] = Feeder ([len / nb * it, len - (len / nb * it)]);
-		ret [1][it] = Feeder (aux [len / nb * it .. $]);
+		ret [it] = Feeder ([len / nb * it, len - (len / nb * it)]);
 	    }
 	}       
 	
@@ -114,7 +102,7 @@ class IndexedElem (alias FUN) : Task {
     
 };
 
-class Repeat(T) : Task {
+class Repeat(T) : SyncTask {
     mixin NominateTask;
 
     private Task _task;
@@ -125,38 +113,39 @@ class Repeat(T) : Task {
 	this._task = task;
     }
 
-    override void run (Feeder _in, Feeder _out) {
-	auto div = this._task.divide (1, _in);
-	while (div [0][0].length!(T) > 1) {	    
-	    this._task.run (div [0][0], div [1][0]);
-	    div = this._task.divide (1, div [1][0]);
+    override Feeder run (Feeder _in) {
+	auto _out = _in;
+	while (_out.length!(T) > 1) {	    
+	    _out = this._task.run (_out);
 	}
-	_out.get!(T[]) [0] = div [0][0].get!(T[]) [0];
+	return _out;
     }
 
-    override Feeder finalize (Feeder _in) {
-	auto fed = Feeder (new T [1]);
-	run (_in, fed);
-	return fed;
+    override Feeder finalize (Feeder [] _in) {
+	auto total = 0;
+	foreach (it ; _in) {
+	    total += it.length!(T);
+	}
+	auto res = new T [total];
+	ulong i = 0;
+	foreach (it ; _in) {
+	    foreach (_i; 0 .. it.length!(T)) {
+		res[i] = it.get!(T[])[_i];
+		i++;
+	    }
+	}
+	return run (Feeder (res));
     }
     
-    override Feeder [][3] divide (ulong nb, Feeder _in) {
-	Feeder [][3] ret;
-	ret [0] = new Feeder [nb];
-	ret [1] = new Feeder [nb];
-	ret [2] = new Feeder [1];
-	
+    override Feeder [] divide (ulong nb, Feeder _in) {
+	Feeder [] ret = new Feeder [nb];	
 	auto datas = _in.get!(T[]);
-	auto aux = new T [nb];
-	ret [2][0] = Feeder (aux);
 	
 	foreach (it ; 0 .. nb) {
 	    if (it < nb - 1) {
-		ret [0][it] = Feeder (datas [(datas.length / nb * it) .. (datas.length / nb ) * (it + 1)]);
-		ret [1][it] = Feeder (aux [it .. it + 1]);
+		ret [it] = Feeder (datas [(datas.length / nb * it) .. (datas.length / nb ) * (it + 1)]);
 	    } else {
-		ret [0][it] = Feeder (datas [(datas.length / nb) * it .. $]);
-		ret [1][it] = Feeder (aux [it .. it + 1]);
+		ret [it] = Feeder (datas [(datas.length / nb) * it .. $]);
 	    }
 	}
 	return ret;
@@ -205,7 +194,7 @@ void main2 () {
 	Reduce!(
 	    (double a, double b) => a + b
 	),
-	Map ! (
+	Map !(
 	    (double a) => 4.0 * a
 	)
     );
