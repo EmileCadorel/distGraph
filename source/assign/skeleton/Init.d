@@ -30,7 +30,7 @@ template Init (alias fun) {
     }
     
     void initJob (uint addr, uint id) {
-	auto array = ArrayTable.get!(DistArray!T) (id);
+	auto array = DataTable.get!(DistArray!T) (id);
 	auto nb = SystemInfo.cpusInfo().length;
 	writeln ("Th ", nb);
 	

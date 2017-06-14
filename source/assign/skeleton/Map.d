@@ -21,7 +21,7 @@ template Map (alias dg) {
     }
 
     void mapJob (uint addr, uint id) {
-	auto array = ArrayTable.get!(DistArray!T) (id);
+	auto array = DataTable.get!(DistArray!T) (id);
 	auto nb = SystemInfo.cpusInfo ().length;
 	writeln ("Th ", nb);
 	foreach (it ; 1 .. nb) {

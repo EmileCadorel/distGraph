@@ -1,5 +1,7 @@
 module assign.skeleton.StreamExecutor;
 import assign.skeleton.Stream;
+import assign.data.Data;
+import assign.launching;
 import utils.Singleton;
 import assign.cpu;
 import std.concurrency;
@@ -7,12 +9,12 @@ import std.stdio;
 
 class StreamExecutor {
     
-    Feeder execute (T) (Stream stream, T data) {
+    DistData execute (T) (Stream stream, T data) {
 	auto nb = SystemInfo.cpusInfo.length;
 	auto fed = Feeder (data);
 	auto spawned = new Tid [nb];
 	auto divided = false;
-	ulong currentNb = 0;
+	uint currentNb = 0, currentId = 0;
 	
 	foreach (it ; 0 .. nb) {
 	    spawned [it] = spawn (&onWork, thisTid);
@@ -20,13 +22,13 @@ class StreamExecutor {
 	
 	foreach (node ; stream.tree) {
 	    if (!divided) {
-		currentNb = sendDivision (node.task, spawned, fed);
+		currentNb = sendDivision (node.task, spawned, currentId, fed);
 		divided = true;
 	    }
 	    
 	    if (auto task = cast (SyncTask) node.task) {
 		foreach (it ; 0 .. currentNb) {
-		    send (spawned [it], cast (shared (SyncTask)*) &task, true);
+		    send (spawned [it], cast (shared (SyncTask)*) &task, currentId);
 		}
 		
 		Feeder [] res = new Feeder [currentNb];
@@ -38,73 +40,57 @@ class StreamExecutor {
 		divided = false;
 	    } else {
 		foreach (it; 0 .. currentNb) {
-		    send (spawned [it], cast (shared (Task)*) &node.task);
+		    send (spawned [it], cast (shared (Task)*) &node.task, currentId);
 		}		
 	    }
 	}
 
-	if (divided) {
-	    Feeder res;
-	    foreach (it ; 0 .. currentNb) {
-		send (spawned [it], true);
-		if (it == 0) res = cast(Feeder)*receiveOnly!(shared (Feeder)*);
-		else 
-		    res.concat (cast(Feeder)*receiveOnly!(shared (Feeder)*));
-		
-	    }
-	    fed = res;
-	    foreach (it; currentNb .. nb) {
-		send (spawned [it], false);
-	    }
-	} else {
-	    foreach (it ; 0 .. nb)
-		send (spawned [it], false);
-	}
+	foreach (it ; 0 .. nb)
+	    send (spawned [it], false);
+
+	foreach (it ; 0 .. nb)
+	    receiveOnly!bool;
 	
-	return fed;
+	return DataTable [currentId];
     }
+
     
-    ulong sendDivision (Task task, Tid [] spawned, Feeder data) {
-	auto divide = task.divide (spawned.length, data);
+    uint sendDivision (Task task, Tid [] spawned, ref uint id, Feeder _in) {	
+	/*auto data = task.distribute (_in);
+	writeln (data.id);
+	id = data.id;
+	auto divide = task.divide (spawned.length, Feeder (data.localData));
 	foreach (it ; 0 .. divide.length) {
-	    send (spawned [it], cast (shared (Feeder)*) &divide [it]);
+	    send (spawned [it], id, cast (shared (Feeder)*) &divide [it]);
 	}
-	return divide.length;
+	return cast (uint) divide.length;*/
+	assert (false);
     }
 
     static void onWork (Tid owner) {
 	bool end = false;
-	Feeder current;
+	Feeder [uint] current;
 	while (!end) {
 	    receive (
-		(shared (Task)* tsk) { // Async
+		(shared (Task)* tsk, uint id) { // Async
 		    auto task = (cast (Task) *tsk);
-		    current = task.run (current);
+		    current [id] = task.run (current [id]);
 		},
-		(shared (SyncTask)*tsk, bool) { // Sync
+		(shared (SyncTask)*tsk, uint id) { // Sync
 		    auto task = (cast (Task) *tsk);
-		    current = task.run (current);
-		    send (owner, cast (shared (Feeder)*) &current);
+		    current [id] = task.run (current [id]);
+		    send (owner, cast (shared (Feeder)*) &current [id]);
 		},
-		(shared (Feeder)* _in) {
-		    current = cast (Feeder) *_in;
+		(uint id, shared (Feeder)* _in) {
+		    current [id] = cast (Feeder) *_in;
 		},
-		(bool ret) {
+		(bool) {
+		    send (owner, true);
 		    end = true;
-		    if (ret)
-			send (owner, cast (shared(Feeder)*) &current);
 		}
 	    );
 	}
     }
-    
-    // static void onWork (Tid owner, shared (Node)* tsk, shared (Feeder)*data, shared (Feeder)* odata) {
-    // 	auto i = cast (Feeder) *data;
-    // 	auto o = cast (Feeder) *odata;
-    // 	auto task = cast (Task) tsk.task;
-    // 	task.run (i, o);
-    // 	send (owner, true);
-    // }
-        
+            
     mixin Singleton;
 }

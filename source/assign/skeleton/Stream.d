@@ -1,11 +1,12 @@
 module assign.skeleton.Stream;
 public import assign.skeleton.Task;
-public import assign.skeleton.StreamWorker;
-import std.concurrency;
+public import assign.skeleton.Repeat;
+public import assign.skeleton.Elem;
+public import assign.data.Data;
+import std.concurrency, std.traits;
 import std.container, std.array;
 import std.outbuffer, std.algorithm;
-import std.stdio, std.range;
-
+import std.stdio, rng = std.range;
 
 package class Node {
 
@@ -98,9 +99,9 @@ class StreamTree {
     OutBuffer toDot (OutBuffer buf = null) {
 
 	void toBuf (Node current, OutBuffer edges, OutBuffer labels) {
-	    labels.writefln ("\t%d [label=\"%s\"];",  current.task.id, typeid (current.task).toString);
+	    labels.writefln ("\t%d [label=\"%s\"];",  typeid (current.task).toHash, typeid (current.task).toString);
 	    foreach (it ; current.childs) {
-		edges.writefln ("\t%d -> %d", current.task.id, it.task.id);
+		edges.writefln ("\t%d -> %d", typeid (current.task).toHash, typeid (it.task).toHash);
 		toBuf (it, edges, labels);
 	    }	    
 	}
@@ -190,7 +191,7 @@ class Stream {
 	return this._stream;
     }
 
-    Feeder run (T) (T data) {
+    DistData run (T) (T data) {
 	import assign.skeleton.StreamExecutor;
 	return StreamExecutor.instance.execute (this, data);
     }
@@ -208,3 +209,43 @@ class Stream {
     }
 
 }
+
+/++
+ Squelette de réduction 
+ Applique un Elem d'arité 2, jusqu'a ce qu'il ne possède plus qu'une seule case.
+ Params:
+ fun = la fonction d'arité 2
++/
+template Reduce (alias fun) {
+    alias T = ReturnType!fun;
+
+    auto Reduce () {       
+	return new Repeat!T (
+	    new Elem!(fun) 	    
+	);
+    }
+}
+
+/++
+ Applique un elem d'arité 1
+ Se fait en une passe
+ Params:
+ fun = la fonction d'arité 1
+ +/
+template Map (alias fun) {
+    auto Map () {
+	return new Elem!(fun);	    
+    }
+}
+
+/++
+ Applique un IndexedElem sur une fonction d'arité 1 
+ Params:
+ fun = la fonction d'arité 1, qui prend en entrée un ulong.
+ +/
+template Generate (alias fun) {
+    auto Generate () {
+	return new IndexedElem!fun;	
+    }    
+}
+

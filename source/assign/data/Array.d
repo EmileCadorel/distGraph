@@ -2,91 +2,16 @@ module assign.data.Array;
 import std.typecons;
 import assign.launching;
 import assign.Job;
+public import assign.data.Data;
 import utils.Singleton;
 import stdA = std.container;
 import std.stdio;
 import std.conv;
 
-alias ArrayTable = ArrayTableS.instance;
-
-class ArrayTableS {
-
-    private DistArrayS [uint] _arrays;
-
-    /++
-     Ajoute un tableau à la liste des tableau connu
-     +/
-    void add (DistArrayS array) {
-	this._arrays [array.id] = (array);
-    }
-
-    /++
-     Fonction permettant de récupérer un tableau
-     Params:
-     id = l'identifiant du tableau
-     +/
-    DistArrayS opIndex (uint id) {
-	return this._arrays [id];
-    }
-
-    /++
-     Fonction permettant de récupérer un tableau directement casté au bon type.
-     Params:
-     id = l'identifiant du tableau
-     +/
-    T get (T : DistArrayS) (uint id) {
-	return cast (T) (this._arrays [id]);
-    }
-
-    /++
-     Libère la mémoire du tableau, et le supprime de la liste des tableaux
-     Params:
-     id = l'identifiant du tableau
-     +/
-    void free (uint id) {
-	if (auto it = id in this._arrays) {
-	    writeln ("Ici ", id);
-	    stdout.flush ();
-	    delete *it;
-	    this._arrays.remove (id);
-	}
-    }
-
-    /++
-     Retire le tableau de l'ensemble des tableaux sans le detruire
-     Params:
-     id = l'identifiant du tableau
-     +/
-    void remove (uint id) {
-	if (auto it = id in this._arrays) {
-	    this._arrays.remove (id);
-	}
-    }
-    
-    mixin ThreadSafeSingleton;
-}
-
-class DistArrayS {
-
-    /++
-     L'identifiant du tableau
-     +/
-    private uint _id;
-
-    this (uint id) {
-	this._id = id;
-    }
-
-    uint id () const @property {
-	return this._id;
-    }
-    
-}
-
 /++
  Classe qui permet d'allouer un tableau sur la ram de différentes machine
 +/
-class DistArray (T) : DistArrayS {
+class DistArray (T) : DistData {
 
     alias thisAllocJob = Job!(allocJob, allocRespJob);
     alias thisFreeJob = Job!(freeJob, freeRespJob);
@@ -112,11 +37,6 @@ class DistArray (T) : DistArrayS {
      Les données enregistré dans le tableau localement
      +/
     private T [] _local;    
-    
-    /++
-     Les derniers identifiants pour permettre que l'identifiant du tableau soit unique
-     +/
-    private static uint __lastId__ = 0;
     
     /++
      Allocation d'un nouveau tableau distribué
@@ -149,6 +69,7 @@ class DistArray (T) : DistArrayS {
 	}
 	
 	this._machineBegins = repartition;
+	DataTable.add (this);
     }
 
     /++
@@ -164,9 +85,17 @@ class DistArray (T) : DistArrayS {
 	this._length = length;
 	this._begin = localBegin;
 	this._local = new T[localLength];	
-	ArrayTable.add (this);
+	DataTable.add (this);
     }
 
+    private this (uint id, ulong localBegin, T [] data) {
+	super (id);
+	this._length = 0;
+	this._begin = localBegin;
+	this._local = data;
+	DataTable.add (this);
+    }
+    
     /++
      Job appeler lors de la récéption d'une demande d'allocation de tableau
      Params:
@@ -225,17 +154,8 @@ class DistArray (T) : DistArrayS {
 	return repartition;
     }
 
-    /++
-     Génération d'un nouvelle identifiant de tableau unique
-     Returns: le nouvelle identifiant
-     +/
-    private static uint computeId () {
-	__lastId__ ++;
-	return __lastId__ - 1;
-    }	
-
     static void indexJob (uint addr, uint id, ulong index) {
-	auto array = ArrayTable.get!(DistArray!T) (id);
+	auto array = DataTable.get!(DistArray!T) (id);
 	Server.jobResult (addr, new thisIndexJob, id, array._local [index - array._begin]);
     }
 
@@ -262,7 +182,7 @@ class DistArray (T) : DistArrayS {
     }
     
     static void indexAssignJob (uint addr, uint id, ulong index, T value) {
-	auto array = ArrayTable.get!(DistArray!T) (id);
+	auto array = DataTable.get!(DistArray!T) (id);
 	array._local [index - array._begin] = value;
 	Server.jobResult (addr, new thisIndexAssignJob, id);
     }
@@ -313,14 +233,13 @@ class DistArray (T) : DistArrayS {
 	return this._local.length;
     }
 
-
     /++
      Returns: les éléments stocker localement.
      +/
     T [] local () @property {
 	return this._local;
     }
-
+    
     /++
      Returns: la table de routage du tableau
      +/
@@ -337,7 +256,7 @@ class DistArray (T) : DistArrayS {
     static void freeJob (uint addr, uint id) {
 	writeln ("Free received ", id);
 	stdout.flush ();
-	ArrayTable.free (id);
+	DataTable.free (id);
 	Server.jobResult (addr, new thisFreeJob (), id);
     }
 
@@ -365,5 +284,15 @@ class DistArray (T) : DistArrayS {
 	}	
     }    
 
-}
+};
 
+/++
+ Cette fonction est a exécuter sur chaque machine.
+ Params:
+ id = l'identifiant du futur tableau
+ begin = le debut du tableau local
+ data = les données à mettre dans le tableau local.
++/
+T make (T : DistArray!U, U) (uint id, ulong begin, U [] data) {
+    return new DistArray!U (id, begin, data);
+}

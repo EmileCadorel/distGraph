@@ -56,7 +56,7 @@ template Reduce(alias fun) {
     }
     
     void reduceJob (uint addr, uint id) {
-	auto array = ArrayTable.get!(DistArray!T) (id);
+	auto array = DataTable.get!(DistArray!T) (id);
 	auto nb = SystemInfo.nbThreadsPerCpu ();
 
 	foreach (it ; 1 .. nb) {

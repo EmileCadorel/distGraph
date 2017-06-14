@@ -95,11 +95,11 @@ class ServerS {
     void start () {
 	auto file = File ("distGraph.findPort.sh", "w");
 	file.write (script_sh);
+	file.close ();
 	auto res = executeShell ("bash distGraph.findPort.sh");
 	if (res.status != 0) assert (false, res.status.to!string);
 	this._port = res.output.strip.to!ushort;	
 	executeShell ("rm distGraph.findPort.sh");
-	file.close ();
 	this._end = false;
 	
 	this._socket = new Socket (this._port);

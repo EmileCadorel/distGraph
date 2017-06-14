@@ -65,6 +65,7 @@ class AssignAdmin {
 		    }
 		} catch (Exception e) {
 		    writeln ("Le fichier host est corrompu ", e.msg);
+		    throw e;
 		}
 	    }
 	}	
