@@ -31,7 +31,7 @@ class StreamExecutor {
 		
 		Feeder [] res = new Feeder [currentNb];
 		foreach (it ; 0 .. currentNb) {
-		    res[it] = cast (Feeder) *receiveOnly!(shared (Feeder)*);		    
+		    res[it] = cast (Feeder) *receiveOnly!(shared (Feeder)*);   	   
 		}
 		
 		fed = task.finalize (res);
@@ -43,20 +43,25 @@ class StreamExecutor {
 	    }
 	}
 
-	Feeder res;
-	foreach (it ; 0 .. currentNb) {
-	    send (spawned [it], true);
-	    if (it == 0) res = cast(Feeder)*receiveOnly!(shared (Feeder)*);
-	    else 
-		res.concat (cast(Feeder)*receiveOnly!(shared (Feeder)*));
-	    
+	if (divided) {
+	    Feeder res;
+	    foreach (it ; 0 .. currentNb) {
+		send (spawned [it], true);
+		if (it == 0) res = cast(Feeder)*receiveOnly!(shared (Feeder)*);
+		else 
+		    res.concat (cast(Feeder)*receiveOnly!(shared (Feeder)*));
+		
+	    }
+	    fed = res;
+	    foreach (it; currentNb .. nb) {
+		send (spawned [it], false);
+	    }
+	} else {
+	    foreach (it ; 0 .. nb)
+		send (spawned [it], false);
 	}
 	
-	foreach (it; currentNb .. nb) {
-	    send (spawned [it], false);
-	}
-	
-	return res;
+	return fed;
     }
     
     ulong sendDivision (Task task, Tid [] spawned, Feeder data) {
@@ -74,7 +79,7 @@ class StreamExecutor {
 	    receive (
 		(shared (Task)* tsk) { // Async
 		    auto task = (cast (Task) *tsk);
-		    current = task.run (current);		    
+		    current = task.run (current);
 		},
 		(shared (SyncTask)*tsk, bool) { // Sync
 		    auto task = (cast (Task) *tsk);

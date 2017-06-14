@@ -84,7 +84,8 @@ class IndexedElem (alias FUN) : Task {
 	    len = _in.get! (ulong[]) [1];
 	} else {
 	    len = _in.get!ulong;
-	}	
+	}
+	
 	if (!_outF.isEmpty && _outF.length!(T) >= len) {
 	    _out = _outF.get!(T[])[0 .. len];
 	} else 
@@ -103,9 +104,9 @@ class IndexedElem (alias FUN) : Task {
 	
 	foreach (it ; 0 .. nb) {
 	    if (it < nb - 1) {
-		ret [it] = Feeder ([len / nb * it, len / nb * (it + 1)]);
+		ret [it] = Feeder ([len / nb * it, len / nb]);
 	    } else {
-		ret [it] = Feeder ([len / nb * it, len - (len / nb * it)]);
+		ret [it] = Feeder ([len / nb * it, len - (len / nb * (nb - 1))]);
 	    }
 	}       
 	
@@ -157,13 +158,14 @@ class Repeat(T) : SyncTask {
 	}
 	auto res = new T [total];
 	ulong i = 0;
+	
 	foreach (it ; _in) {
-	    foreach (_i; 0 .. it.length!(T)) {
-		res[i] = it.get!(T[])[_i];
-		i++;
-	    }
+	    res[i] = it.get!(T[])[0];
+	    i++;	    
 	}
-	return run (Feeder (res));
+
+	auto fed = run (Feeder (res));
+	return fed;
     }
 
     override Feeder output (Feeder) {
@@ -221,16 +223,16 @@ void main2 () {
     enum n = 1_000_000UL;
     auto begin = Clock.currTime;
     stream.pipe (
-	Generate! (
-	    (ulong i) => (1.0 / n) / ( 1.0 + (( i - 0.5 ) * (1.0 / n)) * (( i - 0.5 ) * (1.0 / n)))
-	),
-	Reduce!(
-	    (double a, double b) => a + b
-	),
-	Map !(
-	    (double a) => 4.0 * a
-	)
-    );
+		 Generate! (
+			    (ulong i) => (1.0 / n) / ( 1.0 + (( i - 0.5 ) * (1.0 / n)) * (( i - 0.5 ) * (1.0 / n)))
+			    ),
+		 Reduce!(
+			 (double a, double b) => a + b
+			 ),
+		 Map !(
+		       (double a) => a * 4.0
+		       )
+		 );
     
     auto res = stream.run (n).get!(double []);
     writeln (res, " Time : ", Clock.currTime - begin);
