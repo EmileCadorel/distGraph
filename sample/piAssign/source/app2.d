@@ -14,10 +14,16 @@ class Elem (alias FUN) : Task {
     alias T = ParameterTypeTuple!(fun) [0];
     alias TUPLE = Tuple!(ParameterTypeTuple!(fun));
 
-    override Feeder run (Feeder _in) {
+    override Feeder run (Feeder _in, Feeder _outF = Feeder.empty) {
 	T [__ARITY__] aux;
 	T [] data = _in.get!(T[]);
-	auto _out = new T [(data.length / __ARITY__) + (data.length % __ARITY__)];
+	T [] _out;
+	if (_outF.isEmpty && _outF.length!(T) >= (data.length / __ARITY__) + (data.length % __ARITY__)) {
+	    _out = _outF.get!(T[]) [0 .. (data.length / __ARITY__) + (data.length % __ARITY__)];
+	} else {
+	    _out = new T [(data.length / __ARITY__) + (data.length % __ARITY__)];
+	}
+	
 	uint i = 0;
 	
 	for (; (i + __ARITY__) <= data.length; i += __ARITY__) {
@@ -34,6 +40,12 @@ class Elem (alias FUN) : Task {
 	}
 	return Feeder (_out);
     }    
+
+    override Feeder output (Feeder _in) {
+	T [] data = _in.get!(T[]);
+	T [] _out = new T [(data.length / __ARITY__) + (data.length % __ARITY__)];
+	return Feeder (_out);
+    }
     
     override Feeder [] divide (ulong nb, Feeder _inF) {
 	auto _in = _inF.get!(T[]);
@@ -64,15 +76,20 @@ class IndexedElem (alias FUN) : Task {
     enum __ARITY__ = ParameterTypeTuple!(fun).length;
     alias T = ReturnType!fun;
             
-    override Feeder run (Feeder _in) {	
+    override Feeder run (Feeder _in, Feeder _outF = Feeder.empty) {	
 	ulong begin, len;
+	T[] _out;
 	if (_in.isArray) {
 	    begin = _in.get! (ulong[]) [0];
 	    len = _in.get! (ulong[]) [1];
 	} else {
 	    len = _in.get!ulong;
-	}
-	auto _out = new T [len];
+	}	
+	if (!_outF.isEmpty && _outF.length!(T) >= len) {
+	    _out = _outF.get!(T[])[0 .. len];
+	} else 
+	    _out = new T [len];
+	
 	uint i = 0;
 	for (; (i + 1) <= len; i += 1) {
 	    _out [i] = fun (i + begin);
@@ -95,6 +112,17 @@ class IndexedElem (alias FUN) : Task {
 	return ret;
     }
 
+    override Feeder output (Feeder _in) {
+	ulong len;
+	if (_in.isArray) {
+	    len = _in.get! (ulong[]) [1];
+	} else {
+	    len = _in.get!ulong;
+	}
+	
+	return Feeder (new T [len]);	
+    }
+    
     override Task clone () {
 	auto ret = new IndexedElem!fun;
 	return ret;
@@ -113,10 +141,11 @@ class Repeat(T) : SyncTask {
 	this._task = task;
     }
 
-    override Feeder run (Feeder _in) {
-	auto _out = _in;
-	while (_out.length!(T) > 1) {	    
-	    _out = this._task.run (_out);
+    override Feeder run (Feeder _in, Feeder _outF = Feeder.empty) {
+	auto _out = this._task.output (_in);
+	while (_in.length!(T) > 1) {	    
+	    _out = this._task.run (_in, _out);
+	    _in = _out;
 	}
 	return _out;
     }
@@ -135,6 +164,10 @@ class Repeat(T) : SyncTask {
 	    }
 	}
 	return run (Feeder (res));
+    }
+
+    override Feeder output (Feeder) {
+	return Feeder (new T[1]);
     }
     
     override Feeder [] divide (ulong nb, Feeder _in) {

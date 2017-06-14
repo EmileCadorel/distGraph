@@ -5,8 +5,7 @@ struct Feeder {
 
     private ulong a;
     private void * ax;
-    private ulong _id;
-    
+
     this (T : U [], U) (T a) @nogc {
 	this.ax = cast (byte*) a.ptr;
 	this.a = a.length * U.sizeof;
@@ -15,7 +14,12 @@ struct Feeder {
     this (T) (T a) @nogc {
 	*(cast (T*) &this.a) = a;
     }
-        
+
+    this (ulong a, void * ax) {
+	this.a = a;
+	this.ax = ax;
+    }
+    
     T get (T) () @nogc {	
 	return *(cast (T*) &this.a);
     }
@@ -37,6 +41,14 @@ struct Feeder {
 	return this.ax !is null;
     }
 
+    static Feeder empty () {
+	return Feeder (0, null);
+    }
+
+    bool isEmpty () {
+	return this.ax is null && this.a == 0;
+    }
+    
     void concat (Feeder other) {
 	if (this.isArray && other.isArray) {
 	    auto begin = this.get!(ubyte[]);
@@ -52,9 +64,6 @@ struct Feeder {
 	}
     }
     
-    ref ulong id () {
-	return this._id;
-    }    
 }
 
 
@@ -74,7 +83,7 @@ class Task {
      i = l'entrée du flux
      Returns: la sortie du flux
      +/
-    abstract Feeder run (Feeder i) ;
+    abstract Feeder run (Feeder i, Feeder o = Feeder.empty) ;
         
     /++
      Divise un ensemble de données en vue d'une parallélisation
@@ -84,6 +93,15 @@ class Task {
      Returns: un tableau de division (assert (return.length == nb)).
      +/
     abstract Feeder [] divide (ulong nb, Feeder i) ;
+
+    /++
+     Genere le tableau de sortie qui pourra recueillir le resultat du calcul 
+     Ne produit aucun calcul
+     Params:
+     _in = l'entrée qui pourra être envoyer à run dans le futur
+     Returns: la sortie avec le bonne taille alloué
+     +/
+    abstract Feeder output (Feeder _in); 
     
     /++
      Clone la tâche sans ses attributs (pour la sérialisation)
