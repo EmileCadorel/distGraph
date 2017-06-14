@@ -7,7 +7,7 @@ import assign.admin;
 import std.datetime;
 import std.conv;
 import utils.Options;
-import app2 = app2;
+
 
 enum n = 1_000_000;
 
@@ -33,10 +33,5 @@ void pi (string [] args) {
 }
 
 void main (string [] args) {
-    auto adm = new AssignAdmin (args);
-    
-    auto grp = Loader.load (Options ["-i"]);
-    toFile (grp.toDot ().toString, "out.dot");
-
-    delete adm;
+    pi (args);
 }

@@ -65,6 +65,7 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
     
     alias thisRegJob = Job!(registerJob, endJob);
     alias thisAddJob = Job!(addEdgeJob, endJob);
+    alias thisToDotJob = Job!(toDotJob, toDotEnd);
     
     static void registerJob (uint addr, uint id) {
 	DataTable.add (new DistGraph!(VD, ED) (id));
@@ -121,6 +122,9 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
 	dg._vertices [e.dst.id] = new VertexD (e.dst);
     }
 
+    ref Array!ED localEdges () {
+	return this._edges;
+    }
     
     void addEdge (Edge edge) {
 	auto info = computePercents (this._nbEdges);
@@ -148,6 +152,19 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
 	this._nbEdges [Server.machineId] ++;
     }        
 
+    static void toDotJob (uint addr, uint id) {
+	auto grp = DataTable.get!(DistGraph!(VD, ED)) (id);
+	auto buf = new OutBuffer;
+	foreach (it ; grp._edges) {
+	    buf.writefln ("%d -> %d", it.src, it.dst);
+	}
+	Server.jobResult (addr, new thisToDotJob, id, buf.toString);
+    }
+
+    static void toDotEnd (uint addr, uint id, string msg) {
+	Server.sendMsg (msg);
+    }
+    
     /++
      Ecris le graphe au format Dot dans un buffer
      Params:
@@ -161,7 +178,21 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
 	foreach (it ; this._edges) {
 	    buf.writefln ("%d -> %d", it.src, it.dst);
 	}
-	buf.writefln ("}");
+
+	auto machineId = Server.machineId;
+	foreach (key, it ; this._sizes) {
+	    if (key != machineId)
+		Server.jobRequest (key, new thisToDotJob, this._id);
+	}
+
+	foreach (key, it; this._sizes) {
+	    if (key != machineId) {
+		auto res = Server.waitMsg!(string);
+		buf.writef ("%s", res);
+	    }
+	}
+	
+	buf.writefln ("}");	
 	return buf;
     }
 
