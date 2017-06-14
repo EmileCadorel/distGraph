@@ -22,19 +22,20 @@ template FilterEdgesVE (V, E, alias fun) {
     
     alias thisJob = Job!(filterJob, endJob);    
     
-    Array!E filter (Array!E _array) {
-	Array!E res;
-	foreach (value ; _array) {
-	    if (fun (value))
-		res.insertBack (value);
+    void filter (ref DistGraph!(V, E) _out, DistGraph!(V, E) _in) {
+	foreach (value ; _in.localEdges) {
+	    if (fun (value)) {
+		_out.localEdges.insertBack (value);
+		_out.localVertices [value.src] = _in.localVertices [value.src];
+		_out.localVertices [value.dst] = _in.localVertices [value.dst];
+	    }
 	}
-	return res;
     }
     
     void filterJob (uint addr, uint idFrom, uint idTo) {
 	auto grpFrom = DataTable.get!(DistGraph!(V, E)) (idFrom);
 	auto grpTo = DataTable.get!(DistGraph!(V, E)) (idTo);
-	grpTo.localEdges = filter (grpFrom.localEdges);
+	filter (grpTo, grpFrom);
 	Server.jobResult (addr, new thisJob, idTo);
     }    
     
@@ -43,11 +44,11 @@ template FilterEdgesVE (V, E, alias fun) {
     }
             
     DistGraph! (V, E) FilterEdgesVE (T : DistGraph!(V, E)) (T a) {		
-	auto aux = new DistGraph!(V, E) ();
+	auto aux = new DistGraph!(V, E) ();       
 	foreach (it ; Server.connected) 
 	    Server.jobRequest (it, new thisJob, a.id, aux.id);
 
-	aux.localEdges = filter (a.localEdges);
+	filter (aux, a);
 	foreach (it ; Server.connected) {
 	    Server.waitMsg!(uint);
 	}

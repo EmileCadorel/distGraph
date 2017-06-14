@@ -3,7 +3,7 @@ import assign.data.Data;
 import assign.launching;
 import assign.Job;
 import std.outbuffer;
-import std.container, std.stdio;
+import std.container, std.stdio, std.conv;
 
 struct Vertex {
     ulong id;
@@ -19,6 +19,10 @@ class VertexD {
     
     private ulong _id;
 
+    this (ulong id) {
+	this._id = id;
+    }
+    
     this (Vertex v) {
 	this._id = v.id;
     }
@@ -115,46 +119,64 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
 
     static void addEdgeJob (uint addr, uint id, Edge e) {
 	import std.conv;
-	writeln ("Nouvelle arete ", e.to!string);
-	auto dg = DataTable.get!(DistGraph!(VD, ED)) (id);
-	dg._edges.insertBack (new EdgeD (e));
-	dg._vertices [e.src.id] = new VertexD (e.src);
-	dg._vertices [e.dst.id] = new VertexD (e.dst);
+	static if (is (VD == VertexD)) {
+		auto dg = DataTable.get!(DistGraph!(VD, ED)) (id);
+		dg._edges.insertBack (new EdgeD (e));
+		dg._vertices [e.src.id] = new VertexD (e.src);
+		dg._vertices [e.dst.id] = new VertexD (e.dst);
+	} else {
+	    assert (false);
+	}
     }
 
+    
+    ref VD [ulong] localVertices () {
+	return this._vertices;
+    }
+    
     ref Array!ED localEdges () {
 	return this._edges;
     }
     
     void addEdge (Edge edge) {
-	auto info = computePercents (this._nbEdges);
-	foreach (key, value ; info) {
-	    if (value < this._sizes [key]) {
-		if (key == Server.machineId) {
-		    this._edges.insertBack (new EdgeD (edge));
-		    this._vertices [edge.src.id] = new VertexD (edge.src);
-		    this._vertices [edge.dst.id] = new VertexD (edge.dst);
-		    this._nbEdges [key] ++;
-		    return ;
-		} else {
-		    this._nbEdges [key] ++;
-		    Server.jobRequest (key, new thisAddJob, this._id, edge);
-		    return ;
+	static if (is (VD == VertexD)) {
+	    auto info = computePercents (this._nbEdges);
+	    foreach (key, value ; info) {
+		if (value < this._sizes [key]) {
+		    if (key == Server.machineId) {
+			this._edges.insertBack (new EdgeD (edge));
+			this._vertices [edge.src.id] = new VertexD (edge.src);
+			this._vertices [edge.dst.id] = new VertexD (edge.dst);
+			this._nbEdges [key] ++;
+			return ;
+		    } else {
+			this._nbEdges [key] ++;
+			Server.jobRequest (key, new thisAddJob, this._id, edge);
+			return ;
+		    }
 		}
 	    }
-	}
 	
-	// On a ajouter à personne, le graphe est equilibré
-	// Du coup on l'ajoute à la partition locale
-	this._edges.insertBack (new EdgeD (edge));
-	this._vertices [edge.src.id] = new VertexD (edge.src);
-	this._vertices [edge.dst.id] = new VertexD (edge.dst);
-	this._nbEdges [Server.machineId] ++;
+	
+	    // On a ajouter à personne, le graphe est equilibré
+	    // Du coup on l'ajoute à la partition locale
+	    this._edges.insertBack (new EdgeD (edge));
+	    this._vertices [edge.src.id] = new VertexD (edge.src);
+	    this._vertices [edge.dst.id] = new VertexD (edge.dst);
+	    this._nbEdges [Server.machineId] ++;
+	} else {
+	    assert (false);
+	}
     }        
 
     static void toDotJob (uint addr, uint id) {
 	auto grp = DataTable.get!(DistGraph!(VD, ED)) (id);
 	auto buf = new OutBuffer;
+	
+	foreach (key, value ; grp._vertices) {
+	    buf.writefln ("%d [label=\"%s\"]", key, value.tupleof.to!string);
+	}
+	
 	foreach (it ; grp._edges) {
 	    buf.writefln ("%d -> %d", it.src, it.dst);
 	}
@@ -175,6 +197,11 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
 	if (buf is null) buf = new OutBuffer ();
 
 	buf.writefln ("digraph G {");
+
+	foreach (key, value ; this._vertices) {
+	    buf.writefln ("%d [label=\"%s\"]", key, value.tupleof.to!string);
+	}
+	
 	foreach (it ; this._edges) {
 	    buf.writefln ("%d -> %d", it.src, it.dst);
 	}
