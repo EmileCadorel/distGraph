@@ -85,7 +85,7 @@ class IndexedElem (alias FUN) : Task {
 	} else {
 	    len = _in.get!ulong;
 	}
-	
+
 	if (!_outF.isEmpty && _outF.length!(T) >= len) {
 	    _out = _outF.get!(T[])[0 .. len];
 	} else 
@@ -95,6 +95,7 @@ class IndexedElem (alias FUN) : Task {
 	for (; (i + 1) <= len; i += 1) {
 	    _out [i] = fun (i + begin);
 	}
+	
 	return Feeder (_out);
     }    
 
@@ -143,11 +144,14 @@ class Repeat(T) : SyncTask {
     }
 
     override Feeder run (Feeder _in, Feeder _outF = Feeder.empty) {
+	auto begin = Clock.currTime;
 	auto _out = this._task.output (_in);
 	while (_in.length!(T) > 1) {	    
 	    _out = this._task.run (_in, _out);
 	    _in = _out;
 	}
+	auto end = Clock.currTime;
+	writeln ("Temps repeat ", end - begin);
 	return _out;
     }
 
@@ -223,16 +227,13 @@ void main2 () {
     enum n = 1_000_000UL;
     auto begin = Clock.currTime;
     stream.pipe (
-		 Generate! (
-			    (ulong i) => (1.0 / n) / ( 1.0 + (( i - 0.5 ) * (1.0 / n)) * (( i - 0.5 ) * (1.0 / n)))
-			    ),
-		 Reduce!(
-			 (double a, double b) => a + b
-			 ),
-		 Map !(
-		       (double a) => a * 4.0
-		       )
-		 );
+	Generate! (
+	    (ulong i) => (1.0 / n) / ( 1.0 + (( i - 0.5 ) * (1.0 / n)) * (( i - 0.5 ) * (1.0 / n)))
+	),
+	Reduce!(
+	    (double a, double b) => a + b
+	)
+    );
     
     auto res = stream.run (n).get!(double []);
     writeln (res, " Time : ", Clock.currTime - begin);

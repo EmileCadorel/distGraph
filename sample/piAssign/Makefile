@@ -26,3 +26,10 @@ release2:
 
 force:
 	dub build --parallel --force
+
+
+profile:
+	dub build --build=profile
+
+profile-gc:
+	dub build --build=profile-gc
