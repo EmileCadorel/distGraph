@@ -1,34 +1,35 @@
 import std.stdio;
 import assign.admin;
 import assign.graph.loader;
-import assign.graph.MapVertices;
+import assign.graph.JoinVertices;
+import assign.graph.MapReduceTriplets;
 import assign.graph.DistGraph;
 import std.datetime;
 import utils.Options;
 
-class VertexDist : VertexD {
+class VertexDeg : VertexD {
 
-    float dist;
-    this (ulong id, float dist) {
+    int deg;
+    this (ulong id, int deg) {
 	super (id);
-	this.dist = dist;
+	this.deg = deg;
     }
+    
 }
-
 
 void main (string [] args) {
     auto adm = new AssignAdmin (args);
 
     auto grp = Loader.load (Options ["-i"]);
-    auto grp2 = grp.MapVertices! (
-	(VertexD vd) {
-	    if (vd.id == 7) 
-		return new VertexDist (vd.id, 0.0f);
-	    else
-		return new VertexDist (vd.id, float.infinity);
-	}
+    auto res = grp.MapReduceTriplets! (
+	(VertexD src, VertexD dst, EdgeD edge) => iterator (src.id, 1),
+	(int a, int b) => a + b
     );
-    
+
+    auto grp2 = grp.JoinVertices!(
+	(VertexD v, int i) => new VertexDeg (v.id, i)
+    ) (res);
+        
     toFile (grp2.toDot.toString, "out.dot");
     delete adm;
 }

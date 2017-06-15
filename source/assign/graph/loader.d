@@ -69,7 +69,7 @@ class LoaderS {
 	    //spawned.send (edge);
 	    dg.addEdge (edge);	    
 	}
-
+	writeln ("");
 	/*send (spawned, true);	
 	  receiveOnly!(bool);	*/
 	

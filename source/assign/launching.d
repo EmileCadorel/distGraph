@@ -222,7 +222,7 @@ class ServerS {
 	return this._connected;
     }
 
-    /++
+    /++x
      La machine est elle connecté à une machine id
      Params:
      id = l'identifiant de la machine exterieur
@@ -304,7 +304,7 @@ class ServerS {
     /++
      Envoi un message au main thread pour qu'il arrête d'attendre
      +/
-    void sendMsg (T) (T msg) {
+    void sendMsg (T...) (T msg) {
 	send (this._global, msg);
     }
     
@@ -319,9 +319,17 @@ class ServerS {
      Le thread attend un message     
      +/
     T waitMsg (T) () {
-	auto b = receiveOnly!T ();
-	return b;
+	auto b = receiveOnly!(T) ();
+	return cast (T) b;
     }
+
+    /++
+     Le thread attend un message     
+     +/
+    void waitMsg (T...) (ref T res) {
+	res = receiveOnly!(T) ();
+    }
+
     
     /++
      Envoie un message du protocol à toutes les machines connecté au serveur.
