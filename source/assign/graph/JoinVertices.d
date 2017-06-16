@@ -29,7 +29,12 @@ template JoinVerticesS (VD, ED, alias fun) {
 	    auto res = key in msgs;
 	    if (res !is null)
 		_out [key] = fun (value, *res);
-	    else _out [key] = fun (value, Msg.init);
+	    else {
+		static if (is (VD == VO))
+		    _out [key] = value;
+		else 
+		    _out [key] = fun (value, Msg.init);
+	    }
 	}
 	return _out;
     }
@@ -39,7 +44,7 @@ template JoinVerticesS (VD, ED, alias fun) {
 	auto grpTo = DataTable.get!(DistGraph!(VO, ED)) (idTo);
 	auto assoc = DataTable.get!(DArray) (assocId);	
 	grpTo.localVertices = join (grpFrom.localVertices, assoc.local);
-	grpTo.localEdges = grpFrom.localEdges;
+	grpTo.localEdges = grpFrom.localEdges;	
 	Server.jobResult (addr, new thisJob, idTo);
     }
 
@@ -55,6 +60,7 @@ template JoinVerticesS (VD, ED, alias fun) {
 	
 	grpTo.localVertices = join (gp.localVertices, values.local);
 	grpTo.localEdges = gp.localEdges;
+	grpTo.cuts = gp.cuts;
 	
 	foreach (it ; Server.connected) {
 	    Server.waitMsg!(uint);

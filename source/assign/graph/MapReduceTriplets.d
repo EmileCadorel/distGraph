@@ -135,21 +135,27 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
     
     void informLocal (uint other, ulong [] ids, ref DArray assoc) {
 	KV [] total = new KV [ids.length];
+	auto realLen = 0;
 	foreach (it ; 0 .. ids.length) {
-	    if (auto _loc = ids [it] in assoc.local)
-		total [it] = KV (ids [it], *_loc);	    
+	    if (auto _loc = ids [it] in assoc.local) {
+		total [realLen] = KV (ids [it], *_loc);
+		realLen ++;
+	    }
 	}
-	Server.jobRequest (other, new thisSetJob, assoc.id, total);
+	Server.jobRequest (other, new thisSetJob, assoc.id, total [0 .. realLen]);
     }
 
     void informJob (uint addr, uint aid, ulong [] ids) {
 	auto assoc = DataTable.get!(DArray) (aid);
 	KV [] total = new KV [ids.length];
+	auto realLen = 0;
 	foreach (it ; 0 .. ids.length) {
-	    if (auto _loc = ids [it] in assoc.local)
-		total [it] = KV (ids [it], *_loc);	    
+	    if (auto _loc = ids [it] in assoc.local) {
+		total [realLen] = KV (ids [it], *_loc);
+		realLen ++;
+	    }
 	}
-	Server.jobResult (addr, new thisInformJob, aid, total);
+	Server.jobResult (addr, new thisInformJob, aid, total [0 .. realLen]);
     }
 
     void informJobEnd (uint addr, uint aid, KV [] gets) {

@@ -30,6 +30,7 @@ template FilterEdgesVE (V, E, alias fun) {
 		_out.localVertices [value.dst] = _in.localVertices [value.dst];
 	    }
 	}
+	_out.cuts = _in.cuts;
     }
     
     void filterJob (uint addr, uint idFrom, uint idTo) {

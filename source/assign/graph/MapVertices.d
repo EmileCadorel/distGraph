@@ -36,7 +36,7 @@ template MapVerticesVE (V, E, alias fun) {
 	auto grpFrom = DataTable.get!(DistGraph!(V, E)) (idFrom);
 	auto grpTo = DataTable.get!(DistGraph!(VO, E)) (idTo);
 	grpTo.localVertices = map (grpFrom.localVertices);
-	grpTo.localEdges = grpFrom.localEdges;
+	grpTo.localEdges = grpFrom.localEdges;	
 	Server.jobResult (addr, new thisJob, idTo);
     }
 
@@ -51,7 +51,8 @@ template MapVerticesVE (V, E, alias fun) {
 	}
 	aux.localEdges = a.localEdges;
 	aux.localVertices = map (a.localVertices);
-
+	aux.cuts = a.cuts;
+	
 	foreach (it ; Server.connected) {
 	    Server.waitMsg!(uint);
 	}

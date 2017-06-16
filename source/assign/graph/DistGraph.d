@@ -192,7 +192,7 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
     /++
      Returns: la route des sommets coupé par la distribution sur l'environnement     
      +/
-    auto cuts () {
+    ref auto cuts () {
 	return this._finalCuts;
     }
     
@@ -221,7 +221,7 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
 	auto buf = new OutBuffer;
 	
 	foreach (key, value ; grp._vertices) {
-	    buf.writefln ("%d [label=\"%s\"]", key, value.tupleof.to!string);
+	    buf.writefln ("%d [label=\"%d:%s\"]", key, key, value.tupleof.to!string);
 	}
 	
 	foreach (it ; grp._edges) {
@@ -246,7 +246,7 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
 	buf.writefln ("digraph G {");
 
 	foreach (key, value ; this._vertices) {
-	    buf.writefln ("%d [label=\"%s\"]", key, value.tupleof.to!string);
+	    buf.writefln ("%d [label=\"%d:%s\"]", key, key, value.tupleof.to!string);
 	}
 	
 	foreach (it ; this._edges) {
@@ -255,8 +255,9 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
 
 	auto machineId = Server.machineId;
 	foreach (key, it ; this._sizes) {
-	    if (key != machineId)
+	    if (key != machineId) {	        	       
 		Server.jobRequest (key, new thisToDotJob, this._id);
+	    }
 	}
 
 	foreach (key, it; this._sizes) {

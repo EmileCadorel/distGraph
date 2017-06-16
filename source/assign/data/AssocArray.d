@@ -19,7 +19,9 @@ class DistAssocArray (K, V) : DistData {
     alias thisRegJob = Job!(regJob, regJobEnd);
     alias thisIndexJob = Job!(indexJob, indexJobEnd);
     alias thisAssignJob = Job!(assignJob, assignJobEnd);
-
+    alias thisGetLength = Job!(getLenJob, getLenJobEnd);
+    alias thisStringJob = Job!(toStringJob, toStringJobEnd);
+    
     
     /++ Les données enregistré dans le tableau assoc local +/
     private V [K] _local;
@@ -137,6 +139,30 @@ class DistAssocArray (K, V) : DistData {
     ref V [K] local () {
 	return this._local;
     }
+
+    static void getLenJob (uint addr, uint id) {
+	auto assoc = DataTable.get!(DistAssocArray!(K, V)) (id);
+	Server.jobResult (addr, new thisGetLength, id, assoc.local.length);
+    }
+
+    static void getLenJobEnd (uint addr, uint id, ulong len) {
+	Server.sendMsg (len);
+    }
+    
+    /++
+     Returns: la taille totale du tableau
+     +/
+    const (ulong) length () {
+	auto localLen = this._local.length;
+	foreach (it ; Server.connected) {
+	    Server.jobRequest (it, new thisGetLength, this._id);	    
+	}
+
+	foreach (it ; Server.connected) {
+	    localLen += Server.waitMsg!(ulong);
+	}
+	return localLen;
+    }
     
     /++
      Place la valeur à l'index dans les informations local à la machine.
@@ -148,5 +174,30 @@ class DistAssocArray (K, V) : DistData {
 	this._local [index] = value;
     }
         
-     
+    static void toStringJob (uint addr, uint id) {
+	import std.conv;
+	auto assoc = DataTable.get!(DistAssocArray!(K, V)) (id);
+	Server.jobResult (addr, new thisStringJob, id, assoc.local.to!string);
+    }
+
+    static void toStringJobEnd (uint addr, uint id, string val) {
+	Server.sendMsg (val);
+    }
+
+    
+    override string toString () {
+	import std.outbuffer, std.conv;
+	auto buf = new OutBuffer ();
+	buf.writefln ("{\n\t%s", this._local.to!string);
+	foreach (it ; Server.connected) {
+	    Server.jobRequest (it, new thisStringJob, this._id);
+	}
+	foreach (it ; Server.connected) {
+	    buf.writefln ("\t%s", Server.waitMsg!(string));
+	}
+	buf.write ("}\n");
+	return buf.toString;	
+    }
+    
+    
 }
