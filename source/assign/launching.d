@@ -269,7 +269,7 @@ class ServerS {
      +/
     void jobRequest (J : JobS, TArgs...) (uint machine, J job, uint jbId, TArgs params) {
 	auto sock = this._clientOuts [machine];
-	job.send (sock, jbId, params);	
+	job.send (sock, jbId, params);
     }
 
     /++
@@ -306,6 +306,10 @@ class ServerS {
      +/
     void sendMsg (T...) (T msg) {
 	send (this._global, msg);
+    }
+
+    void sendMsgToTh (T ...) (Tid id, T msg) {
+	send (id, msg);
     }
     
     /++

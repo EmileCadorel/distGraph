@@ -2,7 +2,7 @@ module assign.graph.DistGraph;
 import assign.data.Data;
 import assign.launching;
 import assign.Job;
-import std.outbuffer;
+import std.outbuffer, std.typecons, std.array;
 import std.container, std.stdio, std.conv;
 
 struct Vertex {
@@ -53,8 +53,6 @@ class EdgeD {
        
 }
 
-
-
 class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
     
     private VD [ulong] _vertices;
@@ -66,6 +64,14 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
 
     /// la pourcentage idéale sur chacune des machines.
     private double [uint] _sizes;
+
+    // La liste des sommets coupé entre différentes machines.
+    // Cette liste est temporaire et supprimé lors du finalize.
+    private RedBlackTree!(uint) [ulong] _cuts;
+
+    // Liste final de la table des sommets coupé
+    // Chaque clé est une paire de machine.
+    private ulong[] [Tuple!(uint, uint)] _finalCuts;
     
     alias thisRegJob = Job!(registerJob, endJob);
     alias thisAddJob = Job!(addEdgeJob, endJob);
@@ -128,7 +134,6 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
 	    assert (false);
 	}
     }
-
     
     ref VD [ulong] localVertices () {
 	return this._vertices;
@@ -136,6 +141,15 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
     
     ref Array!ED localEdges () {
 	return this._edges;
+    }
+
+    private void updateRoutes (ulong id, uint machine) {
+	auto it = id in this._cuts;
+	if (it !is null) {
+	    it.insert (machine);
+	} else {
+	    this._cuts [id] = redBlackTree (machine);
+	}
     }
     
     void addEdge (Edge edge) {
@@ -148,10 +162,14 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
 			this._vertices [edge.src.id] = new VertexD (edge.src);
 			this._vertices [edge.dst.id] = new VertexD (edge.dst);
 			this._nbEdges [key] ++;
+			this.updateRoutes (edge.src.id, Server.machineId);
+			this.updateRoutes (edge.dst.id, Server.machineId);
 			return ;
 		    } else {
 			this._nbEdges [key] ++;
 			Server.jobRequest (key, new thisAddJob, this._id, edge);
+			this.updateRoutes (edge.dst.id, key);
+			this.updateRoutes (edge.src.id, key);
 			return ;
 		    }
 		}
@@ -164,10 +182,39 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
 	    this._vertices [edge.src.id] = new VertexD (edge.src);
 	    this._vertices [edge.dst.id] = new VertexD (edge.dst);
 	    this._nbEdges [Server.machineId] ++;
+	    this.updateRoutes (edge.dst.id, Server.machineId);
+	    this.updateRoutes (edge.src.id, Server.machineId);
 	} else {
 	    assert (false);
 	}
-    }        
+    }
+
+    /++
+     Returns: la route des sommets coupé par la distribution sur l'environnement     
+     +/
+    auto cuts () {
+	return this._finalCuts;
+    }
+    
+    /++
+     Supprime toutes les informations inutile stocké dans le graphe.
+     TODO (cette fonction est beaucoup trop lourde, trouver une autre solution).
+     +/
+    void finalize () {
+	foreach (key ; this._cuts.keys ()) {
+	    auto current = this._cuts [key].array ();
+	    if (current.length != 1) {
+		foreach (it ; 1 .. current.length) {
+		    auto tu = tuple (current [0], current [it]);
+		    auto inside = tu in this._finalCuts;
+		    if (inside) *inside ~= [key];
+		    else 
+			this._finalCuts [tu] = [key];
+		}		    		
+	    }	    
+	}
+	this._cuts = null;
+    }
 
     static void toDotJob (uint addr, uint id) {
 	auto grp = DataTable.get!(DistGraph!(VD, ED)) (id);

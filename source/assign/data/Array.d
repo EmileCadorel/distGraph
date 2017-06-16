@@ -6,10 +6,10 @@ public import assign.data.Data;
 import utils.Singleton;
 import stdA = std.container;
 import std.stdio;
-import std.conv;
+import std.conv, core.exception;
 
 /++
- Classe qui permet d'allouer un tableau sur la ram de différentes machine
+ Classe qui permet d'allouer un tableau sur la ram de différentes machines
 +/
 class DistArray (T) : DistData {
 
@@ -177,7 +177,7 @@ class DistArray (T) : DistData {
 		    return Server.waitMsg!(T) ();
 		}
 	    }
-	    assert (false, "Sortie de tableau, " ~ to!string (index));	    
+	    throw new RangeError ();
 	}
     }
     
@@ -208,7 +208,7 @@ class DistArray (T) : DistData {
 		    return;
 		}
 	    }
-	    assert (false, "Sortie de tableau, " ~ to!string (index));
+	    throw new RangeError ();
 	}
     }
     

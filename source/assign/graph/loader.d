@@ -66,13 +66,10 @@ class LoaderS {
 	auto i = 0;
 	while (next (file, edge)) {
 	    // En parallèle ça plante, à debugger
-	    //spawned.send (edge);
 	    dg.addEdge (edge);	    
 	}
 	writeln ("");
-	/*send (spawned, true);	
-	  receiveOnly!(bool);	*/
-	
+	dg.finalize ();
 	return dg;
     }
 

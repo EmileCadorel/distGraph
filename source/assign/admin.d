@@ -75,9 +75,10 @@ class AssignAdmin {
 	Server.join ();
     }
 
-    ~this () {
+    void end () {
 	Server.kill ();
-    }    
+    }
+
 }
 
 
