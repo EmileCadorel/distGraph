@@ -24,29 +24,23 @@ void main (string [] args) {
     auto begin = Loader.load (Options ["-i"]);
     
     auto grp = begin.MapVertices! (
-	(VertexD v) {
-	    if (v.id == 0) return new DstVertex (v.id, 0.0f);
-	    else return new DstVertex (v.id, float.infinity);	    
-	}
+    	(VertexD v) {
+    	    if (v.id == 0) return new DstVertex (v.id, 0.0f);
+    	    else return new DstVertex (v.id, float.infinity);	    
+    	}
     );
-    
-    auto grp2 = begin.FilterEdges! (
-	(EdgeD e) => e.src % 2 == 0	
-    );
-    
-    /*
     
     auto grp2 = grp.Pregel! (
-	(DstVertex v, float nDist) {
-	    return new DstVertex (v.id, min (v.dst, nDist));
-	},
-	(DstVertex src, DstVertex dst, EdgeD edge) {
-	    if (src.dst + 1 < dst.dst) return iterator (dst.id, src.dst + 1);
-	    else return Iterator!(float).empty;
-	}, 
-	(float a, float b) => min (a, b)
+    	(DstVertex v, float nDist) {
+    	    return new DstVertex (v.id, min (v.dst, nDist));
+    	},
+    	(DstVertex src, DstVertex dst, EdgeD edge) {
+    	    if (src.dst + 1 < dst.dst) return iterator (dst.id, src.dst + 1);
+    	    else return Iterator!(float).empty;
+    	}, 
+    	(float a, float b) => min (a, b)
     );
-    */	
+
     auto str = grp2.toDot.toString;
     toFile (str, "out.dot");    
 

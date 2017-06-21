@@ -6,7 +6,7 @@ import assign.data.AssocArray;
 import assign.launching;
 import std.traits;
 import std.container;
-import std.stdio;
+import std.stdio, core.thread;
 
 struct Iterator (Msg) {
     ulong vid;
@@ -43,13 +43,54 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
     alias thisSyncJob = Job!(syncJob, syncJobEnd);
     
     alias DArray = DistAssocArray!(ulong, Msg);
+    alias FRAG = DistGraphFragment!(VD, ED);
     
     struct KV {
 	ulong key;
 	Msg value;
     }
+    
+    class MapThread : Thread {
+	private DArray _assoc;
+	private FRAG * _gp;
 
-    void mapJob (uint addr, uint gid, uint aid) {
+	this (FRAG * gp, DArray assoc) {
+	    super (&this.run);
+	    this._assoc = assoc;
+	    this._gp = gp;
+	}
+
+	void run () {
+	    foreach (it ; this._gp.localEdges) {
+		auto val = MapFun (this._gp.localVertices [it.src], this._gp.localVertices [it.dst], it);
+		if (val.vid == ulong.max) continue;
+		synchronized {
+		    if (auto inside = val.vid in this._assoc.local) {
+			*inside = ReduceFun (*inside, val.msg);
+		    } else {
+			this._assoc.local [val.vid] = val.msg;
+		    }
+		}
+	    }
+	}
+	
+    }
+
+    void executeMap (T : DistGraph!(VD, ED)) (T gp, ref DArray assoc) {
+	auto res = new Thread [gp.locals.length];
+	foreach (it ; 0 .. gp.locals.length) {
+	    res [it] = new MapThread (
+		& gp.locals [it],
+		assoc
+	    ).start ();
+	}
+
+	foreach (it ; res) {
+	    it.join ();
+	}	
+    }
+    
+    void mapJob (uint addr, uint gid, uint aid) {	
 	auto gp = DataTable.get!(DistGraph!(VD, ED)) (gid);
 	auto assoc = DataTable.get!(DArray) (aid);
 	executeMap (gp, assoc);
@@ -60,18 +101,6 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
 	Server.sendMsg (id);
     }
     
-    void executeMap (T : DistGraph!(VD, ED)) (T gp, ref DArray assoc) {
-	foreach (it; gp.localEdges) {
-	    auto val = MapFun (gp.localVertices [it.src], gp.localVertices [it.dst], it);
-	    if (val.vid == ulong.max) continue;
-	    if (auto inside = val.vid in assoc.local) {
-		*inside = ReduceFun (*inside, val.msg);		
-	    } else {
-		assoc.local [val.vid] = val.msg;
-	    }
-	}	
-    }
-
     void getJob (uint addr, uint aid, ulong [] ids) {
 	auto assoc = DataTable.get!(DArray) (aid);
 	auto res = new KV [ids.length];

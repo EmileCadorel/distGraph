@@ -1,7 +1,7 @@
 module assign.graph.DistGraph;
 import assign.data.Data;
 import assign.launching;
-import assign.Job;
+import assign.Job, assign.cpu;
 import std.outbuffer, std.typecons, std.array;
 import std.container, std.stdio, std.conv;
 
@@ -53,12 +53,45 @@ class EdgeD {
        
 }
 
-class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
-    
+class DistGraphFragment (VD, ED) {
+
+    // Les sommets du fragments
     private VD [ulong] _vertices;
 
+    // Les arêtes du fragment
     private Array!ED _edges;
 
+    this () {}
+    
+    void addEdge (Edge edge) {
+	static if (is (VD == VertexD)) {
+	    this._edges.insertBack (new EdgeD (edge));
+	    this._vertices [edge.src.id] = new VertexD (edge.src);
+	    this._vertices [edge.dst.id] = new VertexD (edge.dst);
+	} else {
+	    assert (false);
+	}
+    }
+    
+    ulong length () {
+	return this._edges.length;
+    }
+
+    ref VD [ulong] localVertices () {
+	return this._vertices;
+    }
+
+    ref Array!ED localEdges () {
+	return this._edges;
+    }
+}
+
+
+class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
+
+    // Les fragment du graphe en mémoire locale
+    private DistGraphFragment!(VD, ED) [] _fragments;
+    
     // Le nombre d'arête par partitions
     private ulong [uint] _nbEdges;
 
@@ -88,6 +121,7 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
        
     this () {
 	super (computeId ());
+	prepareFrags ();
 	auto sizes = Server.getMachinesFreeMemory ();
 	this._sizes = computePercents (sizes);
 	
@@ -106,8 +140,16 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
 
     private this (uint id) {
 	super (id);
+	prepareFrags ();
     }
-       
+
+    void prepareFrags () {
+	this._fragments = new DistGraphFragment!(VD, ED) [SystemInfo.cpusInfo.length];
+	foreach (ref it ; this._fragments) {
+	    it = new DistGraphFragment!(VD, ED);
+	}
+    }
+    
     static private double [uint] computePercents (ulong [uint] sizes) {
 	auto total = 0;
 	double [uint] ret;
@@ -126,23 +168,20 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
     static void addEdgeJob (uint addr, uint id, Edge e) {
 	import std.conv;
 	static if (is (VD == VertexD)) {
-		auto dg = DataTable.get!(DistGraph!(VD, ED)) (id);
-		dg._edges.insertBack (new EdgeD (e));
-		dg._vertices [e.src.id] = new VertexD (e.src);
-		dg._vertices [e.dst.id] = new VertexD (e.dst);
+	    auto dg = DataTable.get!(DistGraph!(VD, ED)) (id);		
+	    dg.addEdgeLocal (e);
 	} else {
 	    assert (false);
 	}
     }
-    
-    ref VD [ulong] localVertices () {
-	return this._vertices;
-    }
-    
-    ref Array!ED localEdges () {
-	return this._edges;
-    }
 
+    /++
+     Returns: la liste des fragments du graphe en mémoire locale.
+     +/
+    DistGraphFragment!(VD, ED)[] locals () {
+	return this._fragments;
+    }
+    
     private void updateRoutes (ulong id, uint machine) {
 	auto it = id in this._cuts;
 	if (it !is null) {
@@ -151,6 +190,22 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
 	    this._cuts [id] = redBlackTree (machine);
 	}
     }
+
+    void addEdgeLocal (Edge edge) {
+	ulong total = 0;
+	foreach (it ; this._fragments) {
+	    total += it.length;
+	}
+	
+	foreach (it ; this._fragments) {
+	    if (it.length < total / this._fragments.length) {
+		it.addEdge (edge);
+		return;
+	    }
+	}
+	
+	this._fragments [0].addEdge (edge);
+    }
     
     void addEdge (Edge edge) {
 	static if (is (VD == VertexD)) {
@@ -158,9 +213,7 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
 	    foreach (key, value ; info) {
 		if (value < this._sizes [key]) {
 		    if (key == Server.machineId) {
-			this._edges.insertBack (new EdgeD (edge));
-			this._vertices [edge.src.id] = new VertexD (edge.src);
-			this._vertices [edge.dst.id] = new VertexD (edge.dst);
+			addEdgeLocal (edge);
 			this._nbEdges [key] ++;
 			this.updateRoutes (edge.src.id, Server.machineId);
 			this.updateRoutes (edge.dst.id, Server.machineId);
@@ -178,9 +231,7 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
 	
 	    // On a ajouter à personne, le graphe est equilibré
 	    // Du coup on l'ajoute à la partition locale
-	    this._edges.insertBack (new EdgeD (edge));
-	    this._vertices [edge.src.id] = new VertexD (edge.src);
-	    this._vertices [edge.dst.id] = new VertexD (edge.dst);
+	    addEdgeLocal (edge);
 	    this._nbEdges [Server.machineId] ++;
 	    this.updateRoutes (edge.dst.id, Server.machineId);
 	    this.updateRoutes (edge.src.id, Server.machineId);
@@ -219,15 +270,15 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
     static void toDotJob (uint addr, uint id) {
 	auto grp = DataTable.get!(DistGraph!(VD, ED)) (id);
 	auto buf = new OutBuffer;
-	
-	foreach (key, value ; grp._vertices) {
-	    if (value.tupleof.to!string != "inf")
+
+	foreach (frag ; grp.locals) {
+	    foreach (key, value ; frag._vertices) {
 		buf.writefln ("%d [label=\"%d:%s\"]", key, key, value.tupleof.to!string);
-	}
-	
-	foreach (it ; grp._edges) {
-	    if (grp._vertices [it.src].tupleof.to!string != "inf")
+	    }
+		
+	    foreach (it ; frag._edges) {
 		buf.writefln ("%d -> %d", it.src, it.dst);
+	    }
 	}
 	Server.jobResult (addr, new thisToDotJob, id, buf.toString);
     }
@@ -245,22 +296,22 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
     OutBuffer toDot (OutBuffer buf = null) {
 	if (buf is null) buf = new OutBuffer ();
 
-	buf.writefln ("digraph G {");
-
-	foreach (key, value ; this._vertices) {
-	    if (value.tupleof.to!string != "inf")
-		buf.writefln ("%d [label=\"%d:%s\"]", key, key, value.tupleof.to!string);
-	}
-	
-	foreach (it ; this._edges) {
-	    if (this._vertices [it.src].tupleof.to!string != "inf")
-		buf.writefln ("%d -> %d", it.src, it.dst);
-	}
-
 	auto machineId = Server.machineId;
 	foreach (key, it ; this._sizes) {
 	    if (key != machineId) {	        	       
 		Server.jobRequest (key, new thisToDotJob, this._id);
+	    }
+	}
+
+	buf.writefln ("digraph G {");
+
+	foreach (frag ; this.locals) {
+	    foreach (key, value ; frag._vertices) {
+		buf.writefln ("%d [label=\"%d:%s\"]", key, key, value.tupleof.to!string);
+	    }
+	    
+	    foreach (it ; frag._edges) {
+		buf.writefln ("%d -> %d", it.src, it.dst);
 	    }
 	}
 
