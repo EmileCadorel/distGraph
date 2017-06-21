@@ -221,11 +221,13 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
 	auto buf = new OutBuffer;
 	
 	foreach (key, value ; grp._vertices) {
-	    buf.writefln ("%d [label=\"%d:%s\"]", key, key, value.tupleof.to!string);
+	    if (value.tupleof.to!string != "inf")
+		buf.writefln ("%d [label=\"%d:%s\"]", key, key, value.tupleof.to!string);
 	}
 	
 	foreach (it ; grp._edges) {
-	    buf.writefln ("%d -> %d", it.src, it.dst);
+	    if (grp._vertices [it.src].tupleof.to!string != "inf")
+		buf.writefln ("%d -> %d", it.src, it.dst);
 	}
 	Server.jobResult (addr, new thisToDotJob, id, buf.toString);
     }
@@ -246,11 +248,13 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
 	buf.writefln ("digraph G {");
 
 	foreach (key, value ; this._vertices) {
-	    buf.writefln ("%d [label=\"%d:%s\"]", key, key, value.tupleof.to!string);
+	    if (value.tupleof.to!string != "inf")
+		buf.writefln ("%d [label=\"%d:%s\"]", key, key, value.tupleof.to!string);
 	}
 	
 	foreach (it ; this._edges) {
-	    buf.writefln ("%d -> %d", it.src, it.dst);
+	    if (this._vertices [it.src].tupleof.to!string != "inf")
+		buf.writefln ("%d -> %d", it.src, it.dst);
 	}
 
 	auto machineId = Server.machineId;

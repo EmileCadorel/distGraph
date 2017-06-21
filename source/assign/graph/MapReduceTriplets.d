@@ -95,13 +95,15 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
 	ulong len;
 
 	Server.waitMsg (len, aux);
-	auto gets = (cast (KV*) aux) [0 .. len];
-	foreach (it ; gets) {
-	    if (auto _loc = it.key in assoc.local)
-		*_loc = ReduceFun (*_loc, it.value);
-	    else
-		assoc.local [it.key] = it.value;
-	}	
+	if (aux !is null) {
+	    auto gets = (cast (KV*) aux) [0 .. len];
+	    foreach (it ; gets) {
+		if (auto _loc = it.key in assoc.local)
+		    *_loc = ReduceFun (*_loc, it.value);
+		else
+		    assoc.local [it.key] = it.value;
+	    }
+	}
     }
 
     void reduceJob (uint addr, uint aid, KV [] gets) {
@@ -120,8 +122,10 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
 	ulong len;
 
 	Server.waitMsg (len, aux);
-	auto gets = (cast (KV*) aux) [0 .. len];
-	Server.jobRequest (fst, new thisReduceJob, assoc, gets);	
+	if (aux !is null) {
+	    auto gets = (cast (KV*) aux) [0 .. len];
+	    Server.jobRequest (fst, new thisReduceJob, assoc, gets);
+	}
     }    
     
     void setJob (uint addr, uint aid, KV [] ids) {
@@ -142,7 +146,9 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
 		realLen ++;
 	    }
 	}
-	Server.jobRequest (other, new thisSetJob, assoc.id, total [0 .. realLen]);
+	if (realLen != 0)
+	    Server.jobRequest (other, new thisSetJob, assoc.id, total [0 .. realLen]);
+	Server.jobRequest (other, new thisSetJob, assoc.id, new KV [0]);
     }
 
     void informJob (uint addr, uint aid, ulong [] ids) {
@@ -155,7 +161,9 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
 		realLen ++;
 	    }
 	}
-	Server.jobResult (addr, new thisInformJob, aid, total [0 .. realLen]);
+	if (realLen != 0) 
+	    Server.jobResult (addr, new thisInformJob, aid, total [0 .. realLen]);
+	Server.jobResult (addr, new thisInformJob, aid, new KV [0]);
     }
 
     void informJobEnd (uint addr, uint aid, KV [] gets) {
@@ -166,8 +174,10 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
 	Server.jobRequest (fst, new thisInformJob, assoc, ids);
 	ulong len; shared (KV) * aux;
 	Server.waitMsg (len, aux);
-	auto kvs = (cast (KV*) aux) [0 .. len];
-	Server.jobRequest (scd, new thisSetJob, assoc, kvs);
+	if (aux !is null) {
+	    auto kvs = (cast (KV*) aux) [0 .. len];
+	    Server.jobRequest (scd, new thisSetJob, assoc, kvs);
+	}
     }
     
     void executeReduce (DistGraph!(VD, ED) gp, ref DArray assoc) {

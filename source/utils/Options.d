@@ -62,6 +62,10 @@ class OptionsS {
 	return null;    
     }
 
+    void opIndexAssign (string val, string name) {
+	this._unknown [name] = val;
+    }
+    
     int opApply (scope int delegate (ref string key, ref string value) dg) {
 	int result = 0;
 	foreach (key, value ; this._unknown) {

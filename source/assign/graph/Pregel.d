@@ -9,8 +9,6 @@ import assign.graph.MapReduceTriplets;
 import assign.launching;
 import std.traits;
 import std.container;
-import std.stdio, std.format;
-
 
 template Pregel (Fun ...) 
     if (Fun.length == 3) {
@@ -27,9 +25,7 @@ template Pregel (Fun ...)
 	auto i = 0UL;
 	
 	while (activeMessages > 0 && i < maxIter) {
-	    writeln (messages);
 	    g = g.JoinVertices!(VProg) (messages);
-	    toFile (g.toDot.toString, format ("out.%d.dot" , i));
 	    auto olds = messages;
 
 	    messages = g.MapReduceTriplets!(MapFun, ReduceFun);

@@ -4,11 +4,12 @@ import assign.graph.loader;
 import assign.graph.JoinVertices;
 import assign.graph.MapVertices;
 import assign.graph.MapReduceTriplets;
+import assign.graph.FilterEdges;
 import assign.graph.Pregel;
 import assign.graph.DistGraph;
 import assign.data.AssocArray;
 import std.datetime, std.algorithm;
-import utils.Options;
+import utils.Options, std.conv;
 
 class DstVertex : VertexD {
     float dst;
@@ -20,17 +21,23 @@ class DstVertex : VertexD {
 
 void main (string [] args) {
     auto adm = new AssignAdmin (args);
-    auto begin = Loader.load (Options ["-i"]); 
+    auto begin = Loader.load (Options ["-i"]);
+    
     auto grp = begin.MapVertices! (
 	(VertexD v) {
 	    if (v.id == 0) return new DstVertex (v.id, 0.0f);
 	    else return new DstVertex (v.id, float.infinity);	    
 	}
-    );    
-        
+    );
+    
+    auto grp2 = begin.FilterEdges! (
+	(EdgeD e) => e.src % 2 == 0	
+    );
+    
+    /*
+    
     auto grp2 = grp.Pregel! (
 	(DstVertex v, float nDist) {
-	    writeln (v.id, ' ', v.dst, ' ', nDist);
 	    return new DstVertex (v.id, min (v.dst, nDist));
 	},
 	(DstVertex src, DstVertex dst, EdgeD edge) {
@@ -39,7 +46,10 @@ void main (string [] args) {
 	}, 
 	(float a, float b) => min (a, b)
     );
-    
-    toFile (grp2.toDot.toString, "out.dot");
+    */	
+    auto str = grp2.toDot.toString;
+    toFile (str, "out.dot");    
+
     adm.end ();
 }
+    
