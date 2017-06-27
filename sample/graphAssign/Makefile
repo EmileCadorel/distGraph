@@ -33,3 +33,6 @@ profile:
 
 profile-gc:
 	dub build --build=profile-gc
+
+verbose:
+	dub build -v 

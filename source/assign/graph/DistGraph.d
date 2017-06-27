@@ -144,7 +144,8 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
     }
 
     void prepareFrags () {
-	this._fragments = new DistGraphFragment!(VD, ED) [SystemInfo.cpusInfo.length];
+	auto nbFrag = SystemInfo.cpusInfo.length;
+	this._fragments = new DistGraphFragment!(VD, ED) [nbFrag];
 	foreach (ref it ; this._fragments) {
 	    it = new DistGraphFragment!(VD, ED);
 	}

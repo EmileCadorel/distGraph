@@ -6,6 +6,8 @@ import assign.data.AssocArray;
 import assign.launching;
 import std.traits;
 import std.container;
+import std.concurrency, core.sync.mutex;
+import core.sync.barrier;
 import std.stdio, core.thread;
 
 struct Iterator (Msg) {
@@ -53,30 +55,96 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
     class MapThread : Thread {
 	private DArray _assoc;
 	private FRAG * _gp;
+	private __gshared static ulong __lastId__;
+	private ulong _id;
+	private static __gshared Mutex __mtx__;
+	private static __gshared Barrier __barrier__;
+	private static __gshared Msg [ulong][] __page__; 
 
+	static this () {
+	    __mtx__ = new Mutex ();
+	}
+	
 	this (FRAG * gp, DArray assoc) {
 	    super (&this.run);
 	    this._assoc = assoc;
 	    this._gp = gp;
+	    synchronized {
+		this._id = __lastId__;
+		__lastId__ ++;
+	    }
 	}
 
+	/++
+	 On va lancer combien de thread ?, ne les lance pas init juste les ressources nécéssaires.
+	 Params:
+	 nbThreads = le nombre de thread qui vont être lancé
+	 +/
+	static void willLaunch (ulong nbThreads) {
+	    __lastId__ = 0;
+	    __barrier__ = new Barrier (cast (uint) nbThreads);
+	    __page__ = new Msg[ulong][nbThreads];
+	}
+
+	void reduce (ref Msg [ulong] A, Msg[ulong] B) {
+	    foreach (key, value ; B) {
+		if (auto inside = key in A) {
+		    *inside = ReduceFun (value, *inside);
+		} else {
+		    A [key] = value;
+		}
+	    }
+	}
+	
 	void run () {
 	    foreach (it ; this._gp.localEdges) {
 		auto val = MapFun (this._gp.localVertices [it.src], this._gp.localVertices [it.dst], it);
-		if (val.vid == ulong.max) continue;
-		synchronized {
-		    if (auto inside = val.vid in this._assoc.local) {
+		if (val.vid != ulong.max) {
+		    if (auto inside = val.vid in __page__ [this._id]) {
 			*inside = ReduceFun (*inside, val.msg);
 		    } else {
-			this._assoc.local [val.vid] = val.msg;
+			__page__ [this._id][val.vid] = val.msg;
 		    }
 		}
+	    }
+
+	    __barrier__.wait ();
+	    
+	    auto lastNb = cast(long) (__page__.length), nb = lastNb / 2;
+	    auto posMod = (long a, long b) => (a % b + b) % b;
+	    bool done = false;
+	    while (nb >= 1) {
+		if (this._id < nb) {
+		    auto id = posMod (this._id + nb, nb * 2);
+		    __mtx__.lock_nothrow;
+		    auto aux = __page__ [id];
+		    __mtx__.unlock_nothrow;
+		    reduce (__page__ [this._id],  aux);
+		} else
+		    break;		
+
+		if (this._id == 0 && lastNb % 2 == 1) {
+		    auto id = lastNb - 1;
+		    __mtx__.lock_nothrow;
+		    auto aux = __page__ [id];
+		    __mtx__.unlock_nothrow;
+		    reduce (__page__ [this._id], aux);
+		}
+		lastNb = nb;
+		nb /= 2;		
+	    }
+
+	    if (this._id == 0) {
+		this._assoc.local = __page__ [this._id];		
 	    }
 	}
 	
     }
 
     void executeMap (T : DistGraph!(VD, ED)) (T gp, ref DArray assoc) {
+	import std.datetime;
+	auto begin = Clock.currTime;
+	MapThread.willLaunch (gp.locals.length);
 	auto res = new Thread [gp.locals.length];
 	foreach (it ; 0 .. gp.locals.length) {
 	    res [it] = new MapThread (
@@ -84,10 +152,11 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
 		assoc
 	    ).start ();
 	}
-
+	
 	foreach (it ; res) {
 	    it.join ();
-	}	
+	}
+	writeln ("Temps : ", Clock.currTime - begin);
     }
     
     void mapJob (uint addr, uint gid, uint aid) {	
