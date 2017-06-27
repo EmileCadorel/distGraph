@@ -120,8 +120,7 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
 		    auto aux = __page__ [id];
 		    __mtx__.unlock_nothrow;
 		    reduce (__page__ [this._id],  aux);
-		} else
-		    break;		
+		}
 
 		if (this._id == 0 && lastNb % 2 == 1) {
 		    auto id = lastNb - 1;
@@ -130,8 +129,10 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
 		    __mtx__.unlock_nothrow;
 		    reduce (__page__ [this._id], aux);
 		}
+		
 		lastNb = nb;
-		nb /= 2;		
+		nb /= 2;
+		__barrier__.wait ();
 	    }
 
 	    if (this._id == 0) {
