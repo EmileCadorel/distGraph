@@ -10,7 +10,7 @@ import std.stdio;
 alias MemoryJob = Job!(memJob, memRespJob);
 
 void memJob (uint addr, uint id) {
-    Server.jobResult (addr, new MemoryJob (), id, SystemInfo.memoryInfo.memAvailable);   
+    Server.jobResult!(MemoryJob) (addr, id, SystemInfo.memoryInfo.memAvailable);   
 }
 
 void memRespJob (uint addr, uint id, ulong length) {

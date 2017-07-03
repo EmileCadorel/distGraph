@@ -20,30 +20,34 @@ class DstVertex : VertexD {
 }
 
 void main (string [] args) {
-    auto adm = new AssignAdmin (args);
-    auto begin = Loader.load (Options ["-i"]);
+    try {
+	auto adm = new AssignAdmin (args);
+	auto begin = Loader.load (Options ["-i"]);
+	
+	auto grp = begin.MapVertices! (
+	    (VertexD v) {
+		if (v.id == 0) return new DstVertex (v.id, 0.0f);
+		else return new DstVertex (v.id, float.infinity);	    
+	    }
+	);
     
-    auto grp = begin.MapVertices! (
-    	(VertexD v) {
-    	    if (v.id == 0) return new DstVertex (v.id, 0.0f);
-    	    else return new DstVertex (v.id, float.infinity);	    
-    	}
-    );
-    
-    auto grp2 = grp.Pregel! (
-    	(DstVertex v, float nDist) {
-    	    return new DstVertex (v.id, min (v.dst, nDist));
-    	},
-    	(DstVertex src, DstVertex dst, EdgeD edge) {
-    	    if (src.dst + 1 < dst.dst) return iterator (dst.id, src.dst + 1);
-    	    else return Iterator!(float).empty;
-    	}, 
-    	(float a, float b) => min (a, b)
-    );
+	auto grp2 = grp.Pregel! (
+	    (DstVertex v, float nDist) {
+		return new DstVertex (v.id, min (v.dst, nDist));
+	    },
+	    (DstVertex src, DstVertex dst, EdgeD edge) {
+		if (src.dst + 1 < dst.dst) return iterator (dst.id, src.dst + 1);
+		else return Iterator!(float).empty;
+	    }, 
+	    (float a, float b) => min (a, b)
+	);
 
-    auto str = grp2.toDot.toString;
-    toFile (str, "out.dot");    
+	auto str = grp2.toDot.toString;
+	toFile (str, "out.dot");    
 
-    adm.end ();
-}
-    
+	adm.end ();
+    } catch (Exception e) {
+	writeln (e);
+	stdout.flush ();
+    }
+}    

@@ -112,7 +112,7 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
     
     static void registerJob (uint addr, uint id) {
 	DataTable.add (new DistGraph!(VD, ED) (id));
-	Server.jobResult (addr, new thisRegJob (), id);
+	Server.jobResult!(thisRegJob) (addr, id);
     }
     
     static void endJob (uint addr, uint id) {
@@ -130,7 +130,7 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
 	}
 	
 	foreach (it ; Server.connected) {
-	    Server.jobRequest (it, new thisRegJob, this.id);
+	    Server.jobRequest!(thisRegJob) (it, this.id);
 	}
 
 	foreach (it; Server.connected) {
@@ -221,7 +221,7 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
 			return ;
 		    } else {
 			this._nbEdges [key] ++;
-			Server.jobRequest (key, new thisAddJob, this._id, edge);
+			Server.jobRequest!thisAddJob (key, this._id, edge);
 			this.updateRoutes (edge.dst.id, key);
 			this.updateRoutes (edge.src.id, key);
 			return ;
@@ -281,7 +281,7 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
 		buf.writefln ("%d -> %d", it.src, it.dst);
 	    }
 	}
-	Server.jobResult (addr, new thisToDotJob, id, buf.toString);
+	Server.jobResult!(thisToDotJob) (addr, id, buf.toString);
     }
 
     static void toDotEnd (uint addr, uint id, string msg) {
@@ -300,7 +300,7 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
 	auto machineId = Server.machineId;
 	foreach (key, it ; this._sizes) {
 	    if (key != machineId) {	        	       
-		Server.jobRequest (key, new thisToDotJob, this._id);
+		Server.jobRequest!(thisToDotJob) (key, this._id);
 	    }
 	}
 

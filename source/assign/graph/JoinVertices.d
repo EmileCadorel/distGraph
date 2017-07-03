@@ -78,7 +78,7 @@ template JoinVerticesS (VD, ED, alias fun) {
 	auto grpTo = DataTable.get!(DistGraph!(VO, ED)) (idTo);
 	auto assoc = DataTable.get!(DArray) (assocId);
 	join (grpTo, grpFrom, assoc.local);
-	Server.jobResult (addr, new thisJob, idTo);
+	Server.jobResult!(thisJob) (addr, idTo);
     }
 
     void endJob (uint addr, uint id) {
@@ -88,7 +88,7 @@ template JoinVerticesS (VD, ED, alias fun) {
     DistGraph!(VO, ED) JoinVerticesS (T : DistGraph! (VD, ED)) (T gp, DArray values) {
 	auto grpTo = new DistGraph! (VO, ED);
 	foreach (it ; Server.connected) {
-	    Server.jobRequest (it, new thisJob, gp.id, grpTo.id, values.id);
+	    Server.jobRequest!(thisJob) (it, gp.id, grpTo.id, values.id);
 	}
 	
 	join (grpTo, gp, values.local);

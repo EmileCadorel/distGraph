@@ -63,7 +63,7 @@ class DistArray (T) : DistData {
 	
 	foreach (key, value ; repartition) {
 	    if (key != machineId) {
-		Server.jobRequest (key, new thisAllocJob (), this._id, length, value.begin, value.len);
+		Server.jobRequest!(thisAllocJob) (key, this._id, length, value.begin, value.len);
 		auto res = Server.waitMsg!uint ();
 	    }
 	}
@@ -107,7 +107,7 @@ class DistArray (T) : DistData {
     static void allocJob (uint addr, uint id, ulong total, ulong begin, ulong length) {
 	writefln ("Allocation requested of size %d", length);	
 	auto arr = new DistArray!(T) (id, total, begin, length);
-	Server.jobResult (addr, new thisAllocJob (), id);
+	Server.jobResult!(thisAllocJob) (addr, id);
     }
 
     /++
@@ -156,7 +156,7 @@ class DistArray (T) : DistData {
 
     static void indexJob (uint addr, uint id, ulong index) {
 	auto array = DataTable.get!(DistArray!T) (id);
-	Server.jobResult (addr, new thisIndexJob, id, array._local [index - array._begin]);
+	Server.jobResult!(thisIndexJob) (addr, id, array._local [index - array._begin]);
     }
 
     static void indexRespJob (uint addr, uint id, T value) {
@@ -173,7 +173,7 @@ class DistArray (T) : DistData {
 	} else {
 	    foreach (key, value ; this._machineBegins) {
 		if (index >= value.begin && index < (value.len + value.begin)) {
-		    Server.jobRequest (key, new thisIndexJob, this._id, index);
+		    Server.jobRequest!(thisIndexJob) (key, this._id, index);
 		    return Server.waitMsg!(T) ();
 		}
 	    }
@@ -184,7 +184,7 @@ class DistArray (T) : DistData {
     static void indexAssignJob (uint addr, uint id, ulong index, T value) {
 	auto array = DataTable.get!(DistArray!T) (id);
 	array._local [index - array._begin] = value;
-	Server.jobResult (addr, new thisIndexAssignJob, id);
+	Server.jobResult!(thisIndexAssignJob) (addr, id);
     }
 
     static void indexAssignRespJob (uint addr, uint id) {
@@ -203,7 +203,7 @@ class DistArray (T) : DistData {
 	} else {
 	    foreach (key, value; this._machineBegins) {
 		if (index >= value.begin && index < (value.len + value.begin)) {
-		    Server.jobRequest (key, new thisIndexAssignJob, this._id, index, _value);
+		    Server.jobRequest!(thisIndexAssignJob) (key, this._id, index, _value);
 		    Server.waitMsg!uint ();
 		    return;
 		}
@@ -257,7 +257,7 @@ class DistArray (T) : DistData {
 	writeln ("Free received ", id);
 	stdout.flush ();
 	DataTable.free (id);
-	Server.jobResult (addr, new thisFreeJob (), id);
+	Server.jobResult!(thisFreeJob) (addr, id);
     }
 
     /++
@@ -278,7 +278,7 @@ class DistArray (T) : DistData {
 	stdout.flush ();
 	foreach (key, value ; this._machineBegins) {
 	    if (key != Server.machineId && Server.isConnected (key)) {
-		Server.jobRequest (key, new thisFreeJob, this._id);
+		Server.jobRequest!(thisFreeJob) (key, this._id);
 		Server.waitMsg!uint ();
 	    }
 	}	

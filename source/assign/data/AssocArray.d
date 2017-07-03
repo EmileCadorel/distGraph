@@ -29,7 +29,7 @@ class DistAssocArray (K, V) : DistData {
     this () {
 	super (computeId ());
 	foreach (it ; Server.connected) {
-	    Server.jobRequest (it, new thisRegJob, this._id);
+	    Server.jobRequest!(thisRegJob) (it, this._id);
 	}
 
 	foreach (it ; Server.connected) {
@@ -43,7 +43,7 @@ class DistAssocArray (K, V) : DistData {
     
     static void regJob (uint addr, uint id) {
 	DataTable.add (new DistAssocArray! (K, V) (id));
-	Server.jobResult (addr, new thisRegJob, id);
+	Server.jobResult!(thisRegJob) (addr, id);
     }
 
     static void regJobEnd (uint addr, uint id) {
@@ -54,9 +54,9 @@ class DistAssocArray (K, V) : DistData {
 	auto array = DataTable.get!(DistAssocArray! (K, V)) (id);
 	auto val = index in array._local;
 	if (val !is null) {
-	    Server.jobResult (addr, new thisIndexJob, id, true, *val);
+	    Server.jobResult!(thisIndexJob) (addr, id, true, *val);
 	} else {
-	    Server.jobResult (addr, new thisIndexJob, id, false, V.init);
+	    Server.jobResult!(thisIndexJob) (addr, id, false, V.init);
 	}
     }
 
@@ -78,7 +78,7 @@ class DistAssocArray (K, V) : DistData {
 	    bool returned = false;
 	    V result;
 	    foreach (it ; Server.connected) {		
-		Server.jobRequest (it, new thisIndexJob, this._id, index);
+		Server.jobRequest!(thisIndexJob) (it, this._id, index);
 		Server.waitMsg (returned, result);
 		if (returned) return result;
 	    }
@@ -101,9 +101,9 @@ class DistAssocArray (K, V) : DistData {
 	auto it = key in array._local;
 	if (it !is null) {
 	    *it = value;
-	    Server.jobResult (addr, new thisAssignJob, id, true);
+	    Server.jobResult!(thisAssignJob) (addr, id, true);
 	} else {
-	    Server.jobResult (addr, new thisAssignJob, id, false);
+	    Server.jobResult!(thisAssignJob) (addr, id, false);
 	}	
     }
 
@@ -125,7 +125,7 @@ class DistAssocArray (K, V) : DistData {
 	if (id !is null) *id = value;
 	else {
 	    foreach (it ; Server.connected) {
-		Server.jobRequest (it, new thisAssignJob, this._id, index, value);
+		Server.jobRequest!(thisAssignJob) (it, this._id, index, value);
 		if (Server.waitMsg !(bool)) return;
 	    }
 	    // Si on est la, c'est que personne ne possède la valeur et on la stocke en local.
@@ -142,7 +142,7 @@ class DistAssocArray (K, V) : DistData {
 
     static void getLenJob (uint addr, uint id) {
 	auto assoc = DataTable.get!(DistAssocArray!(K, V)) (id);
-	Server.jobResult (addr, new thisGetLength, id, assoc.local.length);
+	Server.jobResult!(thisGetLength) (addr, id, assoc.local.length);
     }
 
     static void getLenJobEnd (uint addr, uint id, ulong len) {
@@ -155,7 +155,7 @@ class DistAssocArray (K, V) : DistData {
     const (ulong) length () {
 	auto localLen = this._local.length;
 	foreach (it ; Server.connected) {
-	    Server.jobRequest (it, new thisGetLength, this._id);	    
+	    Server.jobRequest!(thisGetLength) (it, this._id);	    
 	}
 
 	foreach (it ; Server.connected) {
@@ -177,7 +177,7 @@ class DistAssocArray (K, V) : DistData {
     static void toStringJob (uint addr, uint id) {
 	import std.conv;
 	auto assoc = DataTable.get!(DistAssocArray!(K, V)) (id);
-	Server.jobResult (addr, new thisStringJob, id, assoc.local.to!string);
+	Server.jobResult!(thisStringJob) (addr, id, assoc.local.to!string);
     }
 
     static void toStringJobEnd (uint addr, uint id, string val) {
@@ -190,7 +190,7 @@ class DistAssocArray (K, V) : DistData {
 	auto buf = new OutBuffer ();
 	buf.writefln ("{\n\t%s", this._local.to!string);
 	foreach (it ; Server.connected) {
-	    Server.jobRequest (it, new thisStringJob, this._id);
+	    Server.jobRequest!(thisStringJob) (it, this._id);
 	}
 	foreach (it ; Server.connected) {
 	    buf.writefln ("\t%s", Server.waitMsg!(string));

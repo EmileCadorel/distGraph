@@ -267,9 +267,9 @@ class ServerS {
      job = le job a effectué
      params = les paramètres du travail
      +/
-    void jobRequest (J : JobS, TArgs...) (uint machine, J job, uint jbId, TArgs params) {
+    void jobRequest (J : JobS, TArgs...) (uint machine, uint jbId, TArgs params) {
 	auto sock = this._clientOuts [machine];
-	job.send (sock, jbId, params);
+	J.send (sock, jbId, params);
     }
 
     /++
@@ -279,9 +279,9 @@ class ServerS {
      job = le job effectué
      params = les paramètres du job
      +/
-    void jobResult (J : JobS, TArgs...) (uint machine, J job, uint jbId, TArgs params) {
+    void jobResult (J : JobS, TArgs...) (uint machine, uint jbId, TArgs params) {
 	auto sock = this._clientOuts [machine];
-	job.response (sock, jbId, params);
+	J.response (sock, jbId, params);
     }       
     
     /++
@@ -295,7 +295,7 @@ class ServerS {
 	sizes [this.machineId] = SystemInfo.memoryInfo.memAvailable;
 	
 	foreach (it ; this._connected) {
-	    jobRequest (it, new MemoryJob (), 0U);
+	    jobRequest!(MemoryJob) (it, 0U);
 	    sizes [it] = this.waitMsg!(ulong) ();
 	}
 	return sizes;

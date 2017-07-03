@@ -61,7 +61,7 @@ template MapVerticesVE (V, E, alias fun) {
 	auto grpFrom = DataTable.get!(DistGraph!(V, E)) (idFrom);
 	auto grpTo = DataTable.get!(DistGraph!(VO, E)) (idTo);
 	executeMap (grpTo, grpFrom);
-	Server.jobResult (addr, new thisJob, idTo);
+	Server.jobResult!(thisJob) (addr, idTo);
     }
 
     void endJob (uint addr, uint id) {
@@ -71,7 +71,7 @@ template MapVerticesVE (V, E, alias fun) {
     DistGraph! (VO, E) MapVerticesVE (T : DistGraph!(V, E)) (T a) {
 	auto aux = new DistGraph!(VO, E);
 	foreach (it ; Server.connected) {
-	    Server.jobRequest (it, new thisJob, a.id, aux.id);	    
+	    Server.jobRequest!(thisJob) (it, a.id, aux.id);	    
 	}
 
 	executeMap (aux, a);
