@@ -106,6 +106,8 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
     // Chaque clé est une paire de machine.
     private ulong[] [Tuple!(uint, uint)] _finalCuts;
     
+    private ulong _nbVerts;
+    
     alias thisRegJob = Job!(registerJob, endJob);
     alias thisAddJob = Job!(addEdgeJob, endJob);
     alias thisToDotJob = Job!(toDotJob, toDotEnd);
@@ -247,6 +249,14 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
     ref auto cuts () {
 	return this._finalCuts;
     }
+
+    /++
+     Returns: le nombre de sommets dans le graphes total
+     +/
+    const (ulong) nbVerts () {
+	return this._nbVerts;
+    }
+
     
     /++
      Supprime toutes les informations inutile stocké dans le graphe.
@@ -265,6 +275,7 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
 		}		    		
 	    }	    
 	}
+	this._nbVerts = this._cuts.length;
 	this._cuts = null;
     }
 
@@ -274,7 +285,7 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
 
 	foreach (frag ; grp.locals) {
 	    foreach (key, value ; frag._vertices) {
-		buf.writefln ("%d [label=\"%d:%s\"]", key, key, value.tupleof.to!string);
+		buf.writefln ("%d [label=\"%d:%s\"]", key, key, value.toString);
 	    }
 		
 	    foreach (it ; frag._edges) {
@@ -308,7 +319,7 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
 
 	foreach (frag ; this.locals) {
 	    foreach (key, value ; frag._vertices) {
-		buf.writefln ("%d [label=\"%d:%s\"]", key, key, value.tupleof.to!string);
+		buf.writefln ("%d [label=\"%d:%s\"]", key, key, value.toString);
 	    }
 	    
 	    foreach (it ; frag._edges) {

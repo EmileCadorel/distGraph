@@ -43,29 +43,13 @@ class LoaderS {
 	return file;
     }
     
-    static void worker (Tid owner, shared DistGraph!(VertexD, EdgeD) dg) {
-	auto grp = cast (DistGraph!(VertexD, EdgeD)) dg;
-	auto end = false;
-	while (!end) {
-	    receive (
-		(Edge e) {
-		    grp.addEdge (e);
-		},
-		(bool) => end = true	
-	    );	    
-	}
-	send (owner, true);
-    }
-       
     DistGraph!(VertexD, EdgeD) load (string filename) {
 	auto dg = new DistGraph!(VertexD, EdgeD) ();
 	auto file = open (filename);
 	Edge edge;
 	auto nb = SystemInfo.cpusInfo.length;
-	//auto spawned = spawn (&worker, thisTid, cast (shared DistGraph!(VertexD, EdgeD)) dg);
 	auto i = 0;
 	while (next (file, edge)) {
-	    // En parallèle ça plante, à debugger
 	    dg.addEdge (edge);	    
 	}
 	writeln ("");
