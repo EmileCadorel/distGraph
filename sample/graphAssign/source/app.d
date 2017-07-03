@@ -34,14 +34,14 @@ void main (string [] args) {
 	auto adm = new AssignAdmin (args);
 	auto begin = Loader.load (Options ["-i"]);
 	ulong nbVerts = begin.nbVerts;
-	
-	writeln (nbVerts);
-	
+
+	auto beginT = Clock.currTime;	
 	auto grp = begin.InitVertices! (
 	    (VertexD v, ulong nb) => new DstVertex (v.id, new float [nb])
 	) (nbVerts);
 	
 	foreach (it ; 0 .. nbVerts) {
+	    writeln ("VERT : ", it);	    
 	    grp = grp.InitVertices! (
 		(DstVertex v, ulong val) {
 		    v.current = val;
@@ -64,8 +64,10 @@ void main (string [] args) {
 		}, 
 		(float a, float b) => min (a, b)
 	    );
+	    writeln ("FIN VERT : ", it);	    
 	}
-	
+
+	writeln ("Total : ", Clock.currTime - beginT);
 	auto str = grp.toDot.toString;
 	toFile (str, "out.dot");    
 

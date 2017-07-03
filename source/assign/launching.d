@@ -19,6 +19,7 @@ import core.thread;
 import sock = std.socket;
 import std.container, core.exception;
 import std.algorithm : find;
+import std.typecons, core.sync.mutex;
 
 
 immutable script_sh = 
@@ -83,7 +84,13 @@ class ServerS {
     /++ La liste des jobs +/
     private Array!JobS _jobs;
 
+    /++ La liste des messages reçu par les communicateurs de threads +/     
+    private Array!Variant _msgs;
+
+    private Mutex _mutex;
+    
     this () {
+	this._mutex = new Mutex;
 	this._global = thisTid;	
     }
     
@@ -323,15 +330,40 @@ class ServerS {
      Le thread attend un message     
      +/
     T waitMsg (T) () {
-	auto b = receiveOnly!(T) ();
-	return cast (T) b;
+	T to_ret; bool end = false;
+	
+	this._mutex.lock_nothrow ();
+	foreach (it ; 0 .. this._msgs.length) {
+	    if (this._msgs [it].type == typeid (T)) {
+		to_ret = *(this._msgs [it].peek!T);
+		end = true;
+		this._msgs.linearRemove (this._msgs [it .. it + 1]);
+		break;
+	    }
+	}	
+	this._mutex.unlock_nothrow ();
+	
+	while (!end) {
+	    receive (
+		(T a) {
+		    to_ret = a;
+		    end = true;
+		}, (Variant v) {
+		    this._mutex.lock_nothrow ();
+		    Server._msgs.insertBack (v);
+		    this._mutex.unlock_nothrow ();
+		}
+	    );
+	}
+	
+	return to_ret;
     }
 
     /++
      Le thread attend un message     
      +/
-    void waitMsg (T...) (ref T res) {
-	res = receiveOnly!(T) ();
+    void waitMsg (T...) (ref T res) {	
+	res = waitMsg!(Tuple!(T)).expand;
     }
 
     
