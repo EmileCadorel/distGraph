@@ -48,10 +48,10 @@ template Init (alias fun) {
 
 	init (array.begin, array.local [0 .. array.localLength / nb]);
 	foreach (it ; 0 .. nb - 1) {
-	    receiveOnly!bool ();
+	    Server.waitMsg!bool ();
 	}
 	
-	Server.jobResult (addr, new thisJob, id);
+	Server.jobResult!(thisJob) (addr, id);
     }
 
     void endJob (uint addr, uint id) {
@@ -61,7 +61,7 @@ template Init (alias fun) {
     void Init (DistArray!T array) {
 	foreach (key, value ; array.machineBegins) {
 	    if (key != Server.machineId) {
-		Server.jobRequest (key, new thisJob (), array.id);
+		Server.jobRequest!(thisJob) (key, array.id);
 	    }
 	}
 
@@ -82,7 +82,7 @@ template Init (alias fun) {
 
 	init (array.begin, array.local [0 .. array.localLength / nb]);
 	foreach (it ; 0 .. nb - 1) {
-	    receiveOnly!bool ();
+	    Server.waitMsg!bool ();
 	}
 
 	foreach (key, value ; array.machineBegins) {

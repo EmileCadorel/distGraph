@@ -72,11 +72,11 @@ template Reduce(alias fun) {
 	T soluce = reduceArray (array.local [0 .. (array.localLength / nb)]);
 	
 	foreach (it ; 0 .. nb - 1) {
-	    T res = receiveOnly!T ();
+	    T res = Server.waitMsg!T ();
 	    soluce = fun (soluce, res);
 	}
 
-       	Server.jobResult (addr, new thisJob(), id, soluce);
+       	Server.jobResult!(thisJob) (addr, id, soluce);
     }
 
     void answerJob (uint addr, uint jbId, T res) {
@@ -86,7 +86,7 @@ template Reduce(alias fun) {
     T Reduce (DistArray!T array) {
 	foreach (key, value ; array.machineBegins) {
 	    if (key != Server.machineId) {
-		Server.jobRequest (key, new thisJob (), array.id);
+		Server.jobRequest!(thisJob) (key, array.id);
 	    }
 	}
 	
@@ -104,7 +104,7 @@ template Reduce(alias fun) {
 	T soluce = reduceArray (array.local [0 .. (array.localLength / nb)]);	
 
 	foreach (it ; 0 .. nb - 1) {
-	    T res = receiveOnly!T ();
+	    T res = Server.waitMsg!T ();
 	    soluce = fun (res, soluce);
 	}
 	

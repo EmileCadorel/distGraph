@@ -13,7 +13,7 @@ enum n = 1_000_000;
 
 void pi (string [] args) {    
     auto adm = new AssignAdmin (args);
-    scope (exit) delete adm;
+    scope (exit) adm.end ();
     
     auto begin = Clock.currTime ();
     auto a = new DistArray!double (n);

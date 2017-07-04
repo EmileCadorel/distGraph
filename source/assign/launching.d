@@ -132,7 +132,7 @@ class ServerS {
 		Server._lastMachine = pck [1];
 		auto addr = client.remoteAddress.address;
 		Server._clients.insertFront (new clientRoutine(pck [1]).start);
-		
+		Server._connected.insertBack (pck [1]);
 		if (pck [0] != 0 && !(pck [1] in Server._clientOuts)) {
 		    auto sock = new Socket (addr, pck [0]);
 		    sock.connect ();
@@ -175,7 +175,6 @@ class ServerS {
 	void run () {	    
 	    writeln ("Debut routine client ", this.machine);
 	    auto sock = Server._clientIns [this.machine];
-	    Server._connected.insertBack (this.machine);
 	    while (!Server._end) {
 		long id;
 		if (!sock.recvId (id)) {
