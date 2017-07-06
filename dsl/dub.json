@@ -1,0 +1,9 @@
+{
+	"name": "dsl",
+	"authors": [
+		"emile"
+	],
+	"description": "Langage de compilation et d'analyse statique pour distGraph",
+	"copyright": "Copyright © 2017, emile",
+	"license": "none"
+}
