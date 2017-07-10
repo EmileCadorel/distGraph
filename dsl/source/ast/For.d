@@ -40,11 +40,13 @@ class For : Instruction {
 	auto buf = new OutBuffer ();
 	buf.writef ("for (");
 	if (this._begin) {
-	    buf.writef ("%s", this._begin.toString);
-	    if (cast (Expression) this._begin) buf.writef (" ; ");
-	} else buf.writef ("; ");
+	    auto ln = this._begin.toString;
+	    if (ln [$ - 1] == '\n') ln = ln [0 .. $ - 1];
+	    buf.writef ("%s", ln);
+	    if (cast (Expression) this._begin) buf.writef (" ;");
+	} else buf.writef (";");
 
-	if (this._test) buf.writef ("%s", this._test);
+	if (this._test) buf.writef (" %s", this._test);
 	buf.writef (" ; ");
 
 	foreach (it ; this._iter) {

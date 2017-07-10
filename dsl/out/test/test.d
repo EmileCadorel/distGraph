@@ -9,12 +9,11 @@ template Machin (string fun) {
 
 void main () {
     auto a = Machin! (
-	fn (int a) {
-	    for (auto i = 0 ; i < 100; i++) {
-		a++;
-		writeln (a);
-	    }
-	    return a;
-	}	
-    );    
+"  (int a) {
+      for (auto i = 0; (i < 100) ; i++) {
+          a++;
+          writeln (a);
+      }
+      return a;
+  }"    );    
 }

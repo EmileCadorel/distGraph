@@ -13,10 +13,8 @@ template FilterEdges (alias fun) {
     
     DistGraph!(V, E) FilterEdges (T : DistGraph!(V, E), V) (T a) {
 	return FilterEdgesVE!(V, E, fun) (a);
-    }
-    
+    }    
 }
-
 
 template FilterEdgesVE (V, E, alias fun) {
     

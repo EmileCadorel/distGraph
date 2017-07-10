@@ -12,21 +12,16 @@ import assign.data.AssocArray;
 import std.datetime, std.algorithm;
 import utils.Options, std.conv;
 
-class DstVertex : VertexD {
+struct DstVertex {
 
+    ulong id;
     float [] dst;
     ulong current;
     
     this (ulong id, float [] dst) {
-	super (id);
+	this.id = (id);
 	this.dst = dst;
-    }
-
-    override string toString () {
-	import std.format;
-	return format ("%s", to!string (dst));
-    }
-    
+    }    
 }
 
 void main (string [] args) {
@@ -37,7 +32,7 @@ void main (string [] args) {
 
 	auto beginT = Clock.currTime;	
 	auto grp = begin.InitVertices! (
-	    (VertexD v, ulong nb) => new DstVertex (v.id, new float [nb])
+	    (VertexD v, ulong nb) => DstVertex (v.id, new float [nb])
 	) (nbVerts);
 	
 	foreach (it ; 0 .. nbVerts) {

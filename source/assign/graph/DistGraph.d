@@ -15,7 +15,7 @@ struct Edge {
 
 }
 
-class VertexD {
+struct VertexD {
     
     private ulong _id;
 
@@ -33,7 +33,7 @@ class VertexD {
     
 }
 
-class EdgeD {
+struct EdgeD {
 
     private ulong _src;
     private ulong _dst;
@@ -65,9 +65,9 @@ class DistGraphFragment (VD, ED) {
     
     void addEdge (Edge edge) {
 	static if (is (VD == VertexD)) {
-	    this._edges.insertBack (new EdgeD (edge));
-	    this._vertices [edge.src.id] = new VertexD (edge.src);
-	    this._vertices [edge.dst.id] = new VertexD (edge.dst);
+	    this._edges.insertBack (EdgeD (edge));
+	    this._vertices [edge.src.id] = VertexD (edge.src);
+	    this._vertices [edge.dst.id] = VertexD (edge.dst);
 	} else {
 	    assert (false);
 	}
@@ -87,8 +87,11 @@ class DistGraphFragment (VD, ED) {
 }
 
 
-class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
-
+class DistGraph (VD, ED) : DistData {
+    import std.traits;
+    // on ne stocke que des structures (pas de classe, on veut pouvoir récupérer les données brut)
+    static assert (isAggregateType!(VD) && isAggregateType!(ED));
+    
     // Les fragment du graphe en mémoire locale
     private DistGraphFragment!(VD, ED) [] _fragments;
     
@@ -280,12 +283,13 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
     }
 
     static void toDotJob (uint addr, uint id) {
+	import std.conv;
 	auto grp = DataTable.get!(DistGraph!(VD, ED)) (id);
 	auto buf = new OutBuffer;
 
 	foreach (frag ; grp.locals) {
 	    foreach (key, value ; frag._vertices) {
-		buf.writefln ("%d [label=\"%d:%s\"]", key, key, value.toString);
+		buf.writefln ("%d [label=\"%d:%s\"]", key, key, value.to!string);
 	    }
 		
 	    foreach (it ; frag._edges) {
@@ -306,6 +310,7 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
      Returns: un buffer contenant les données locals du graphe sous format .dot
      +/
     OutBuffer toDot (OutBuffer buf = null) {
+	import std.conv;
 	if (buf is null) buf = new OutBuffer ();
 
 	auto machineId = Server.machineId;
@@ -319,7 +324,7 @@ class DistGraph (VD : VertexD, ED : EdgeD) : DistData {
 
 	foreach (frag ; this.locals) {
 	    foreach (key, value ; frag._vertices) {
-		buf.writefln ("%d [label=\"%d:%s\"]", key, key, value.toString);
+		buf.writefln ("%d [label=\"%d:%s\"]", key, key, value.to!string);
 	    }
 	    
 	    foreach (it ; frag._edges) {
