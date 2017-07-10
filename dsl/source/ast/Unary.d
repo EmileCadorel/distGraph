@@ -13,7 +13,7 @@ class BefUnary : Expression {
 
     override string toString () {
 	import std.format;
-	return format ("%s(%s)", this._token.toString, this._what.toString);
+	return format ("%s%s", this._token.toString, this._what.toString);
     }
 
 }
@@ -29,6 +29,6 @@ class AfUnary : Expression {
 
     override string toString () {
 	import std.format;
-	return format ("(%s)%s", this._what.toString, this._token.toString);
+	return format ("%s%s", this._what.toString, this._token.toString);
     }
 }

@@ -28,16 +28,24 @@ class Function {
 	this._end = end;
     }
     
+    Word begin () {
+	return this._begin;
+    }
+
+    Word end () {
+	return this._end;
+    }
+    
     override string toString () {
-	import std.outbuffer;
+	import std.outbuffer, std.string;
 	auto buf = new OutBuffer ();
-	buf.writef ("(");
+	buf.writef ("%s(", rightJustify ("", this._begin.locus.column, ' '));
 	foreach (it ; this._params) {
 	    buf.writef ("%s%s", it.toString (),
 			it !is this._params [$ - 1] ? ", " : "");
 	}
 	buf.writef (") ");
-	this._block.indent = 0;
+	this._block.indent = cast(uint) this._begin.locus.column;
 	
 	if (cast (Block) this._block) {	    
 	    buf.writef (this._block.toString);

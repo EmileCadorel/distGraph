@@ -20,12 +20,12 @@ class Block : Instruction {
 	auto buf = new OutBuffer ();
 	buf.writefln ("{");
 	foreach (it ; this._insts) {
-	    it.indent = this._indent + 1;	    
-	    buf.writef ("%s%s", rightJustify ("", (this._indent + 1) * 4, ' '), it.toString);
+	    it.indent = this._indent + 4;	    
+	    buf.writef ("%s%s", rightJustify ("", (this._indent + 4), ' '), it.toString);
 	    if (cast (Expression) it) buf.writefln (";");
 	    else buf.writefln ("");
 	}	
-	buf.writef ("%s}", rightJustify ("", this._indent * 4, ' '));
+	buf.writef ("%s}", rightJustify ("", this._indent, ' '));
 	return buf.toString;
     }
 

@@ -23,7 +23,7 @@ class Auto : Instruction {
 	import std.outbuffer;
 	auto buf = new OutBuffer ();
 	foreach (it ; 0 .. this._var.length) {
-	    if (it != 0) buf.writef ("%s", rightJustify ("", this._indent * 4, ' '));
+	    if (it != 0) buf.writef ("%s", rightJustify ("", this._indent, ' '));
 	    buf.writef ("auto %s = %s;%s",
 			this._var [it].toString,
 			this._expr [it].toString,

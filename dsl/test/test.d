@@ -1,17 +1,20 @@
+import std.stdio;
 
+template Machin (alias fun) {
+    int Machin() {
+	writeln (fun (123));
+	return 0;
+    }
+}
 
 void main () {
-
-    auto a = fn (int a) {
-	for (i = 12; i < 100; i++, j++) {
-	    println (i);
-	}
-
-	auto a = 12, b = a = 34;
-	while (true) {
-	    if (a == 0) break;
-	    else println (b);
+    auto a = Machin! (
+	fn (int a) {
+	    for (auto i = 0 ; i < 100; i++) {
+		a++;
+		writeln (a);
+	    }
+	    return a;
 	}	
-    }
-    
+    );    
 }
