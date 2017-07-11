@@ -26,6 +26,13 @@ enum JobType {
     STOP = 2
 }
 
+
+template New(T) if (is(T == class)) {
+	static T New(Args...)(Args args) {
+     	    return new T(args);
+	}
+}
+
 class Job (FUN ...) : JobS {
 
     static assert (FUN.length == 2 || FUN.length == 3);
@@ -39,7 +46,7 @@ class Job (FUN ...) : JobS {
     shared static ulong __tag__;
     
     static this () {
-	__tag__ = Server.addJob (new Job!(Req, Resp));
+	__tag__ = Server.addJob (New!(Job!(Req, Resp)));
     }
 
     alias TArgsIn = ParameterTypeTuple!(Req) [1 .. $];
@@ -91,7 +98,7 @@ class Job (FUN ...) : JobS {
 	sock.sendOnly (JobType.STOP);
 	sock.sendOnly (id);
     }
-    
+   
 }
 
 

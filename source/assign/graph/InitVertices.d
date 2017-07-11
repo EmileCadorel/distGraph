@@ -6,28 +6,25 @@ import assign.launching;
 import std.traits;
 import std.container;
 import std.stdio, core.thread;
+import std.functional;
 
-
-template InitVertices (alias fun) {
-
-    alias VO = ReturnType!(fun);
+template InitVertices (alias Fun) {
+    alias fun = binaryFun!(Fun);
     
-    DistGraph!(VO, E) InitVertices (T : DistGraph! (V, E), V, E, T2) (T a, T2 val) {
-	return InitVerticesVE!(V, E, T2, fun) (a, val);
+    auto InitVertices (T : DistGraph! (V, E), V, E, T2) (T a, T2 val) {
+	alias VO = typeof (fun (V.init, T2.init));
+	return InitVerticesVE!(VO, V, E, T2, Fun) (a, val);
     }
     
 }
 
-template InitVerticesVE (V, E, T2, alias fun) {
-
-
-    alias VO = ReturnType!(fun);
-
+template InitVerticesVE (VO, V, E, T2, alias Fun) {
+    alias fun = binaryFun!(Fun);
     alias thisJob = Job!(initJob, endJob);
     alias FRAG = DistGraphFragment!(V, E);
     alias FRAG2 = DistGraphFragment!(VO, E);
     
-    class InitThread : Thread {
+    static class InitThread : Thread {
 	private FRAG * _in;
 	private FRAG2 * _out;
 	private T2 _val;
@@ -47,7 +44,7 @@ template InitVerticesVE (V, E, T2, alias fun) {
 	}	
     }
     
-    void executeInit (ref DistGraph!(VO, E) _out, DistGraph!(V, E) _in, T2 val) {
+    static void executeInit (ref DistGraph!(VO, E) _out, DistGraph!(V, E) _in, T2 val) {
 	auto res = new Thread [_in.locals.length];
 	foreach (it ; 0 .. res.length) {
 	    res [it] = new InitThread (
@@ -61,14 +58,14 @@ template InitVerticesVE (V, E, T2, alias fun) {
 	    it.join ();	
     }
     
-    void initJob (uint addr, uint idFrom, uint idTo, T2 val) {
+    static void initJob (uint addr, uint idFrom, uint idTo, T2 val) {
 	auto grpFrom = DataTable.get!(DistGraph!(V, E)) (idFrom);
 	auto grpTo = DataTable.get!(DistGraph!(VO, E)) (idTo);
 	executeInit (grpTo, grpFrom, val);
 	Server.jobResult!(thisJob) (addr, idTo);
     }
 
-    void endJob (uint addr, uint id) {
+    static void endJob (uint addr, uint id) {
 	Server.sendMsg (id);
     }
 

@@ -9,6 +9,7 @@ import std.container;
 import std.concurrency, core.sync.mutex;
 import core.sync.barrier;
 import std.stdio, core.thread;
+import std.functional;
 
 struct Iterator (Msg) {
     ulong vid;
@@ -32,10 +33,10 @@ template MapReduceTriplets (Fun ...) {
 
 template MapReduceTripletsS (VD, ED, Fun ...) {
 
-    alias MapFun = Fun [0];
-    alias ReduceFun = Fun [1];
+    alias MapFun = binaryFun!(Fun [0]);
+    alias ReduceFun = binaryFun!(Fun [1]);
     
-    alias Msg = typeof (ReturnType!(Fun [0]).msg);
+    alias Msg = typeof (typeof(MapFun(VD.init, VD.init, ED.init)).msg);
 
     alias thisMapReduceJob = Job!(mapJob, endJob);
     alias thisGetJob = Job!(getJob, getJobEnd);
@@ -52,7 +53,7 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
 	Msg value;
     }
     
-    class MapThread : Thread {
+    static class MapThread : Thread {
 	private DArray _assoc;
 	private FRAG * _gp;
 	private __gshared static ulong __lastId__;
@@ -142,7 +143,7 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
 	
     }
 
-    void executeMap (T : DistGraph!(VD, ED)) (T gp, ref DArray assoc) {
+    static void executeMap (T : DistGraph!(VD, ED)) (T gp, ref DArray assoc) {
 	import std.datetime;
 	auto begin = Clock.currTime;
 	MapThread.willLaunch (gp.locals.length);
@@ -160,18 +161,18 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
 	writeln ("Temps : ", Clock.currTime - begin);
     }
     
-    void mapJob (uint addr, uint gid, uint aid) {	
+    static void mapJob (uint addr, uint gid, uint aid) {	
 	auto gp = DataTable.get!(DistGraph!(VD, ED)) (gid);
 	auto assoc = DataTable.get!(DArray) (aid);
 	executeMap (gp, assoc);
 	Server.jobResult!(thisMapReduceJob) (addr, gid);
     }
 
-    void endJob (uint addr, uint id) {
+    static void endJob (uint addr, uint id) {
 	Server.sendMsg (id);
     }
     
-    void getJob (uint addr, uint aid, ulong [] ids) {
+    static void getJob (uint addr, uint aid, ulong [] ids) {
 	auto assoc = DataTable.get!(DArray) (aid);
 	auto res = new KV [ids.length];
 	auto realLen = 0;
@@ -184,11 +185,11 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
 	Server.jobResult!(thisGetJob) (addr, aid, res [0 .. realLen]);
     }
        
-    void getJobEnd (uint addr, uint aid, KV [] ids) {
+    static void getJobEnd (uint addr, uint aid, KV [] ids) {
 	Server.sendMsg (ids.length, cast (shared (KV)*) ids.ptr);	
     }
 
-    void executeLocalReduce (uint other, ulong [] ids, ref DArray assoc) {
+    static void executeLocalReduce (uint other, ulong [] ids, ref DArray assoc) {
 	Server.jobRequest!(thisGetJob) (other, assoc.id, ids);
 	shared (KV)* aux;
 	ulong len;
@@ -205,7 +206,7 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
 	}
     }
 
-    void reduceJob (uint addr, uint aid, KV [] gets) {
+    static void reduceJob (uint addr, uint aid, KV [] gets) {
 	auto assoc = DataTable.get!(DArray) (aid);
 	foreach (it ; gets) {
 	    if (auto _loc = it.key in assoc.local)
@@ -215,7 +216,7 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
 	}	
     }    
     
-    void executeRemoteReduce (uint fst, uint scd, ulong [] ids, uint assoc) {
+    static void executeRemoteReduce (uint fst, uint scd, ulong [] ids, uint assoc) {
 	Server.jobRequest!(thisGetJob) (scd, assoc, ids);
 	shared (KV)* aux;
 	ulong len;
@@ -227,16 +228,16 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
 	}
     }    
     
-    void setJob (uint addr, uint aid, KV [] ids) {
+    static void setJob (uint addr, uint aid, KV [] ids) {
 	auto assoc = DataTable.get!(DArray) (aid);
 	foreach (it ; ids) {
 	    assoc.local [it.key] = it.value;
 	}
     }
     
-    void noEndJob (uint, uint) { assert (false, "Ce job est censé etre asynchrone"); }
+    static void noEndJob (uint, uint) { assert (false, "Ce job est censé etre asynchrone"); }
     
-    void informLocal (uint other, ulong [] ids, ref DArray assoc) {
+    static void informLocal (uint other, ulong [] ids, ref DArray assoc) {
 	KV [] total = new KV [ids.length];
 	auto realLen = 0;
 	foreach (it ; 0 .. ids.length) {
@@ -250,7 +251,7 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
 	Server.jobRequest!(thisSetJob) (other, assoc.id, new KV [0]);
     }
 
-    void informJob (uint addr, uint aid, ulong [] ids) {
+    static void informJob (uint addr, uint aid, ulong [] ids) {
 	auto assoc = DataTable.get!(DArray) (aid);
 	KV [] total = new KV [ids.length];
 	auto realLen = 0;
@@ -265,11 +266,11 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
 	Server.jobResult!(thisInformJob) (addr, aid, new KV [0]);
     }
 
-    void informJobEnd (uint addr, uint aid, KV [] gets) {
+    static void informJobEnd (uint addr, uint aid, KV [] gets) {
 	Server.sendMsg (gets.length, cast (shared (KV)*) gets.ptr);
     }
         
-    void informRemote (uint fst, uint scd, ulong [] ids, uint assoc) {
+    static void informRemote (uint fst, uint scd, ulong [] ids, uint assoc) {
 	Server.jobRequest!(thisInformJob) (fst, assoc, ids);
 	ulong len; shared (KV) * aux;
 	Server.waitMsg (len, aux);
@@ -279,7 +280,7 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
 	}
     }
     
-    void executeReduce (DistGraph!(VD, ED) gp, ref DArray assoc) {
+    static void executeReduce (DistGraph!(VD, ED) gp, ref DArray assoc) {
 	auto cuts = gp.cuts;
 	foreach (key, value ; cuts) {
 	    if (key[0] == Server.machineId) {
@@ -302,13 +303,13 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
 	}
     }
 
-    void syncJob (uint addr, uint id) {
+    static void syncJob (uint addr, uint id) {
 	writeln ("Sync recv");
 	stdout.flush ();
 	Server.jobResult!(thisSyncJob) (addr, id);
     }
     
-    void syncJobEnd (uint addr, uint id) {
+    static void syncJobEnd (uint addr, uint id) {
 	Server.sendMsg (id);
     }    
     

@@ -38,7 +38,7 @@ void main (string [] args) {
 	foreach (it ; 0 .. nbVerts) {
 	    writeln ("VERT : ", it);	    
 	    grp = grp.InitVertices! (
-		(DstVertex v, ulong val) {
+		(v, val) {
 		    v.current = val;
 		    if (v.id == val) {
 			v.dst [val] = 0.0f;			
@@ -48,16 +48,16 @@ void main (string [] args) {
 	    ) (it);
 	    
 	    grp = grp.Pregel! (
-		(DstVertex v, float nDist) {
+		(v, nDist) {
 		    v.dst [v.current] = min (v.dst [v.current], nDist);
 		    return v;
 		},
-		(DstVertex src, DstVertex dst, EdgeD edge) {
+		(src, dst, edge) {
 		    if (src.dst[src.current] + 1 < dst.dst[src.current])
 			return iterator (dst.id, src.dst[src.current] + 1);
 		    else return Iterator!(float).empty;
 		}, 
-		(float a, float b) => min (a, b)
+		(a, b) => min (a, b)
 	    );
 	    writeln ("FIN VERT : ", it);	    
 	}

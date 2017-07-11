@@ -9,10 +9,8 @@ import std.stdio, core.thread;
 
 
 template MapVertices (alias fun) {
-
-    alias VO = ReturnType!(fun);
     
-    DistGraph!(VO, E) MapVertices (T : DistGraph! (V, E), V, E) (T a) {
+    auto MapVertices (T : DistGraph! (V, E), V, E) (T a) {	
 	return MapVerticesVE!(V, E, fun) (a);
     }
     
@@ -20,13 +18,13 @@ template MapVertices (alias fun) {
 
 template MapVerticesVE (V, E, alias fun) {
 
-    alias VO = ReturnType!(fun);
+    alias VO = typeof (fun (V.init));
 
     alias thisJob = Job!(mapJob, endJob);
     alias FRAG = DistGraphFragment!(V, E);
     alias FRAG2 = DistGraphFragment!(VO, E);
     
-    class MapThread : Thread {
+    static class MapThread : Thread {
 	private FRAG * _in;
 	private FRAG2 * _out;
 
@@ -44,7 +42,7 @@ template MapVerticesVE (V, E, alias fun) {
 	}	
     }
     
-    void executeMap (ref DistGraph!(VO, E) _out, DistGraph!(V, E) _in) {
+    static void executeMap (ref DistGraph!(VO, E) _out, DistGraph!(V, E) _in) {
 	auto res = new Thread [_in.locals.length];
 	foreach (it ; 0 .. res.length) {
 	    res [it] = new MapThread (
@@ -57,14 +55,14 @@ template MapVerticesVE (V, E, alias fun) {
 	    it.join ();	
     }
     
-    void mapJob (uint addr, uint idFrom, uint idTo) {
+    static void mapJob (uint addr, uint idFrom, uint idTo) {
 	auto grpFrom = DataTable.get!(DistGraph!(V, E)) (idFrom);
 	auto grpTo = DataTable.get!(DistGraph!(VO, E)) (idTo);
 	executeMap (grpTo, grpFrom);
 	Server.jobResult!(thisJob) (addr, idTo);
     }
 
-    void endJob (uint addr, uint id) {
+    static void endJob (uint addr, uint id) {
 	Server.sendMsg (id);
     }
 

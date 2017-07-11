@@ -13,12 +13,12 @@ import std.container;
 template Pregel (Fun ...) 
     if (Fun.length == 3) {
 
-    alias Msg = typeof (ReturnType!(Fun [1]).msg);    
     alias VProg = Fun [0];
     alias MapFun = Fun [1];
     alias ReduceFun = Fun [2];
 
     auto Pregel (VD, ED) (DistGraph!(VD, ED) g, ulong maxIter = ulong.max) {
+	alias Msg = typeof (Fun [1](VD.init, VD.init, ED.init).msg);    
 	auto messages = g.MapReduceTriplets!(MapFun, ReduceFun);
 	
 	ulong activeMessages = messages.length;

@@ -6,26 +6,29 @@ import assign.data.AssocArray;
 import assign.launching;
 import std.traits;
 import std.container, core.thread;
+import std.functional;
 import std.stdio, std.algorithm;
 
 
-template JoinVertices (alias fun) {
+template JoinVertices (alias Fun) {
+
+    alias fun = binaryFun!(Fun);
+    
     auto JoinVertices (T : DistGraph!(VD, ED), VD, ED, Msg) (T gp, DistAssocArray!(ulong, Msg) msgs) {
-	return JoinVerticesS!(VD, ED, fun) (gp, msgs);
+	return JoinVerticesS!(VD, ED, Msg, fun) (gp, msgs);
     }
 }
 
-template JoinVerticesS (VD, ED, alias fun) {
 
-    alias VO = ReturnType!(fun);
-    alias Msg = ParameterTypeTuple!(fun) [1];
+template JoinVerticesS (VD, ED, Msg, alias fun) {
+    alias VO = typeof (fun (VD.init, Msg.init));    
     alias DArray = DistAssocArray!(ulong, Msg);
     
     alias thisJob = Job!(joinJob, endJob);
     alias FRAG = DistGraphFragment!(VD, ED);
     alias FRAG2 = DistGraphFragment!(VO, ED);
 
-    class JoinThread : Thread {
+    static class JoinThread : Thread {
 	private FRAG * _in;
 	private FRAG2 * _out;
 	private Msg[ulong] _msgs;
@@ -56,7 +59,7 @@ template JoinVerticesS (VD, ED, alias fun) {
 	}	
     }
     
-    void join (ref DistGraph!(VO, ED) _out, DistGraph!(VD, ED) _in, Msg [ulong] msgs) {
+    static void join (ref DistGraph!(VO, ED) _out, DistGraph!(VD, ED) _in, Msg [ulong] msgs) {
 	auto res = new Thread [_in.locals.length];
 	auto msgsS = cast (shared(Msg[ulong])*) &msgs;
 	foreach (it ; 0 .. _in.locals.length) {
@@ -73,7 +76,7 @@ template JoinVerticesS (VD, ED, alias fun) {
 	_out.cuts = _in.cuts;
     }
     
-    void joinJob (uint addr, uint idFrom, uint idTo, uint assocId) {
+    static void joinJob (uint addr, uint idFrom, uint idTo, uint assocId) {
 	auto grpFrom = DataTable.get!(DistGraph!(VD, ED)) (idFrom);
 	auto grpTo = DataTable.get!(DistGraph!(VO, ED)) (idTo);
 	auto assoc = DataTable.get!(DArray) (assocId);
@@ -81,7 +84,7 @@ template JoinVerticesS (VD, ED, alias fun) {
 	Server.jobResult!(thisJob) (addr, idTo);
     }
 
-    void endJob (uint addr, uint id) {
+    static void endJob (uint addr, uint id) {
 	Server.sendMsg (id);
     }
 

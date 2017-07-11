@@ -7,11 +7,11 @@ import std.traits, core.thread;
 import std.container, assign.cpu;
 import std.stdio, std.concurrency;
 
-template FilterEdges (alias fun) {
-
-    alias E = ParameterTypeTuple!(fun) [0];
+template FilterEdges (alias Fun) {
+    alias fun = binaryFun!(Fun);
     
-    DistGraph!(V, E) FilterEdges (T : DistGraph!(V, E), V) (T a) {
+    DistGraph!(V, E) FilterEdges (T : DistGraph!(V, E), V, E) (T a) {
+	static assert (is (typeof (fun (E.init))));
 	return FilterEdgesVE!(V, E, fun) (a);
     }    
 }
@@ -21,7 +21,7 @@ template FilterEdgesVE (V, E, alias fun) {
     alias thisJob = Job!(filterJob, endJob);    
     alias FRAG = DistGraphFragment!(V, E);
     
-    class FilterThread : Thread {
+    static class FilterThread : Thread {
 	private FRAG * _out;
 	private FRAG * _in;
 	
@@ -42,7 +42,7 @@ template FilterEdgesVE (V, E, alias fun) {
 	}
     }
         
-    void filter (ref DistGraph!(V, E) _out, DistGraph!(V, E) _in) {
+    static void filter (ref DistGraph!(V, E) _out, DistGraph!(V, E) _in) {
 	auto res = new Thread [_in.locals.length];
 	foreach (it ; 0 .. _in.locals.length) {
 	    res [it] = new FilterThread (
@@ -57,14 +57,14 @@ template FilterEdgesVE (V, E, alias fun) {
 	_out.cuts = _in.cuts;
     }
     
-    void filterJob (uint addr, uint idFrom, uint idTo) {
+    static void filterJob (uint addr, uint idFrom, uint idTo) {
 	auto grpFrom = DataTable.get!(DistGraph!(V, E)) (idFrom);
 	auto grpTo = DataTable.get!(DistGraph!(V, E)) (idTo);
 	filter (grpTo, grpFrom);
 	Server.jobResult!(thisJob) (addr, idTo);
     }    
     
-    void endJob (uint addr, uint id) {
+    static void endJob (uint addr, uint id) {
 	Server.sendMsg (id);
     }
             
