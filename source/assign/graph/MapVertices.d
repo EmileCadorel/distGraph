@@ -43,7 +43,7 @@ template MapVerticesVE (V, E, alias fun) {
     }
     
     static void executeMap (ref DistGraph!(VO, E) _out, DistGraph!(V, E) _in) {
-	auto res = new Thread [_in.locals.length];
+	auto res = alloc!(Thread) [_in.locals.length];
 	foreach (it ; 0 .. res.length) {
 	    res [it] = new MapThread (
 		&_in.locals [it],

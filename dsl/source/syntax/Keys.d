@@ -2,7 +2,7 @@ module syntax.Keys;
 import syntax.Tokens;
 import std.typecons;
 
-enum Keys : Token {
+enum Keys {
     IF = ("if"),
     RETURN = ("return"),
     FOR = ("for"),
@@ -18,6 +18,7 @@ enum Keys : Token {
     AUTO = ("auto"),
     IS = ("is"),
     NOT_IS = ("!is"),
-	ANTI = ("\\"),
-	LX = ("x")
+    ANTI = ("\\"),
+    LX = ("x"),
+    STRUCT = ("struct")
 }

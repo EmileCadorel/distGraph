@@ -45,7 +45,7 @@ template InitVerticesVE (VO, V, E, T2, alias Fun) {
     }
     
     static void executeInit (ref DistGraph!(VO, E) _out, DistGraph!(V, E) _in, T2 val) {
-	auto res = new Thread [_in.locals.length];
+	auto res = new Thread[] (_in.locals.length);
 	foreach (it ; 0 .. res.length) {
 	    res [it] = new InitThread (
 		&_in.locals [it],

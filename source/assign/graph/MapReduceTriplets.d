@@ -147,7 +147,7 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
 	import std.datetime;
 	auto begin = Clock.currTime;
 	MapThread.willLaunch (gp.locals.length);
-	auto res = new Thread [gp.locals.length];
+	auto res = new Thread[] (gp.locals.length);
 	foreach (it ; 0 .. gp.locals.length) {
 	    res [it] = new MapThread (
 		& gp.locals [it],
@@ -174,7 +174,7 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
     
     static void getJob (uint addr, uint aid, ulong [] ids) {
 	auto assoc = DataTable.get!(DArray) (aid);
-	auto res = new KV [ids.length];
+	auto res = alloc!(KV) (ids.length);
 	auto realLen = 0;
 	foreach (it ; 0 .. ids.length) {
 	    if (auto loc = ids [it] in assoc.local) {
@@ -238,7 +238,7 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
     static void noEndJob (uint, uint) { assert (false, "Ce job est censé etre asynchrone"); }
     
     static void informLocal (uint other, ulong [] ids, ref DArray assoc) {
-	KV [] total = new KV [ids.length];
+	KV [] total = alloc!(KV) (ids.length);
 	auto realLen = 0;
 	foreach (it ; 0 .. ids.length) {
 	    if (auto _loc = ids [it] in assoc.local) {
@@ -248,12 +248,12 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
 	}
 	if (realLen != 0)
 	    Server.jobRequest!(thisSetJob) (other, assoc.id, total [0 .. realLen]);
-	Server.jobRequest!(thisSetJob) (other, assoc.id, new KV [0]);
+	Server.jobRequest!(thisSetJob) (other, assoc.id, alloc!(KV) (0));
     }
 
     static void informJob (uint addr, uint aid, ulong [] ids) {
 	auto assoc = DataTable.get!(DArray) (aid);
-	KV [] total = new KV [ids.length];
+	KV [] total = alloc!(KV) (ids.length);
 	auto realLen = 0;
 	foreach (it ; 0 .. ids.length) {
 	    if (auto _loc = ids [it] in assoc.local) {
@@ -263,7 +263,7 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
 	}
 	if (realLen != 0) 
 	    Server.jobResult!(thisInformJob) (addr, aid, total [0 .. realLen]);
-	Server.jobResult!(thisInformJob) (addr, aid, new KV [0]);
+	Server.jobResult!(thisInformJob) (addr, aid, alloc!(KV) (0));
     }
 
     static void informJobEnd (uint addr, uint aid, KV [] gets) {

@@ -16,7 +16,7 @@ class Elem (alias fun) : Task {
 	if (_outF.isEmpty && _outF.length!(T) >= (data.length / __ARITY__) + (data.length % __ARITY__)) {
 	    _out = _outF.get!(T[]) [0 .. (data.length / __ARITY__) + (data.length % __ARITY__)];
 	} else {
-	    _out = new T [(data.length / __ARITY__) + (data.length % __ARITY__)];
+	    _out = alloc!(T)((data.length / __ARITY__) + (data.length % __ARITY__));
 	}
 	
 	uint i = 0;
@@ -42,14 +42,14 @@ class Elem (alias fun) : Task {
     
     override Feeder output (Feeder _in) {
 	T [] data = _in.get!(T[]);
-	T [] _out = new T [(data.length / __ARITY__) + (data.length % __ARITY__)];
+	T [] _out = alloc!(T) ((data.length / __ARITY__) + (data.length % __ARITY__));
 	return Feeder (_out);
     }
     
     override Feeder [] divide (ulong nb, Feeder _inF) {
 	auto _in = _inF.get!(T[]);
 
-	Feeder [] ret = new Feeder [nb];	
+	Feeder [] ret = alloc!(Feeder) (nb);	
 	foreach (it ; 0 .. nb) {
 	    if (it < nb - 1) {		
 		ret [it] = Feeder (_in [($ / nb * it) .. ($ / nb) * (it + 1)]);
@@ -108,7 +108,7 @@ class IndexedElem (alias fun) : Task {
     }
     
     override Feeder [] divide (ulong nb, Feeder _in) {
-	Feeder [] ret = new Feeder [nb];
+	Feeder [] ret = alloc!(Feeder) (nb);
 	auto len = _in.length!(T);
 	auto _out = _in.get!(T[]);
 	
@@ -133,7 +133,7 @@ class IndexedElem (alias fun) : Task {
 	    len = _in.get!ulong;
 	}
 	
-	return Feeder (new T [len]);	
+	return Feeder (alloc!(T)(len));	
     }
     
     override Task clone () {

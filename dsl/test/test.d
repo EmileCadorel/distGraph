@@ -1,20 +1,23 @@
 import std.stdio;
 
-template Machin (string fun) {
-    int Machin() {
-	writeln (fun);
-	return 0;
-    }
+fn vecadd (ulong [] a, ulong [] b, ulong len) {
+    auto i = get_global_id (0);
+    if (i < len)
+	c [i] = a[i] + b[i];
+}
+
+fn generate (ulong [] a, ulong len) {
+    auto i = get_global_id (0);
+    if (i < len)
+	a [i] = i;
 }
 
 void main () {
-    auto a = Machin! (
-	fn (int a) {
-	    for (auto i = 0 ; i < 100; i++) {
-		a++;
-		writeln (a);
-	    }
-	    return a;
-	}	
-    );    
+    ulong [] a = new ulong [100];
+    ulong [] b = new ulong [100];
+    
+    generate (a, a.length);
+    generate (b, b.length);
+    
+    auto a = vecadd (a, b, a.length);
 }

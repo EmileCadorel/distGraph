@@ -49,10 +49,8 @@ template Map (alias dg) {
     
     auto Map (DistArray!T array) {
 	alias thisJob = Job!(mapJob, endJob);
-	foreach (key, value ; array.machineBegins) {
-	    if (key != Server.machineId) {
-		Server.jobRequest!(thisJob) (key, array.id);
-	    }
+	foreach (id ; Server.connected) {
+	    Server.jobRequest!(thisJob) (id, array.id);	    
 	}
 
 	auto nb = SystemInfo.cpusInfo ().length;
@@ -73,14 +71,13 @@ template Map (alias dg) {
 	foreach (it ; 0 .. nb - 1) {
 	    Server.waitMsg!bool ();
 	}
-
-	foreach (key, value ; array.machineBegins) {
-	    if (key != Server.machineId) {
-		Server.waitMsg!(uint);
-	    }
+	writeln ("FIN");
+	foreach (id ; Server.connected) {
+	    writeln ("ID :", id);
+	    Server.waitMsg!(uint);	    
 	}
-	
-	return array;
+	writeln ("FIN2");
+	return array;	
     }
 
     void mapSlave (Tid owner, ulong begin, shared T [] datas) {

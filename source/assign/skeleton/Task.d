@@ -1,4 +1,5 @@
 module assign.skeleton.Task;
+public import utils.Allocation;
 import std.container;
 import assign.data.Data;
 

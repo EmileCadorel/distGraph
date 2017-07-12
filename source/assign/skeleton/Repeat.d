@@ -29,7 +29,7 @@ class Repeat(T) : SyncTask {
 	foreach (it ; _in) {
 	    total += it.length!(T);
 	}
-	auto res = new T [total];
+	auto res = alloc!(T) (total);
 	ulong i = 0;
 	
 	foreach (it ; _in) {
@@ -42,11 +42,11 @@ class Repeat(T) : SyncTask {
     }
 
     override Feeder output (Feeder) {
-	return Feeder (new T[1]);
+	return Feeder (alloc!(T)(1));
     }
     
     override Feeder [] divide (ulong nb, Feeder _in) {
-	Feeder [] ret = new Feeder [nb];	
+	Feeder [] ret = alloc!(Feeder) (nb);	
 	auto datas = _in.get!(T[]);
 	
 	foreach (it ; 0 .. nb) {

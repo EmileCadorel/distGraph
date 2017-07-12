@@ -43,7 +43,7 @@ template FilterEdgesVE (V, E, alias fun) {
     }
         
     static void filter (ref DistGraph!(V, E) _out, DistGraph!(V, E) _in) {
-	auto res = new Thread [_in.locals.length];
+	auto res = new Thread[] (_in.locals.length);
 	foreach (it ; 0 .. _in.locals.length) {
 	    res [it] = new FilterThread (
 		&_in.locals [it],

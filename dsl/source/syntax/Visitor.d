@@ -75,11 +75,13 @@ class Visitor {
 	    if (word.isEof) break;
 	    else if (word == Keys.FUNCTION) {
 		funcs.insertBack (visitFunction ());
+	    } else if (word == Keys.STRUCT) {
+		funcs.insertBack (visitStruct ());
 	    }
 	}
 	return funcs;	
     }
-
+   
     Function visitFunction () {
 	auto begin = this._lex.rewind.next ();
 	this._lex.next (Tokens.LPAR);

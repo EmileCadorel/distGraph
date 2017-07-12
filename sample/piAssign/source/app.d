@@ -1,6 +1,6 @@
 import std.stdio;
 import assign.data.Array;
-import assign.skeleton.Map;
+import assign.skeleton.Init;
 import assign.skeleton.Reduce;
 import assign.graph.loader;
 import assign.admin;
@@ -13,23 +13,20 @@ enum n = 1_000_000;
 
 void pi (string [] args) {    
     auto adm = new AssignAdmin (args);
-    scope (exit) adm.end ();
     
     auto begin = Clock.currTime ();
     auto a = new DistArray!double (n);
-
     
-    auto res = a.Map !(
-	(size_t i, double it) {
-	    return (1.0 / n) / ( 1.0 + (( i - 0.5 ) * (1.0 / n)) * (( i - 0.5 ) * (1.0 / n)));
-	}
+    auto res = a.Init !(
+	i => (4.0 / n) / ( 1.0 + (( i - 0.5 ) * (1.0 / n)) * (( i - 0.5 ) * (1.0 / n)))
     ).Reduce! (
-    	(double a, double b) => a + b
+	(a, b) => a + b
     );
     
     auto end = Clock.currTime ();
-
-    writefln ("Pi = %.18f :(%s)", 4.0 * res, (end - begin).to!string);            
+    
+    writefln ("Pi = %.18f :(%s)", res, (end - begin).to!string);
+    adm.end ();
 }
 
 void main (string [] args) {

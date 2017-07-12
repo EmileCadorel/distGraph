@@ -5,23 +5,40 @@ import assign.Job;
 import std.concurrency;
 import assign.data.Array;
 import assign.cpu;
-import std.stdio;
+import std.stdio, core.thread;
 
 template Init (alias fun) {
+    auto Init (T) (DistArray!T data) {
+	return InitImpl!(T, fun) (data);
+    }
+}
 
-    alias T = ReturnType!fun;
+
+template InitImpl (T, alias fun) {
 
     alias thisJob = Job!(initJob, endJob);
 
-    void init (ulong begin, shared T [] datas) {
-	if (datas.length != 0) {
-	    foreach (it ; 0 .. datas.length) {
-		datas [it] = fun (begin + it);
+    static class InitThread : Thread {
+	private T[] _datas;
+	private ulong _begin;
+
+	this (ulong begin, T[] datas) {
+	    super (&this.run);
+	    this._begin = begin;
+	    this._datas = datas;
+	}
+
+	void run () {
+	    if (this._datas.length != 0) {
+		foreach (it ; 0 .. this._datas.length) {
+		    this._datas [it] = fun (this._begin + it);
+		}
 	    }
 	}
     }
 
-    void init (ulong begin, T [] datas) {
+    
+    static void init (ulong begin, T [] datas) {
 	if (datas.length != 0) {
 	    foreach (it ; 0 .. datas.length) {
 		datas [it] = fun (begin + it);
@@ -29,73 +46,66 @@ template Init (alias fun) {
 	}
     }
     
-    void initJob (uint addr, uint id) {
+    static void initJob (uint addr, uint id) {
 	auto array = DataTable.get!(DistArray!T) (id);
 	auto nb = SystemInfo.cpusInfo().length;
-	writeln ("Th ", nb);
+	auto res = new Thread [nb - 1];
 	
 	foreach (it ; 1 .. nb) {
 	    if (it != nb - 1) {
-		shared b = cast (shared (T[])) array.local [(array.localLength / nb) * it ..
-							    (array.localLength / nb) * (it + 1)];
-		spawn (&initSlave, thisTid, array.begin + (array.localLength / nb) * it, b);
+		auto b = array.local [(array.localLength / nb) * it ..
+				      (array.localLength / nb) * (it + 1)];
+		res [it - 1] = new InitThread (array.begin + (array.localLength / nb) * it, b).start ();
 	    } else {
-		shared b = cast (shared (T[])) array.local [(array.localLength / nb) * it ..
-							    $];
-		spawn (&initSlave, thisTid, array.begin + (array.localLength / nb) * it, b);
+		auto b = array.local [(array.localLength / nb) * it .. $];
+		res [it - 1] = new InitThread (array.begin + (array.localLength / nb) * it, b).start ();
 	    }
 	}
 
 	init (array.begin, array.local [0 .. array.localLength / nb]);
-	foreach (it ; 0 .. nb - 1) {
-	    Server.waitMsg!bool ();
+	
+	foreach (it ; res) {
+	    it.join ();
 	}
 	
 	Server.jobResult!(thisJob) (addr, id);
     }
 
-    void endJob (uint addr, uint id) {
+    static void endJob (uint addr, uint id) {
 	Server.sendMsg (id);
     }
 
-    void Init (DistArray!T array) {
-	foreach (key, value ; array.machineBegins) {
-	    if (key != Server.machineId) {
-		Server.jobRequest!(thisJob) (key, array.id);
-	    }
+    auto InitImpl (DistArray!T array) {
+	foreach (id; Server.connected) {
+	    Server.jobRequest!(thisJob) (id, array.id);	    
 	}
 
 	auto nb = SystemInfo.cpusInfo().length;
-	writeln ("Th ", nb);
+	auto res = new Thread [nb - 1];
 	
 	foreach (it ; 1 .. nb) {
 	    if (it != nb - 1) {
-		shared b = cast (shared (T[])) array.local [(array.localLength / nb) * it ..
-							    (array.localLength / nb) * (it + 1)];
-		spawn (&initSlave, thisTid, array.begin + (array.localLength / nb) * it, b);
+		auto b = array.local [(array.localLength / nb) * it ..
+				      (array.localLength / nb) * (it + 1)];
+		res [it - 1] = new InitThread (array.begin + (array.localLength / nb) * it, b).start ();
 	    } else {
-		shared b = cast (shared (T[])) array.local [(array.localLength / nb) * it ..
-							    $];
-		spawn (&initSlave, thisTid, array.begin + (array.localLength / nb) * it, b);
+		auto b = array.local [(array.localLength / nb) * it .. $];
+		res [it - 1] = new InitThread (array.begin + (array.localLength / nb) * it, b).start ();
 	    }
 	}
+
 
 	init (array.begin, array.local [0 .. array.localLength / nb]);
-	foreach (it ; 0 .. nb - 1) {
-	    Server.waitMsg!bool ();
+	
+	foreach (it ; res) {
+	    it.join ();
 	}
-
-	foreach (key, value ; array.machineBegins) {
-	    if (key != Server.machineId) {
-		Server.waitMsg!(uint);
-	    }
-	}	
+	
+	foreach (id ; Server.connected) {
+	    Server.waitMsg!(uint);	
+	}
+	
+	return array;
     }
-
-    void initSlave (Tid owner, ulong begin, shared T [] datas) {
-	init (begin, datas);
-	send (owner, true);
-    }
-
 
 }

@@ -60,7 +60,7 @@ template JoinVerticesS (VD, ED, Msg, alias fun) {
     }
     
     static void join (ref DistGraph!(VO, ED) _out, DistGraph!(VD, ED) _in, Msg [ulong] msgs) {
-	auto res = new Thread [_in.locals.length];
+	auto res = new Thread[] (_in.locals.length);
 	auto msgsS = cast (shared(Msg[ulong])*) &msgs;
 	foreach (it ; 0 .. _in.locals.length) {
 	    res [it] = new JoinThread (

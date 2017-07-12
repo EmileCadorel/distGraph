@@ -59,8 +59,7 @@ class DistArray (T) : DistData {
 	    writeln (key, " => ", value);
 	}
 	auto machineId = Server.machineId;
-	this._local = new T[repartition [machineId].len];
-	
+	this._local = alloc!T (repartition [machineId].len);
 	foreach (key, value ; repartition) {
 	    if (key != machineId) {
 		Server.jobRequest!(thisAllocJob) (key, this._id, length, value.begin, value.len);
@@ -84,7 +83,7 @@ class DistArray (T) : DistData {
 	super (id);
 	this._length = length;
 	this._begin = localBegin;
-	this._local = new T[localLength];	
+	this._local = alloc!T (localLength);	
 	DataTable.add (this);
     }
 
@@ -281,7 +280,7 @@ class DistArray (T) : DistData {
 		Server.jobRequest!(thisFreeJob) (key, this._id);
 		Server.waitMsg!uint ();
 	    }
-	}	
+	}
     }    
 
 };

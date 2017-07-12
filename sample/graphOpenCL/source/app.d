@@ -22,7 +22,8 @@ void main (string [] args) {
     auto adm = new AssignAdmin (args);
     auto begin = Loader.load (Options ["-i"]);
 
-    auto grp = begin.InitVertices! (	
+    auto grp = begin.InitVertices! (
+	"Dst (a.id, 0.0f) : Dst (a.id, float.infinity)", 
 	(a, b) => (a.id == b) ? Dst (a.id, 0.0f) : Dst (a.id, float.infinity)	
     ) (0);
 

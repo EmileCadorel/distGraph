@@ -6,35 +6,56 @@ import assign.Job;
 import std.concurrency;
 import assign.cpu;
 import assign.data.Array;
+import core.thread;
 
-template Reduce(alias fun) {
+template Reduce (alias fun) {
+
+    auto Reduce (T) (DistArray!T data) {
+	return ReduceImpl!(T, fun) (data);
+    }
     
-    alias T = ReturnType!fun;        
+}
 
+template ReduceImpl (T, alias fun) {
+    
     alias thisJob = Job!(reduceJob, answerJob);
-               
-    T reduceArray () (T [] datas) {
-	ulong anc = datas.length;
-	ulong nb = datas.length / 2;
-	auto padd = 1;
-	while (padd < anc) {
-	    auto it = 0;
-	    for (it = 0; (it + padd) < (anc) ; it += (2*padd)) {
-		datas [it] = fun (datas [it], datas [it + padd]);
-	    }
+
+    static class ReduceThread : Thread {
+	private T[] datas;
+	private T _res;
 	
-	    if (it < anc && (it - (2 * padd)) >= 0) {
-		datas [it - (2 * padd)] = fun (datas [it - (2 * padd)], datas [it]);
-		anc = it;
+	this (T[] datas) {
+	    super (&this.run);
+	    this.datas = datas;
+	}
+	
+	void run () {
+	    ulong anc = datas.length;
+	    ulong nb = datas.length / 2;
+	    auto padd = 1;
+	    while (padd < anc) {
+		auto it = 0;
+		for (it = 0; (it + padd) < (anc) ; it += (2*padd)) {
+		    datas [it] = fun (datas [it], datas [it + padd]);
+		}
+		
+		if (it < anc && (it - (2 * padd)) >= 0) {
+		    datas [it - (2 * padd)] = fun (datas [it - (2 * padd)], datas [it]);
+		    anc = it;
+		}
+		
+		padd *= 2;
 	    }
 	    
-	    padd *= 2;
+	    this._res = datas [0];    
 	}
-    
-	return datas [0];    
+
+	T res () {
+	    return this._res;
+	}
     }
 
-    T reduceArray () (shared T [] datas) {
+    static T reduceArray () (T [] datas) {
 	ulong anc = datas.length;
 	ulong nb = datas.length / 2;
 	auto padd = 1;
@@ -55,71 +76,65 @@ template Reduce(alias fun) {
 	return datas [0];    
     }
     
-    void reduceJob (uint addr, uint id) {
+    static void reduceJob (uint addr, uint id) {
 	auto array = DataTable.get!(DistArray!T) (id);
 	auto nb = SystemInfo.nbThreadsPerCpu ();
-
+	auto res = new Thread [nb - 1];
+	
 	foreach (it ; 1 .. nb) {
 	    if (it != nb - 1) {
-		shared b = cast (shared(T[])) array.local [(array.localLength / nb) * (it) .. (array.localLength / nb) * (it + 1)];
-		spawn (&reduceSlave, thisTid, b);
+		auto b = array.local [(array.localLength / nb) * (it) .. (array.localLength / nb) * (it + 1)];
+		res [it - 1] = new ReduceThread (b).start ();
 	    } else {
-		shared b = cast (shared(T[])) array.local [(array.localLength / nb) * (it) .. $];
-		spawn (&reduceSlave, thisTid, b);
+		auto b = array.local [(array.localLength / nb) * (it) .. $];
+		res [it - 1] = new ReduceThread (b).start ();
 	    }
 	}
 	
 	T soluce = reduceArray (array.local [0 .. (array.localLength / nb)]);
 	
-	foreach (it ; 0 .. nb - 1) {
-	    T res = Server.waitMsg!T ();
-	    soluce = fun (soluce, res);
+	foreach (it ; res) {
+	    it.join ();
+	    soluce = fun (soluce, (cast (ReduceThread) it).res);
 	}
-
        	Server.jobResult!(thisJob) (addr, id, soluce);
     }
 
-    void answerJob (uint addr, uint jbId, T res) {
+    static void answerJob (uint addr, uint jbId, T res) {
 	Server.sendMsg (res);
     }
     
-    T Reduce (DistArray!T array) {
-	foreach (key, value ; array.machineBegins) {
-	    if (key != Server.machineId) {
-		Server.jobRequest!(thisJob) (key, array.id);
-	    }
+    T ReduceImpl (DistArray!T array) {
+	foreach (id ; Server.connected) {
+	    Server.jobRequest!(thisJob) (id, array.id);	    
 	}
 	
 	auto nb = SystemInfo.nbThreadsPerCpu ();
+	auto res = new Thread [nb - 1];
+	
 	foreach (it ; 1 .. nb) {
 	    if (it != nb - 1) {
-		shared b = cast (shared(T[])) array.local [(array.localLength / nb) * (it) .. (array.localLength / nb) * (it + 1)];
-		spawn (&reduceSlave, thisTid, b);
+		auto b = array.local [(array.localLength / nb) * (it) .. (array.localLength / nb) * (it + 1)];
+		res [it - 1] = new ReduceThread (b).start ();
 	    } else {
-		shared b = cast (shared(T[])) array.local [(array.localLength / nb) * (it) .. $];
-		spawn (&reduceSlave, thisTid, b);
+		auto b = array.local [(array.localLength / nb) * (it) .. $];
+		res [it - 1] = new ReduceThread (b).start ();
 	    }
-	}
-
-	T soluce = reduceArray (array.local [0 .. (array.localLength / nb)]);	
-
-	foreach (it ; 0 .. nb - 1) {
-	    T res = Server.waitMsg!T ();
-	    soluce = fun (res, soluce);
 	}
 	
-	foreach (key, value ; array.machineBegins) {
-	    if (key != Server.machineId) {
-		soluce = fun (soluce, Server.waitMsg!T ());
-	    }
+	T soluce = reduceArray (array.local [0 .. (array.localLength / nb)]);	
+
+	foreach (it ; res) {
+	    it.join ();
+	    soluce = fun ((cast (ReduceThread) it).res, soluce);
+	}
+	
+	foreach (id ; Server.connected) {
+	    auto t = Server.waitMsg!T ();
+	    soluce = fun (soluce, t);
 	}
 	
 	return soluce;
     }
-
-    void reduceSlave (Tid owner, shared T [] datas) {
-	send (owner, reduceArray (datas));
-    }
-    
-   
+  
 }

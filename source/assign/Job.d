@@ -1,4 +1,5 @@
 module assign.Job;
+public import utils.Allocation;
 import pack = assign.socket.Package;
 import sock = assign.socket.Socket;
 import proto = assign.socket.Protocol;
