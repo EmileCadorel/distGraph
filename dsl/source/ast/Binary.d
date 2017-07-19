@@ -13,6 +13,14 @@ class Binary : Expression {
 	this._left = left;
 	this._right = right;
     }
+
+    Expression left () {
+	return this._left;
+    }
+
+    Expression right () {
+	return this._right;
+    }
     
     override string toString () {
 	import std.format;

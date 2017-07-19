@@ -14,11 +14,12 @@ enum Keys {
     FALSE = ("false"),
     NULL = ("null"),
     CAST = ("cast"),
-    FUNCTION = ("fn"),
+    FUNCTION = ("kern"),
     AUTO = ("auto"),
     IS = ("is"),
     NOT_IS = ("!is"),
     ANTI = ("\\"),
     LX = ("x"),
-    STRUCT = ("struct")
+    STRUCT = ("struct"),
+    LOCAL = ("__loc")
 }

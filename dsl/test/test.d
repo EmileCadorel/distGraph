@@ -1,23 +1,16 @@
 import std.stdio;
 
-fn vecadd (ulong [] a, ulong [] b, ulong len) {
-    auto i = get_global_id (0);
-    if (i < len)
-	c [i] = a[i] + b[i];
+struct Test {
+    int a;
+    int b;
 }
 
-fn generate (ulong [] a, ulong len) {
-    auto i = get_global_id (0);
-    if (i < len)
-	a [i] = i;
+kern generate (int [] a, ulong len) {
+    //auto i = get_global_id (0);
+    //if (i < len)
+	a [len] = len;
 }
 
 void main () {
-    ulong [] a = new ulong [100];
-    ulong [] b = new ulong [100];
-    
-    generate (a, a.length);
-    generate (b, b.length);
-    
-    auto a = vecadd (a, b, a.length);
+    auto a = #[0].vecadd;
 }

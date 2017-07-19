@@ -11,8 +11,17 @@ class Block : Instruction {
 	super (token);
     }
 
+    this (Word token, Instruction inst) {
+	super (token);
+	this.addInst (inst);
+    }
+    
     void addInst (Instruction inst) {
 	this._insts.insertBack (inst);
+    }
+
+    Array!Instruction insts () {
+	return this._insts;
     }
     
     override string toString () {

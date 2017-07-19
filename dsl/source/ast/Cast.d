@@ -1,6 +1,6 @@
 module ast.Cast;
 import ast.Expression;
-import ast.TypedVar;
+import ast.Type;
 import syntax.Word;
 
 class Cast : Expression {

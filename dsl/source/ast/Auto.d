@@ -24,7 +24,8 @@ class Auto : Instruction {
 	auto buf = new OutBuffer ();
 	foreach (it ; 0 .. this._var.length) {
 	    if (it != 0) buf.writef ("%s", rightJustify ("", this._indent, ' '));
-	    buf.writef ("auto %s = %s;%s",
+	    buf.writef ("%s %s = %s;%s",
+			this._var [it].type.toString,
 			this._var [it].toString,
 			this._expr [it].toString,
 			it != this._var.length ? "\n" : "");	    

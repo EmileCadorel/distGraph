@@ -1,35 +1,7 @@
 module ast.TypedVar;
 import syntax.Word;
 import std.container;
-
-class Type {
-
-    private Word _ident;
-
-    private Array!Type _templates;
-
-    this (Word ident) {
-	this._ident = ident;
-    }
-
-    void addTemplate (Type type) {
-	this._templates.insertBack (type);
-    }    
-
-    override string toString () {
-	import std.outbuffer;
-	auto buf = new OutBuffer ();
-	buf.writef ("%s", this._ident.toString);
-	if (this._templates.length != 0) {
-	    buf.writef ("!(");
-	    foreach (it ; this._templates) {
-		buf.writef ("%s%s", it.toString, it !is this._templates[$ - 1] ? ", " : "");
-	    }
-	    buf.writef (")");
-	}
-	return buf.toString ();
-    }    
-}
+import ast.Type;
 
 class TypedVar {
 
@@ -40,6 +12,14 @@ class TypedVar {
     this (Type type, Word ident) {
 	this._ident = ident;
 	this._type = type;
+    }
+
+    Word ident () {
+	return this._ident;
+    }
+    
+    Type type () {
+	return this._type;
     }
     
     override string toString () {

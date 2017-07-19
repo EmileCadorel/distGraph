@@ -68,24 +68,29 @@ class Visitor {
     /**
        
      */
-    Array!Function visit () {
+    Program visit () {
 	Array!Function funcs;
+	Array!Struct str;
+	Array!Inline inlines;
 	while (true) {
 	    Word word = this._lex.next ();
 	    if (word.isEof) break;
 	    else if (word == Keys.FUNCTION) {
 		funcs.insertBack (visitFunction ());
 	    } else if (word == Keys.STRUCT) {
-		funcs.insertBack (visitStruct ());
+		str.insertBack (visitStruct ());
+	    } else if (word == Tokens.SHARP) {
+		inlines.insertBack (visitInline ());
 	    }
 	}
-	return funcs;	
+	return new Program (this._lex.filename, funcs, str, inlines);	
     }
    
     Function visitFunction () {
 	auto begin = this._lex.rewind.next ();
+	auto ident = visitIdentifiant ();
 	this._lex.next (Tokens.LPAR);
-	auto func = new Function (begin);
+	auto func = new Function (begin, ident);
 	while (true) {
 	    func.addParam (visitTypeVar ());	    
 	    auto next = this._lex.next (Tokens.RPAR, Tokens.COMA);
@@ -95,12 +100,42 @@ class Visitor {
 	if (next == Tokens.LACC) {
 	    this._lex.rewind ();
 	    func.setBlock (visitBlock ());
-	} else func.setBlock (visitInstruction ());
+	} else func.setBlock (new Block (next, visitInstruction ()));
 	func.setEnd (this._lex.next ());
 	this._lex.rewind ();
 	return func;
     }
 
+    
+    Struct visitStruct () {
+	auto ident = visitIdentifiant ();
+	auto next = this._lex.next (Tokens.LACC);
+	next = this._lex.next ();
+	auto str = new Struct (ident);
+	if (next != Tokens.RACC) {
+	    this._lex.rewind ();
+	    while (true) {
+		str.addVar (visitTypeVar ());
+		this._lex.next (Tokens.SEMI_COLON);
+		next = this._lex.next ();
+		if (next == Tokens.RACC) break;
+		else this._lex.rewind ();
+	    }
+	}
+	return str;
+    }
+
+    Inline visitInline () {
+	auto begin = this._lex.rewind.next ();
+	auto next = this._lex.next (Tokens.LCRO);
+	auto id = visitExpression ();
+	next = this._lex.next (Tokens.RCRO);
+	next = this._lex.next (Tokens.DOT);
+	auto ident = visitIdentifiant ();
+	return new Inline (begin, id, ident, ident);
+    }
+
+    
     Block visitBlock () {
 	auto next = this._lex.next (Tokens.LACC);
 	auto block = new Block (next);
@@ -124,6 +159,7 @@ class Visitor {
 	else if (tok == Keys.FOR) return visitFor ();
 	else if (tok == Keys.WHILE) return visitWhile ();
 	else if (tok == Keys.BREAK) return visitBreak ();
+	else if (tok == Keys.LOCAL) return visitLocal ();
 	else if (tok == Keys.AUTO) return visitAuto ();
 	else {
 	    this._lex.rewind ();
@@ -149,6 +185,7 @@ class Visitor {
 	next = this._lex.next ();
 	if (next == Keys.ELSE) 
 	    _if.setElse (visitElse ());
+	else this._lex.rewind ();
 	
 	return _if;
     }
@@ -239,6 +276,14 @@ class Visitor {
 	return new Break (begin);
     }
 
+    Instruction visitLocal () {
+	auto begin = this._lex.rewind.next ();
+	auto loc = new Local (begin);
+	loc.type = visitType ();
+	loc.ident = visitIdentifiant ();
+	return loc;
+    }
+    
     Instruction visitAuto () {
 	auto begin = this._lex.rewind.next ();
 	auto _auto = new Auto (begin);
@@ -547,8 +592,6 @@ class Visitor {
 	    return visitChar ();
 	else if (tok == Keys.TRUE || tok == Keys.FALSE)
 	    return new Bool (tok);
-	else if (tok == Keys.NULL)
-	    return new Null (tok);
 	else _lex.rewind ();
 	return null;
     }
@@ -722,19 +765,16 @@ class Visitor {
 	auto ident = visitIdentifiant ();
 	auto type = new Type (ident);
 	auto next = this._lex.next ();
-	if (next == Tokens.NOT) {
+	if (next == Tokens.LCRO) {
 	    next = this._lex.next ();
-	    if (next == Tokens.LPAR) {
-		while (true) {
-		    type.addTemplate (visitType ());
-		    next = this._lex.next (Tokens.RPAR, Tokens.COMA);
-		    if (next == Tokens.RPAR) break;
-		}
-	    } else if (!need) {
-		this._lex.rewind ();
-		type.addTemplate (visitType (true));
-	    } else throw new SyntaxError (next);
+	    if (next != Tokens.RCRO) {
+		type.setLen (visitExpression ());
+		this._lex.next (Tokens.RCRO);
+	    } else {
+		type.isArray = true;
+	    }
 	} else this._lex.rewind ();
+	
 	return type;
     }
 

@@ -1,0 +1,10 @@
+
+	    {
+		"name" : "soluce",
+		"targetType" : "executable",
+		"dependencies" : {
+		    "dopencl" : "*"
+		},
+		"sourcePaths" : ["./out/"]
+	    }
+	

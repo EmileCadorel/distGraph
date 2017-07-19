@@ -10,6 +10,10 @@ class ParamList {
 	this._params.insertBack (param);
     }
 
+    Array!Expression params () {
+	return this._params;
+    }
+    
     override string toString () {
 	import std.outbuffer;
 	auto buf = new OutBuffer ();

@@ -34,9 +34,7 @@ class Float : Expression {
 	else
 	    return format (".%s", this._token.toString);
     }
-    
 }
-
 
 class Char : Expression {
 
@@ -76,19 +74,10 @@ class Bool : Expression {
     }
 
     override string toString () {
-	return this._token.toString ();
+	if (this._token.str == "true") return "'\\1'";
+	else return "'\\0'";
     }    
     
-}
-
-class Null : Expression {
-    this (Word tok) {
-	super (tok);
-    }
-
-    override string toString () {
-	return this._token.toString ();
-    }    
 }
 
 

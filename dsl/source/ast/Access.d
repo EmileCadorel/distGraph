@@ -17,6 +17,14 @@ class Access : Expression {
 	this._params = params;
     }
 
+    Expression left () {
+	return this._left;
+    }
+
+    Expression right () {
+	return this._params.params [0];
+    }
+        
     override string toString () {
 	import std.format;
 	return format ("%s [%s]", this._left.toString, this._params.toString);

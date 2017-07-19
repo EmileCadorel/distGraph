@@ -20,3 +20,8 @@ public import ast.For;
 public import ast.While;
 public import ast.Break;
 public import ast.Auto;
+public import ast.Type;
+public import ast.Struct;
+public import ast.Program;
+public import ast.Local;
+public import ast.Inline;
