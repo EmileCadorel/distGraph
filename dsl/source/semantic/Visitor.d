@@ -6,6 +6,7 @@ import semantic.types._;
 import std.algorithm;
 import std.outbuffer;
 import utils.DSLException;
+import std.stdio, std.container;
 
 class UndefinedOp : DSLException {
 
@@ -19,7 +20,32 @@ class UndefinedOp : DSLException {
 	super.addLine (buf, op.locus);
 	this.msg = buf.toString;
     }
+
+    this (Word begin, Word end, InfoType left, Array!Expression right) {
+	auto buf = new OutBuffer;
+	buf.writef ("Par d'operateur (), pour les types : (%s) et (",
+		      left.toString
+	);
+	foreach (it ; right)
+	    buf.writef ("%s%s", it.toString, it is right[$ - 1] ? "" : ", ");
+	buf.writefln (")");
+	super.addLine (buf, begin.locus, end.locus);
+	this.msg = buf.toString;
+    }
     
+}
+
+class IncompType : DSLException {
+
+    this (string type, InfoType type2, Word loc) {
+	auto buf = new OutBuffer;
+	buf.writefln ("Type incompatible (%s) et (%s",
+		      type, type2.toString);
+	super.addLine (buf, loc.locus);
+	this.msg = buf.toString;
+    }
+    
+
 }
 
 class UndefVar : DSLException {
@@ -32,6 +58,19 @@ class UndefVar : DSLException {
 	this.msg = buf.toString;
     }    
 
+}
+
+class MultipleDef : DSLException {
+
+    this (Word fst, Word scd) {
+	auto buf = new OutBuffer;
+	buf.writefln ("La variable %s, est déjà définis", fst.str);
+	super.addLine (buf, scd.locus);
+	buf.writefln ("Première définition :");
+	super.addLine (buf, fst.locus);
+	this.msg = buf.toString;
+    }
+    
 }
 
 
@@ -65,7 +104,7 @@ void validate () {
 
 void validate (Function func) {
     TABLE.enterBlock ();
-    foreach (it ; func.params) {
+    foreach (ref it ; func.params) {
 	validate (it);
     }
 
@@ -84,7 +123,9 @@ void validate (Block block) {
        
 void validate (Instruction inst) {
     inst.match (
-	(Binary bin) => validate (bin)
+	(Binary bin) => validate (bin),
+	(Auto _au) => validate (_au),
+	(If _if) => validate (_if)
     );
 }
 
@@ -94,7 +135,8 @@ void validate (Expression expr) {
 	(Access acc) => validate (acc),
 	(Var v) => validate (v),
 	(Decimal dc) => validate (dc),
-	(Float fl) => validate (fl)
+	(Float fl) => validate (fl),
+	(Par par) => validate (par)
     );
 }
 
@@ -108,9 +150,10 @@ void validate (Binary bin) {
 
     validate (bin.left);
     validate (bin.right);
-    if (binaryOp.find (bin.token.str))
+    
+    if (binaryOp.find (bin.token.str) != [])
 	bin.sym = new Symbol (bin.token, bin.left.type.binaryOp (bin.token.str, bin.right.type));
-    else if (affOp.find (bin.token.str))
+    else if (affOp.find (bin.token.str) != [])
 	bin.sym = new Symbol (bin.token, bin.left.type.affOp (bin.token.str, bin.right.type));
     else {
 	bin.sym = new Symbol (bin.token, bin.right.type.clone ());
@@ -118,6 +161,43 @@ void validate (Binary bin) {
     }
     
     if (bin.type is null) throw new UndefinedOp (bin.token, bin.left.type, bin.right.type);
+}
+
+void validate (Par par) {
+    validate (par.left);
+    foreach (it ; par.params.params) {
+	validate (it);
+    }
+    
+    auto type = par.left.type.parOp (par.params);
+    if (type is null) throw new UndefinedOp (par.begin, par.end, par.left.type, par.params.params);
+    par.sym = new Symbol (par.begin, type);
+}
+
+void validate (If _if) {
+    if (_if.test !is null) {
+	validate (_if.test);
+	if (!cast (BoolInfo) _if.test.type) throw new IncompType ("bool", _if.test.type, _if.test.token);
+	
+	TABLE.enterBlock ();
+	validate (_if.block);
+	TABLE.quitBlock ();
+
+	if (_if.else_) validate (_if.else_);		
+    }
+}
+
+void validate (Auto _auto) {
+    foreach (it ; 0 .. _auto.rights.length) {
+	validate (_auto.rights [it]);
+	auto sym = TABLE.get (_auto.vars [it].token.str);
+	if (sym !is null) throw new MultipleDef (sym.token, _auto.vars [it].token);
+	else {
+	    sym = new Symbol (_auto.vars [it].token, _auto.rights [it].type.clone ());
+	    _auto.vars [it].sym = sym;
+	    TABLE.add (sym);
+	}
+    }
 }
 
 void validate (Access acc) {
@@ -140,8 +220,9 @@ void validate (Float fl) {
     fl.sym = new Symbol (fl.token, new FloatInfo (FloatSize.DOUBLE));
 }
 
-void validate (TypedVar var) {
+void validate (ref TypedVar var) {
     auto type = getType (var.type);
+    var.type.info = type;
     auto sym = new Symbol (var.ident, type);
     TABLE.add (sym);
 }
@@ -184,7 +265,7 @@ string target () {
 	buf.writefln ("%s", it.toString);
     }
 
-    foreach (it ; TABLE.allFunctions ()) {	
+    foreach (it ; TABLE.allFunctions ()) {
 	buf.writefln ("%s", it.toString);
     }
     

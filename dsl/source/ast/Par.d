@@ -17,6 +17,22 @@ class Par : Expression {
 	this._params = params;
     }
 
+    Word begin () {
+	return this._token;
+    }
+
+    Word end () {
+	return this._end;
+    }
+    
+    Expression left () {
+	return this._left;
+    }
+
+    ParamList params () {
+	return this._params;
+    }
+    
     override string toString () {
 	import std.format;
 	return format ("%s (%s)", this._left.toString, this._params.toString);

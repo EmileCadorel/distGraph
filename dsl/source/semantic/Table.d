@@ -35,7 +35,14 @@ class Table {
 	    if (value !is null) return value;	    
 	}
 	
-	return name in this._globalScope;
+	auto ret = name in this._globalScope;
+	if (ret !is null) return ret;
+	else {
+	    import semantic.types.BuiltInInfo, std.algorithm;
+	    if (BuiltInInfo.__BUILTIN__.find (name) != [])
+		return new Symbol (Word.eof, new BuiltInInfo (name));
+	}
+	return null;	
     }
 
     void add (Symbol sym) {

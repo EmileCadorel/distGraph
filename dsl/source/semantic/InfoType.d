@@ -1,4 +1,5 @@
 module semantic.InfoType;
+import ast._;
 import syntax.Word;
 
 class InfoType {      
@@ -23,6 +24,10 @@ class InfoType {
 	return null;
     }
 
+    InfoType parOp (ParamList) {
+	return null;
+    }
+    
     abstract InfoType clone ();
 
     override abstract string toString ();

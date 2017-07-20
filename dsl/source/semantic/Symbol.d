@@ -19,6 +19,10 @@ class Symbol {
 	setId ();
     }        
 
+    Word token () {
+	return this._sym;
+    }
+    
     string name () {
 	return this._sym.str;
     }    

@@ -19,6 +19,14 @@ class Auto : Instruction {
 	this._expr.insertBack (expr);
     }
 
+    Array!Expression rights () {
+	return this._expr;
+    }
+
+    Array!Var vars () {
+	return this._var;
+    }
+    
     override string toString () {
 	import std.outbuffer;
 	auto buf = new OutBuffer ();

@@ -2,13 +2,14 @@ module ast.TypedVar;
 import syntax.Word;
 import std.container;
 import ast.Type;
+import semantic.Symbol;
 
 class TypedVar {
 
     private Word _ident;
 
     private Type _type;
-
+    
     this (Type type, Word ident) {
 	this._ident = ident;
 	this._type = type;
@@ -23,7 +24,7 @@ class TypedVar {
     }
     
     override string toString () {
-	import std.format;
+	import std.format;	
 	return format ("%s %s", this._type.toString, this._ident.toString);	
     }       
 

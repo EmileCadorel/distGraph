@@ -14,7 +14,7 @@ enum Keys {
     FALSE = ("false"),
     NULL = ("null"),
     CAST = ("cast"),
-    FUNCTION = ("kern"),
+    FUNCTION = ("__kernel"),
     AUTO = ("auto"),
     IS = ("is"),
     NOT_IS = ("!is"),

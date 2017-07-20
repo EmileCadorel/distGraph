@@ -21,6 +21,18 @@ class If : Instruction {
     void setElse (If _else) {
 	this._else = _else;
     }
+
+    If else_ () {
+	return this._else;
+    }
+
+    Expression test () {
+	return this._test;
+    }
+
+    Block block () {
+	return this._block;
+    }
     
     override string toString () {
 	import std.outbuffer;
