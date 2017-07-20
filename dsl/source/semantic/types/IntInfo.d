@@ -60,6 +60,7 @@ class IntInfo : InfoType {
 	case Tokens.STAR_EQUAL : return opAff (other);
 	case Tokens.PLUS_AFF : return opAff (other);
 	case Tokens.MINUS_AFF : return opAff (other);
+	case Tokens.EQUAL : return opAff (other);
 	default : return null;
 	}
     }

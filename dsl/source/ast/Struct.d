@@ -23,6 +23,10 @@ class Struct {
 	this._params.insertBack (var);
     }    
 
+    Array!TypedVar params () {
+	return this._params;
+    }
+    
     override string toString () {
 	import std.outbuffer;
 	auto buf = new OutBuffer ();

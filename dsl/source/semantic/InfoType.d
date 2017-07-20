@@ -11,6 +11,10 @@ class InfoType {
     InfoType unaryOp (string) {
 	return null;
     }
+
+    InfoType dotOp (string) {
+	return null;
+    }
     
     InfoType affOp (string, InfoType) {
 	return null;

@@ -10,4 +10,7 @@ class StructInfo : InfoType {
 	this._astStruct = str;
     }
     
+    
+
+    
 }

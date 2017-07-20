@@ -14,6 +14,13 @@ class BoolInfo : InfoType {
 	}
     }
     
+    override InfoType affOp (string op, InfoType other) {
+	if (op == Tokens.EQUAL) {
+	    if (cast (BoolInfo) other) return new BoolInfo ();
+	}
+	return null;
+    }
+
     override InfoType affOp () {
 	return new BoolInfo ();
     }

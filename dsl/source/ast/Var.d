@@ -7,8 +7,7 @@ class Var : Expression {
 
     this (Word ident) {
 	super (ident);
-    }
-
+    }        
 
     override string toString () {
 	return this._token.toString ();
