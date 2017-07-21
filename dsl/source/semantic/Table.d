@@ -18,6 +18,8 @@ class Table {
     private Array!Function _allFuncs;
 
     private Array!Skeleton _allSkels;
+
+    private Array!Program _allProg;
     
     private this () {
 	this._globalScope = new Scope ();
@@ -89,6 +91,10 @@ class Table {
 	this._allSkels.insertBack (skel);
     }
 
+    void addProg (Program prg) {
+	this._allProg.insertBack (prg);
+    }
+    
     Array!Struct allStructs () {
 	return this._allStructs;
     }
@@ -100,9 +106,18 @@ class Table {
     Array!Skeleton allSkeletons () {
 	return this._allSkels;
     }
+
+    Array!Program allPrograms () {
+	return this._allProg;
+    }
+
+    string outdir () {
+	return "cl_kernels/";
+    }
     
     string outFile () {
-	return "cl.dsl.c";
+	import std.path;
+	return buildPath (outdir, "dsl.c");
     }
     
     mixin Singleton!Table;

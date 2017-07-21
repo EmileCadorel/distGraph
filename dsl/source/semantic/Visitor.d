@@ -117,6 +117,8 @@ void declare (Program prog) {
     foreach (it ; prog.funcs) {
 	TABLE.addFunc (it);
     }
+
+    TABLE.addProg (prog);
 }
 
 void match (U, T...) (U inst, T funcs) {

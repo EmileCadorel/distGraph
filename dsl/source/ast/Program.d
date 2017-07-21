@@ -105,6 +105,10 @@ class Program {
 	return buf.toString ();
     }
     
+    string file () {
+	return this._file;
+    }
+
     override string toString () {
 	auto buf = new OutBuffer ();
 	foreach (it ; this._structs) {
