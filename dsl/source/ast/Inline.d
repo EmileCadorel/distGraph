@@ -1,7 +1,7 @@
 module ast.Inline;
 import syntax._;
 import ast.Expression;
-import std.outbuffer;
+import std.outbuffer, std.container;
 import semantic.Table;
 
 class Inline {
@@ -14,6 +14,8 @@ class Inline {
 
     private Word _what;
 
+    private Array!Expression _templates;
+    
     this (Word begin, Expression id, Word what, Word end) {
 	this._id = id;
 	this._what = what;
@@ -29,8 +31,12 @@ class Inline {
 	return this._begin;
     }
     
-    Word end () {
+    ref Word end () {
 	return this._end;
+    }
+    
+    void addTemplate (Expression expr) {
+	this._templates.insertBack (expr);
     }
     
     Expression id () {

@@ -21,5 +21,7 @@ enum Keys {
     ANTI = ("\\"),
     LX = ("x"),
     STRUCT = ("struct"),
-    LOCAL = ("__loc")
+    LOCAL = ("__loc"),
+    SKEL = ("__skel"),
+    ALIAS = ("alias")
 }

@@ -25,3 +25,5 @@ public import ast.Struct;
 public import ast.Program;
 public import ast.Local;
 public import ast.Inline;
+public import ast.Skeleton;
+public import ast.Lambda;

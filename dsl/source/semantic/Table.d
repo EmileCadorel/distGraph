@@ -16,6 +16,8 @@ class Table {
     private Array!Struct _allStructs;
 
     private Array!Function _allFuncs;
+
+    private Array!Skeleton _allSkels;
     
     private this () {
 	this._globalScope = new Scope ();
@@ -69,6 +71,10 @@ class Table {
 	this._allStructs.insertBack (str);
     }
 
+    void addSkel (Skeleton skel) {
+	this._allSkels.insertBack (skel);
+    }
+
     Array!Struct allStructs () {
 	return this._allStructs;
     }
@@ -77,6 +83,10 @@ class Table {
 	return this._allFuncs;
     }
 
+    Array!Skeleton allSkeletons () {
+	return this._allSkels;
+    }
+    
     string outFile () {
 	return "cl.dsl.c";
     }

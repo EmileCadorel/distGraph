@@ -72,6 +72,7 @@ class Visitor {
 	Array!Function funcs;
 	Array!Struct str;
 	Array!Inline inlines;
+	Array!Skeleton skels;
 	while (true) {
 	    Word word = this._lex.next ();
 	    if (word.isEof) break;
@@ -81,9 +82,11 @@ class Visitor {
 		str.insertBack (visitStruct ());
 	    } else if (word == Tokens.SHARP) {
 		inlines.insertBack (visitInline ());
+	    } else if (word == Keys.SKEL) {
+		skels.insertBack (visitSkeleton ());
 	    }
 	}
-	return new Program (this._lex.filename, funcs, str, inlines);	
+	return new Program (this._lex.filename, funcs, str, inlines, skels);	
     }
    
     Function visitFunction () {
@@ -96,11 +99,8 @@ class Visitor {
 	    auto next = this._lex.next (Tokens.RPAR, Tokens.COMA);
 	    if (next == Tokens.RPAR) break;
 	}
-	auto next = this._lex.next (Tokens.IMPLIQUE, Tokens.LACC);
-	if (next == Tokens.LACC) {
-	    this._lex.rewind ();
-	    func.setBlock (visitBlock ());
-	} else func.setBlock (new Block (next, visitInstruction ()));
+
+	func.setBlock (visitBlock ());	
 	func.setEnd (this._lex.next ());
 	this._lex.rewind ();
 	return func;
@@ -132,9 +132,62 @@ class Visitor {
 	next = this._lex.next (Tokens.RCRO);
 	next = this._lex.next (Tokens.DOT);
 	auto ident = visitIdentifiant ();
-	return new Inline (begin, id, ident, ident);
+	next = this._lex.next (Tokens.SEMI_COLON, Tokens.NOT);
+	auto inline = new Inline (begin, id, ident, ident);
+	if (next == Tokens.NOT) {
+	    next = this._lex.next (Tokens.LPAR);
+	    while (true) {
+		next = this._lex.next ();
+		this._lex.rewind ();
+		if (next == Tokens.LPAR) {
+		    inline.addTemplate (visitLambda ());
+		} else {
+		    auto type = visitIdentifiant ();
+		    next = this._lex.next ();
+		    if (next == Tokens.IMPLIQUE) 
+			inline.addTemplate (createLambda (type, visitExpression));
+		    else {
+			this._lex.rewind ();
+			inline.addTemplate (new Var (type));
+		    }
+		}
+		next = this._lex.next (Tokens.COMA, Tokens.RPAR);
+		if (next == Tokens.RPAR) break;
+	    }
+	    this._lex.next (Tokens.SEMI_COLON);
+	    inline.end = next;
+	}
+	return inline; 
     }
 
+    Skeleton visitSkeleton () {
+	auto begin = this._lex.rewind.next ();
+	auto ident = visitIdentifiant ();
+	this._lex.next (Tokens.LPAR);
+	auto skel = new Skeleton (begin, ident);
+	while (true) {
+	    auto next = this._lex.next ();
+	    if (next == Keys.ALIAS) {
+		skel.addFnName (visitIdentifiant ());
+	    } else {
+		this._lex.rewind ();
+		skel.addTemplate (visitVar ());
+	    }
+	    next = this._lex.next (Tokens.COMA, Tokens.RPAR);
+	    if (next == Tokens.RPAR) break;
+	}
+	this._lex.next (Tokens.LPAR);
+	while (true) {
+	    skel.addParam (visitTypeVar ());
+	    auto next = this._lex.next (Tokens.RPAR, Tokens.COMA);
+	    if (next == Tokens.RPAR) break;
+	}
+	skel.block = visitBlock ();
+	skel.end = this._lex.next ();
+	this._lex.rewind ();
+	return skel;
+    }
+    
     
     Block visitBlock () {
 	auto next = this._lex.next (Tokens.LACC);
@@ -206,6 +259,26 @@ class Visitor {
 	}
     }
     
+    Lambda visitLambda () {
+	auto begin = this._lex.next ();
+	auto lmbd = new Lambda (begin);
+	while (true) {
+	    lmbd.addParam (visitVar ());
+	    auto next = this._lex.next (Tokens.COMA, Tokens.RPAR);
+	    if (next == Tokens.RPAR) break;	    
+	}
+	this._lex.next (Tokens.IMPLIQUE);
+	lmbd.content = visitExpression ();
+	return lmbd;	
+    }
+
+    Lambda createLambda (Word ident, Expression content) {
+	auto lmbd = new Lambda (ident);
+	lmbd.addParam (new Var (ident));
+	lmbd.content = content;
+	return lmbd;
+    }
+
     Instruction visitReturn () {
 	auto begin = this._lex.rewind.next ();
 	auto exp = visitExpression ();

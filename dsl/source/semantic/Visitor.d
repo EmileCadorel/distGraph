@@ -87,6 +87,10 @@ void declare (Program prog) {
 	TABLE.addStr (it);
     }
 
+    foreach (it ; prog.skels) {
+	TABLE.addSkel (it);
+    }
+    
     foreach (it ; prog.funcs) {
 	TABLE.addFunc (it);
     }

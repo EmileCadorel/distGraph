@@ -1,6 +1,5 @@
 module ast.Program;
-import ast.Function, ast.Struct;
-import ast.Inline;
+import ast._;
 import std.container;
 import std.outbuffer, std.stdio;
 import std.string;
@@ -13,13 +12,16 @@ class Program {
 
     private Array!Inline _inlines;
 
+    private Array!Skeleton _skels;
+    
     private string _file;
     
-    this (string file, Array!Function funcs, Array!Struct str, Array!Inline inlines) {
+    this (string file, Array!Function funcs, Array!Struct str, Array!Inline inlines, Array!Skeleton skels) {
 	this._file = file;
 	this._functions = funcs;
 	this._structs = str;
 	this._inlines = inlines;
+	this._skels = skels;
     }
 
     Array!Function funcs () {
@@ -34,6 +36,10 @@ class Program {
 	return this._inlines;
     }
 
+    Array!Skeleton skels () {
+	return this._skels;
+    }
+    
     string replace () {
 	auto file = File (this._file, "r");
 	auto buf = new OutBuffer ();	
@@ -62,6 +68,22 @@ class Program {
 		    break;
 		}				
 	    }
+
+	    foreach (it ; this._skels) {
+		if (it.begin.locus.line == current) {
+		    auto beg = ln [0 .. it.begin.locus.column - 1];
+		    if (beg.strip.length != 0) buf.writefln (beg);		    
+		    foreach (_it ; it.begin.locus.line .. it.end.locus.line - 1) {
+			ln = file.readln ();
+			current ++;
+		    }
+		    auto end = ln [it.end.locus.column - 1 .. $];
+		    buf.writef (end);
+		    willWrite = false;
+		    break;
+		}				
+	    }
+	    
 	    foreach (it ; this._inlines) {
 		if (it.begin.locus.line == current) {
 		    auto beg = ln [0 .. it.begin.locus.column - 1];
