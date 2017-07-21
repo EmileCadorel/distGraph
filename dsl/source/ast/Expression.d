@@ -23,9 +23,5 @@ class Expression : Instruction {
     ref auto type () {
 	return this._sym.type;
     }
-
-    Word token () {
-	return this._token;
-    }
     
 }

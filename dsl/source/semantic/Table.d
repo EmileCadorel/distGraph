@@ -47,6 +47,20 @@ class Table {
 	return null;	
     }
 
+    Function getFunc (string name) {
+	foreach (it ; this._allFuncs) {
+	    if (it.ident.str == name) return it;
+	}
+	return null;
+    }
+
+    Skeleton getSkel (string name) {
+	foreach (it ; this._allSkels) {
+	    if (it.ident.str == name) return it;
+	}
+	return null;
+    }
+    
     void add (Symbol sym) {
 	if (this._currentFrame.empty) {
 	    this._globalScope.add (sym);

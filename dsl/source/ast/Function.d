@@ -39,7 +39,7 @@ class Function {
 	return this._begin;
     }
     
-    Word ident () {
+    ref Word ident () {
 	return this._ident;
     }
 
@@ -51,6 +51,10 @@ class Function {
 	return this._params;
     }
     
+    void setParams (Array!TypedVar params) {
+	this._params = params;
+    }
+
     override string toString () {
 	import std.outbuffer, std.string;
 	auto buf = new OutBuffer ();

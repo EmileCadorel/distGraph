@@ -6,7 +6,7 @@ class Access : Expression {
 
     private Expression _left;
 
-    private ParamList _params;
+    private Expression _params;
 
     private Word _end;
 
@@ -14,15 +14,30 @@ class Access : Expression {
 	super (begin);
 	this._end = end;
 	this._left = left;
-	this._params = params;
+	this._params = params.params [0];
     }
 
+    this (Word begin, Word end, Expression left, Expression right) {
+	super (begin);
+	this._end = end;
+	this._left = left;
+	this._params = right;
+    }
+    
+    Word begin () {
+	return this._token;
+    }
+
+    Word end () {
+	return this._end;
+    }
+    
     Expression left () {
 	return this._left;
     }
 
     Expression right () {
-	return this._params.params [0];
+	return this._params;
     }
         
     override string toString () {

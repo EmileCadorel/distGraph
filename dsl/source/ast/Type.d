@@ -23,10 +23,14 @@ class Type {
 	this._isArray = true;
     }
 
-    ref bool isArray () {
+    bool isArray () {
 	return this._isArray;
     }
 
+    void isArray (bool isA) {
+	this._isArray = isA;
+    }
+    
     Word ident () {
 	return this._ident;
     }

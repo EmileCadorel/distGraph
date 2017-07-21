@@ -18,12 +18,17 @@ class Skeleton {
     
     private Block _block;
 
-
-    this (Word begin, Word end) {
+    private ulong _nbCreated;
+    
+    this (Word begin, Word ident) {
 	this._begin = begin;
-	this._end = end;
+	this._ident = ident;
     }
 
+    Word ident () {
+	return this._ident;
+    }
+    
     void addFnName (Word name) {
 	this._fnNames.insertBack (name);
     }
@@ -52,6 +57,18 @@ class Skeleton {
 	return this._params;
     }
 
+    Array!Var templates () {
+	return this._template;
+    }
+
+    Array!Word fnNames () {
+	return this._fnNames;
+    }
+
+    ref ulong nbCreated () {
+	return this._nbCreated;
+    }
+    
     override string toString () {
 	import std.outbuffer, std.string;
 	auto buf = new OutBuffer;

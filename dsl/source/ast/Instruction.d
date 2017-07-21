@@ -15,5 +15,9 @@ class Instruction {
     ref uint indent () {
 	return this._indent;
     }
+
+    Word token () {
+	return this._token;
+    }
     
 }

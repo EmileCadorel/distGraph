@@ -18,6 +18,10 @@ class Lambda : Expression {
 	this._params.insertBack (param);
     }
 
+    Array!Var params () {
+	return this._params;
+    }
+    
     ref Expression content () {
 	return this._content;
     }

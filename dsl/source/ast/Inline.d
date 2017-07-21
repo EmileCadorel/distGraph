@@ -23,7 +23,7 @@ class Inline {
 	this._end = end;
     }
 
-    Word what () {
+    ref Word what () {
 	return this._what;
     }
 
@@ -39,6 +39,10 @@ class Inline {
 	this._templates.insertBack (expr);
     }
     
+    Array!Expression templates () {
+	return this._templates;
+    }
+
     Expression id () {
 	return this._id;
     }

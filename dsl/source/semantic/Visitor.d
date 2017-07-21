@@ -6,7 +6,7 @@ import semantic.types._;
 import std.algorithm;
 import std.outbuffer;
 import utils.DSLException;
-import std.stdio, std.container;
+import std.stdio, std.container, std.conv;
 
 class UndefinedOp : DSLException {
 
@@ -24,7 +24,7 @@ class UndefinedOp : DSLException {
     this (Word begin, Word end, InfoType left, Array!Expression right) {
 	auto buf = new OutBuffer;
 	buf.writef ("Par d'operateur (), pour les types : (%s) et (",
-		      left.toString
+		    left.toString
 	);
 	foreach (it ; right)
 	    buf.writef ("%s%s", it.toString, it is right[$ - 1] ? "" : ", ");
@@ -81,6 +81,29 @@ class MultipleDef : DSLException {
     
 }
 
+class UndefinedKernel : DSLException {
+
+    this (Word kern) {
+	auto buf = new OutBuffer;
+	buf.writefln ("Le kernel %s n'existe pas", kern.str);
+	super.addLine (buf, kern.locus);
+	this.msg = buf.toString;
+    }
+
+}
+
+class ErrorCreation : DSLException {
+
+    this (Word kern) {
+	auto buf = new OutBuffer;
+	buf.writefln ("La création du kernel à partir du squelette %s ne fonctionne pas",
+		      kern.str);
+	super.addLine (buf, kern.locus);
+	this.msg = buf.toString;
+    }
+    
+}
+
 
 void declare (Program prog) {
     foreach (it ; prog.strs) {
@@ -106,6 +129,18 @@ void match (U, T...) (U inst, T funcs) {
 	}
     }
     assert (false, "TODO " ~ typeid (inst).toString);
+}
+
+auto matchRet (U, T...) (U inst, T funcs) {
+    import std.traits;
+    foreach (func ; funcs) {
+	static assert (ParameterTypeTuple!(func).length == 1);
+	alias tuple = ParameterTypeTuple!(func) [0];
+	if (auto tu = cast (tuple) inst) {
+	    return func (tu); 
+	}
+    }
+    assert (false, "TODO " ~ typeid (inst).toString);    
 }
 
 void validate () {
@@ -167,20 +202,15 @@ void validate (Expression expr) {
 }
 
 void validate (Binary bin) {
-    auto binaryOp = [Tokens.DIV, Tokens.AND, Tokens.DAND, Tokens.PIPE,
-		     Tokens.DPIPE, Tokens.MINUS, Tokens.PLUS, Tokens.INF,
-		     Tokens.SUP, Tokens.SUP_EQUAL, Tokens.INF_EQUAL,
-		     Tokens.NOT_EQUAL, Tokens.DEQUAL, Tokens.XOR];
-
     auto affOp = [Tokens.DIV_AFF, Tokens.STAR_EQUAL, Tokens.PLUS_AFF, Tokens.MINUS_AFF, Tokens.EQUAL];
 
     validate (bin.left);
     validate (bin.right);
     
-    if (binaryOp.find (bin.token.str) != [])
-	bin.sym = new Symbol (bin.token, bin.left.type.binaryOp (bin.token.str, bin.right.type));
-    else if (affOp.find (bin.token.str) != [])
+    if (affOp.find (bin.token.str) != [])
 	bin.sym = new Symbol (bin.token, bin.left.type.affOp (bin.token.str, bin.right.type));
+    else
+	bin.sym = new Symbol (bin.token, bin.left.type.binaryOp (bin.token.str, bin.right.type));
     
     if (bin.type is null) throw new UndefinedOp (bin.token, bin.left.type, bin.right.type);
 }
@@ -288,11 +318,246 @@ string mkdirGen (string fl) {
 
 void replace (string filename, Program prg) {
     import std.stdio;
+
+    // On valide les appels au différents kernel
+    foreach (it ; prg.inlines) {
+	validate (it);
+    }
+    
     toFile (prg.replace, mkdirGen (filename));
 }
 
+void validate (Inline inline) {
+    auto fun = TABLE.getFunc (inline.what.str);
+    if (fun is null) {
+	auto skel = TABLE.getSkel (inline.what.str);
+	if (skel is null) throw new UndefinedKernel (inline.what);
+	else createFunc (skel, inline);
+    }    
+}
+
+void createFunc (Skeleton skel, Inline inline) {
+    if (skel.templates.length + skel.fnNames.length != inline.templates.length) {
+	throw new ErrorCreation (inline.what);	
+    } else {
+	try {
+	    auto block = skel.block;
+	    auto params = skel.params;
+	    auto currentTmp = 0, currentFn = 0;
+	    foreach (it ; inline.templates) {	       
+		if (auto v = cast (Var) it) {
+		    if (currentTmp >= skel.templates.length) throw new ErrorCreation (inline.what);
+		    block = replaceEveryWhere (block, skel.templates [currentTmp], v);
+		    params = replaceEveryWhere (params, skel.templates [currentTmp], v);		    
+		    currentTmp ++;		    
+		} else if (auto lm = cast (Lambda) it){
+		    if (currentFn >= skel.fnNames.length) throw new ErrorCreation (inline.what);
+		    block = inlineLambda (block, skel.fnNames [currentFn], lm);
+		    currentFn ++;
+		} else assert (false);
+	    }
+	
+	    auto func = new Function (skel.begin, skel.ident);
+	    func.ident.str = func.ident.str ~ skel.nbCreated.to!string;
+	    inline.what.str = func.ident.str;
+	    
+	    func.setBlock (block);
+	    func.setParams (params);
+	    skel.nbCreated ++;	    
+	    validate (func);
+	    
+	    TABLE.addFunc (func);
+	} catch (DSLException dsl) {	    
+	    writeln (dsl);
+	    throw new ErrorCreation (inline.what);
+	}
+	
+    }
+}
+
+Array!TypedVar replaceEveryWhere (Array!TypedVar inParams, Var token, Var var) {
+    Array!TypedVar params;
+    foreach (it ; inParams) {
+	if (it.type.ident.str == token.token.str) {
+	    auto type = new Type (var.token);
+	    type.isArray (it.type.isArray);	    
+	    params.insertBack (new TypedVar (type, it.ident));
+	} else {
+	    auto type = new Type (it.type.ident);
+	    type.isArray = it.type.isArray;
+	    params.insertBack (new TypedVar (type, it.ident));
+	}
+    }
+    return params;
+}
+
+Block inlineLambda (Block block, Word token, Lambda lmbd) {
+    auto ret = new Block (block.token);
+    foreach (it ; block.insts) {
+	ret.addInst (inlineLambda (it, token, lmbd));
+    }
+    return ret;
+}
+
+Instruction inlineLambda (Instruction inst, Word token, Lambda lmbd) {
+    return inst.matchRet (
+	(Binary bin) => inlineLambda (bin, token, lmbd),
+	(Auto _au) => inlineLambda (_au, token, lmbd),
+	(If _if) => inlineLambda (_if, token, lmbd)
+    );
+}
+
+Instruction inlineLambda (Auto au, Word token, Lambda lmbd) {
+    auto aux = new Auto (au.token);
+    foreach (it ; 0 .. au.vars.length)
+	aux.addInit (new Var (au.vars [it].token),
+		     inlineLambda (au.rights [it], token, lmbd));
+    
+    return aux;    
+}
+
+Expression inlineLambda (Expression expr, Word token, Lambda lmbd) {
+    return expr.matchRet(
+	(Binary bin) => inlineLambda (bin, token, lmbd),
+	(Access acc) => inlineLambda (acc, token, lmbd),
+	(Par par) => inlineLambda (par, token, lmbd),
+	(Expression expr) => expr
+    );
+}
+
+Expression inlineLambda (Binary bin, Word token, Lambda lmbd) {
+    auto left = inlineLambda (bin.left, token, lmbd);
+    auto right = inlineLambda (bin.right, token, lmbd);
+    return new Binary (bin.token, left, right);
+}
+
+Expression inlineLambda (Access acc, Word token, Lambda lmbd) {
+    auto left = inlineLambda (acc.left, token, lmbd);
+    auto right = inlineLambda (acc.right, token, lmbd);
+    return new Access (acc.begin, acc.end, left, right);
+}
+
+Expression inlineLambda (Par par, Word token, Lambda lmbd) {
+    if (auto v = cast (Var) par.left) {
+	if (v.token.str == token.str) {
+	    if (par.params.params.length == lmbd.params.length) {
+		Expression content = lmbd.content;
+		foreach (it ; 0 .. lmbd.params.length) {
+		    content = replaceEveryWhere (content, lmbd.params [it], par.params.params [it]);
+		}
+		return content;
+	    }
+	}
+    } 
+    auto left = inlineLambda (par.left, token, lmbd);
+    auto right = inlineLambda (par.params, token, lmbd);
+    return new Par (par.begin, par.end, left, right);
+}
+
+ParamList inlineLambda (ParamList params, Word token, Lambda lmbd) {
+    auto aux = new ParamList ();
+    foreach (it ; params.params) {
+	aux.addParam (inlineLambda (it, token, lmbd));
+    }
+    return aux;
+}
+
+Instruction inlineLambda (If _if, Word token, Lambda lmbd) {
+    Expression test;
+    if (_if.test)
+	test = inlineLambda (_if.test, token, lmbd);
+    auto block = inlineLambda (_if.block, token, lmbd);
+    if (_if.else_) {
+	auto else_ = cast (If) inlineLambda (_if.else_, token, lmbd);
+	auto ret = new If (_if.token, test, block);
+	ret.setElse (else_);
+	return ret;
+    } else
+	return new If (_if.token, test, block);
+}
+
+Block replaceEveryWhere (Block block, Var token, Expression second) {
+    auto aux = new Block (block.token);
+    foreach (it ; block.insts) {
+	aux.addInst (replaceEveryWhere (it, token, second));
+    }
+    return aux;
+}
+
+Expression replaceEveryWhere (Expression content, Var token, Expression second) {
+    return content.matchRet (
+	(Binary bin) => replaceEveryWhere (bin, token, second),
+	(Access acc) => replaceEveryWhere (acc, token, second),
+	(Par par) => replaceEveryWhere (par, token, second),
+	(Var v) {
+	    if (v.token.str == token.token.str) return second;
+	    else return v;
+	},
+	(Expression exp) => exp	
+    );
+}
+
+Instruction replaceEveryWhere (Instruction inst, Var token, Expression second) {
+    return inst.matchRet (
+	(Binary bin) => replaceEveryWhere (bin, token, second),
+	(Auto au) => replaceEveryWhere (au, token, second),
+	(If _if) => replaceEveryWhere (_if, token, second)
+    );
+}
+
+Instruction replaceEveryWhere (Auto au, Var token, Expression second) {
+    auto aux = new Auto (au.token);
+    foreach (it ; 0 .. au.vars.length)
+	aux.addInit (new Var (au.vars [it].token),
+		     replaceEveryWhere (au.rights [it], token, second));
+
+    return aux;
+}
+
+Expression replaceEveryWhere (Binary bin, Var token, Expression second) {
+    auto left = replaceEveryWhere (bin.left, token, second);
+    auto right = replaceEveryWhere (bin.right, token, second);
+    return new Binary (bin.token, left, right);
+}
+
+Expression replaceEveryWhere (Access acc, Var token, Expression second) {
+    auto left = replaceEveryWhere (acc.left, token, second);
+    auto right = replaceEveryWhere (acc.right, token, second);
+    return new Access (acc.begin, acc.end, left, right);
+}
+
+Expression replaceEveryWhere (Par par, Var token, Expression second) {
+    auto left = replaceEveryWhere (par.left, token, second);
+    auto right = replaceEveryWhere (par.params, token, second);
+    return new Par (par.begin, par.end, left, right);
+}
+
+ParamList replaceEveryWhere (ParamList par, Var token, Expression second) {
+    auto aux = new ParamList;
+    foreach (it ; par.params)
+	aux.addParam (replaceEveryWhere (it, token, second));
+    return aux;
+}
+
+Instruction replaceEveryWhere (If _if, Var token, Expression second) {
+    Expression test;
+    if (_if.test)
+	test = replaceEveryWhere (_if.test, token, second);
+
+    auto block = replaceEveryWhere (_if.block, token, second);
+    if (_if.else_) {
+	auto _else = cast (If) replaceEveryWhere (_if.else_, token, second);
+	auto ret = new If (_if.token, test, block);
+	ret.setElse (_else);
+	return ret;
+    } else {
+	return new If (_if.token, test, block);
+    }    
+}
+
+
 /++
- Génére les sources qui vont être compilé par OpenCL.
+ génére les sources qui vont être compilé par OpenCL.
  +/
 string target () {
     auto buf = new OutBuffer ();
