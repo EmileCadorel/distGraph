@@ -1,8 +1,8 @@
 import std.stdio, std.string;
 import std.array, std.outbuffer;
-import ast.Function;
-import syntax.Visitor, semantic.Table;
-import sem = semantic.Visitor;
+import dsl.ast.Function;
+import dsl.syntax.Visitor, dsl.semantic.Table;
+import sem = dsl.semantic.Visitor;
 import std.json, std.algorithm;
 import std.file, std.path, std.process;
 

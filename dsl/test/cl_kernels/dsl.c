@@ -1,21 +1,12 @@
-__kernel void generate0 (__global int *  a, unsigned long int len) {
+struct Test {
+	int b;
+	int i;
+};
+
+__kernel void map0 (__global struct Test *  a, unsigned long int size) {
     unsigned int i = get_global_id (0);
 
-    if ((i < len)) {
-        (a [i] = i);
-    }
-}
-__kernel void generate1 (__global float *  a, unsigned long int len) {
-    unsigned int i = get_global_id (0);
-
-    if ((i < len)) {
-        (a [i] = i);
-    }
-}
-__kernel void zip0 (__global int *  a, __global float *  b, __global float *  c, unsigned long int len) {
-    unsigned int i = get_global_id (0);
-
-    if ((i < len)) {
-        (c [i] = (a [i] * b [i]));
+    if ((i < size)) {
+        (a [i] = (struct Test) { .b = a [i].i, .i = a [i].b});
     }
 }
