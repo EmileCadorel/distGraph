@@ -14,7 +14,7 @@ __skel map (T, alias FUN) (T [] a, ulong size) {
 enum LEN = 10L;
 
 void main () {
-    auto map = #[0].map! (Test, (a) => Test (a.i, a.b));
+    auto map = #map! (Test, (a) => Test (a.i, a.b));
 
     auto array = new Vector!(Test) (new Test [10]);
     foreach (it ; 0 .. array.length) {

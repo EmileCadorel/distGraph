@@ -128,47 +128,20 @@ class Visitor {
     Inline visitInline () {
 	auto begin = this._lex.rewind.next ();
 	auto next = this._lex.next ();
+	Expression id;
 	if (next == Tokens.LCRO) {
-	    auto id = visitExpression ();
+	    id = visitExpression ();
 	    next = this._lex.next (Tokens.RCRO);
-	    next = this._lex.next (Tokens.DOT);
-	    auto ident = visitIdentifiant ();
-	    next = this._lex.next (Tokens.SEMI_COLON, Tokens.NOT);
-	    auto inline = new Inline (begin, id, ident, ident);
-	    if (next == Tokens.NOT) {
-		next = this._lex.next (Tokens.LPAR);
-		while (true) {
-		    next = this._lex.next ();
-		    this._lex.rewind ();
-		    if (next == Tokens.LPAR) {
-			inline.addTemplate (visitLambda ());
-		    } else {
-			auto type = visitIdentifiant ();
-			next = this._lex.next ();
-			if (next == Tokens.IMPLIQUE) 
-			    inline.addTemplate (createLambda (type, visitExpression));
-			else {
-			    this._lex.rewind ();
-			    inline.addTemplate (new Var (type));
-			}
-		    }
-		    next = this._lex.next (Tokens.COMA, Tokens.RPAR);
-		    if (next == Tokens.RPAR) break;
-		}
-		this._lex.next (Tokens.SEMI_COLON);
-		inline.end = next;
-	    }
-	    return inline;
+	    next = this._lex.next (Tokens.DOT);	    
 	} else {
+	    auto dec = Word (next.locus, "0");
 	    this._lex.rewind ();
-	    return visitPreInline (begin);
+	    id = new Decimal (dec);
 	}
-    }
-
-    PreInline visitPreInline (Word begin) {
+	
 	auto ident = visitIdentifiant ();
-	auto next = this._lex.next (Tokens.SEMI_COLON, Tokens.NOT);
-	auto inline = new PreInline (begin, ident, ident);
+	next = this._lex.next (Tokens.SEMI_COLON, Tokens.NOT);
+	auto inline = new Inline (begin, id, ident, ident);
 	if (next == Tokens.NOT) {
 	    next = this._lex.next (Tokens.LPAR);
 	    while (true) {
@@ -179,20 +152,20 @@ class Visitor {
 		} else {
 		    auto type = visitIdentifiant ();
 		    next = this._lex.next ();
-		    if (next == Tokens.IMPLIQUE) {
+		    if (next == Tokens.IMPLIQUE) 
 			inline.addTemplate (createLambda (type, visitExpression));
-		    } else {
+		    else {
 			this._lex.rewind ();
 			inline.addTemplate (new Var (type));
-		    }		    
+		    }
 		}
 		next = this._lex.next (Tokens.COMA, Tokens.RPAR);
 		if (next == Tokens.RPAR) break;
 	    }
+	    this._lex.next (Tokens.SEMI_COLON);
+	    inline.end = next;
 	}
-	this._lex.next (Tokens.SEMI_COLON);
-	inline.end = next;
-	return inline;
+	return inline;	
     }
 
     Skeleton visitSkeleton () {

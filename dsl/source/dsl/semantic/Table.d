@@ -126,7 +126,12 @@ class Table {
 	import std.path;
 	return buildPath (outdir, "dsl.c");
     }
-    
+
+    string outFileStructs () {
+	import std.path;
+	return buildPath (outdir, "structs.h");
+    }
+
     mixin Singleton!Table;
 }
 

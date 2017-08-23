@@ -606,16 +606,22 @@ Instruction replaceEveryWhere (If _if, Var token, Expression second) {
     }    
 }
 
+string targetStruct () {
+    auto buf = new OutBuffer ();
+    foreach (it ; TABLE.allStructs ()) {
+	buf.writefln ("%s", it.toString);
+    }
+    
+    return buf.toString;
+}
 
 /++
  génére les sources qui vont être compilé par OpenCL.
  +/
 string target () {
     auto buf = new OutBuffer ();
-    foreach (it ; TABLE.allStructs ()) {
-	buf.writefln ("%s", it.toString);
-    }
-
+    buf.writefln ("#include \"%s\"\n", TABLE.outFileStructs);
+    
     foreach (it ; TABLE.allFunctions ()) {
 	buf.writefln ("%s", it.toString);
     }

@@ -25,6 +25,7 @@ void targetTime  () {
     
     // On commence par valider tout ce qui à été déclaré
     mkdirRecurse (TABLE.outdir);
+    toFile (sem.targetStruct (), TABLE.outFileStructs);
     toFile (sem.target (), TABLE.outFile);
     toFile (cast (string) read ("dub.json"), "out/dub.json");    
 }
