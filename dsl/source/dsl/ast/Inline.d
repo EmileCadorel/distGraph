@@ -1,10 +1,10 @@
 module dsl.ast.Inline;
 import dsl.syntax._;
-import dsl.ast.Expression;
+import dsl.ast._;
 import std.outbuffer, std.container;
 import dsl.semantic.Table;
 
-class Inline {
+class Inline : Declaration {
 
     protected Word _begin;
 
@@ -50,7 +50,7 @@ class Inline {
 	return this._id;
     }
     
-    string replace () {
+    override string replace () {
 	auto buf = new OutBuffer ();
 	buf.writefln (q{new Kernel (
 	    CLContext.instance.devices [%s],

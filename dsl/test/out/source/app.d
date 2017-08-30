@@ -11,20 +11,9 @@ struct Test {
 enum LEN = 10L;
 
 void main () {
-    auto map = new Kernel (
-	    CLContext.instance.devices [0],
-	    cast(string) read("cl_kernels/dsl.c"),
-	    "map0")
-	    
+    alias lmbd = Lambda!((a, b)=> writeln ((a + b))
+, "(a, b)=> writeln ((a + b))
+")
 ;
-
-    auto array = new Vector!(Test) (new Test [10]);
-    foreach (it ; 0 .. array.length) {
-	array [it].b = cast (int) it;
-    }
-
-    writeln (array);
-    map (10, 1, array, array.length);
-    writeln (array);
-    
+    lmbd.call (12, 10);
 }

@@ -11,17 +11,20 @@ class Program {
     private Array!Struct _structs;
 
     private Array!Inline _inlines;
+    
+    private Array!GlobLambda _globLambda;
 
     private Array!Skeleton _skels;
     
     private string _file;
     
-    this (string file, Array!Function funcs, Array!Struct str, Array!Inline inlines, Array!Skeleton skels) {
+    this (string file, Array!Function funcs, Array!Struct str, Array!Inline inlines, Array!Skeleton skels, Array!GlobLambda globLambda) {
 	this._file = file;
 	this._functions = funcs;
 	this._structs = str;
 	this._inlines = inlines;
 	this._skels = skels;
+	this._globLambda = globLambda;
     }
 
     Array!Function funcs () {
@@ -39,7 +42,11 @@ class Program {
     Array!Skeleton skels () {
 	return this._skels;
     }
-    
+
+    Array!GlobLambda globLambda () {
+	return this._globLambda;
+    }
+        
     string replace () {
 	auto file = File (this._file, "r");
 	auto buf = new OutBuffer ();	
@@ -85,6 +92,21 @@ class Program {
 	    }
 	    
 	    foreach (it ; this._inlines) {
+		if (it.begin.locus.line == current) {
+		    auto beg = ln [0 .. it.begin.locus.column - 1];
+		    if (beg.strip.length != 0) buf.writef (beg);
+		    foreach (_it ; it.begin.locus.line .. it.end.locus.line - 1) {
+			ln = file.readln ();
+			current ++;
+		    }
+		    auto end = ln [(it.end.locus.column + it.end.locus.length - 1) .. $];
+		    buf.writef ("%s%s", it.replace, end);
+		    willWrite = false;
+		    break;
+		}
+	    }
+
+	    foreach (it ; this._globLambda) {
 		if (it.begin.locus.line == current) {
 		    auto beg = ln [0 .. it.begin.locus.column - 1];
 		    if (beg.strip.length != 0) buf.writef (beg);

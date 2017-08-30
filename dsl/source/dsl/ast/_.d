@@ -28,3 +28,5 @@ public import dsl.ast.Inline;
 public import dsl.ast.PreInline;
 public import dsl.ast.Skeleton;
 public import dsl.ast.Lambda;
+public import dsl.ast.Declaration;
+public import dsl.ast.GlobLambda;

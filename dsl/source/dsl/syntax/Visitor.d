@@ -72,6 +72,7 @@ class Visitor {
 	Array!Function funcs;
 	Array!Struct str;
 	Array!Inline inlines;
+	Array!GlobLambda globLmbd;
 	Array!Skeleton skels;
 	while (true) {
 	    Word word = this._lex.next ();
@@ -81,12 +82,15 @@ class Visitor {
 	    } else if (word == Keys.STRUCT) {
 		str.insertBack (visitStruct ());
 	    } else if (word == Tokens.SHARP) {
-		inlines.insertBack (visitInline ());
+		auto decl = visitInline ();
+		if (auto inline = cast (Inline) decl)
+		    inlines.insertBack (inline);
+		else globLmbd.insertBack (cast (GlobLambda) (decl));
 	    } else if (word == Keys.SKEL) {
 		skels.insertBack (visitSkeleton ());
 	    }
 	}
-	return new Program (this._lex.filename, funcs, str, inlines, skels);	
+	return new Program (this._lex.filename, funcs, str, inlines, skels, globLmbd);	
     }
    
     Function visitFunction () {
@@ -125,10 +129,30 @@ class Visitor {
 	return str;
     }
 
-    Inline visitInline () {
+    Declaration visitGlobLambda (Word begin) {
+	auto lmbd = new GlobLambda (begin);
+	while (true) {
+	    lmbd.vars.insertBack (visitVar);
+	    auto next = this._lex.next (Tokens.COMA, Tokens.RPAR);
+	    if (next == Tokens.RPAR) break;
+	}
+	auto next = this._lex.next (Tokens.IMPLIQUE, Tokens.LACC);
+	if (next == Tokens.IMPLIQUE) {
+	    lmbd.expression = visitExpression ();
+	} else {
+	    this._lex.rewind ();
+	    lmbd.block = visitBlock ();
+	}
+	lmbd.end = this._lex.rewind.next ();
+	return lmbd;
+    }
+
+    
+    Declaration visitInline () {
 	auto begin = this._lex.rewind.next ();
 	auto next = this._lex.next ();
 	Expression id;
+	if (next == Tokens.LPAR) return visitGlobLambda (begin);
 	if (next == Tokens.LCRO) {
 	    id = visitExpression ();
 	    next = this._lex.next (Tokens.RCRO);
@@ -138,7 +162,7 @@ class Visitor {
 	    this._lex.rewind ();
 	    id = new Decimal (dec);
 	}
-	
+		
 	auto ident = visitIdentifiant ();
 	next = this._lex.next (Tokens.SEMI_COLON, Tokens.NOT);
 	auto inline = new Inline (begin, id, ident, ident);
