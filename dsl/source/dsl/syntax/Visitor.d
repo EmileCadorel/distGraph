@@ -125,8 +125,12 @@ class Visitor {
 	if (next != Tokens.RACC) {
 	    this._lex.rewind ();
 	    while (true) {
-		str.addVar (visitTypeVar ());
-		this._lex.next (Tokens.SEMI_COLON);
+		auto type = visitTypeVarFStruct ();
+		if (type !is null) { 
+		    next = this._lex.next (Tokens.SEMI_COLON, Tokens.LPAR);
+		    if (next == Tokens.SEMI_COLON) str.addVar (type);
+		    else ignoreUntilClose ();		   
+		}
 		next = this._lex.next ();
 		if (next == Tokens.RACC) break;
 		else this._lex.rewind ();
@@ -877,6 +881,31 @@ class Visitor {
 	return new TypedVar (type, name);
     }
 
+    private TypedVar visitTypeVarFStruct () {
+	auto type = visitType ();
+	auto next = this._lex.next ();
+	if (next == Tokens.LPAR) {
+	    ignoreUntilClose ();
+	    return null;
+	} else {
+	    this._lex.rewind ();
+	    auto name = visitIdentifiant ();
+	    return new TypedVar (type, name);
+	}
+    }
+
+    private void ignoreUntilClose () {
+	auto nb = 1;
+	while (true) {
+	    auto next = this._lex.next ();
+	    if (next == Tokens.LACC) nb ++;
+	    else if (next == Tokens.RACC) {
+		nb --;
+		if (nb <= 1) break;
+	    }
+	}
+    }
+    
     private Type visitType (bool need = false) {
 	auto ident = visitIdentifiant ();
 	auto type = new Type (ident);

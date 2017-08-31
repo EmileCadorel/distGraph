@@ -7,6 +7,15 @@ enum n = 100;
 struct Test {
     long a;
     long b;
+
+    this (int a) {
+	if (true) {
+	}
+    }
+
+    void foo () {
+    }
+
 }
 
 void main(string [] args) {
