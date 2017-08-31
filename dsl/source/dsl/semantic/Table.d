@@ -139,6 +139,15 @@ class Table {
 	return buildPath (outdir, "in_structs.d");
     }
 
+    void clear () {
+	this._globalScope = new Scope ();
+	this._currentFrame = make!(SList!Scope);
+	this._allStructs = make!(Array!Struct);
+	this._allFuncs = make!(Array!Function);
+	this._allSkels = make!(Array!Skeleton);
+	this._allProg = make!(Array!Program);
+    }
+    
     mixin Singleton!Table;
 }
 

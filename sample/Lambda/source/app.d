@@ -14,6 +14,8 @@ void main(string [] args) {
     
     auto a = new DistArray!Test (n);
     auto res = a.Init!(#(i) => Test (i, -i));
+    res = res.Map!(#(i, v) => Test (v.a + i, v.b));
+    
     writeln (res.toString);
 
     adm.end ();

@@ -74,88 +74,20 @@ template InitImpl (T, alias fun) {
 	    }
 	}
     }
-    
-    static void initJob (uint addr, uint id) {
-	auto array = DataTable.get!(DistArray!T) (id);
 
-	auto nbCpu = SystemInfo.cpusInfo().length;
-	auto nbDevice = CL.CLContext.instance.devices.length;
-	auto nb = nbCpu + nbDevice;
-	
-	auto res = new Thread [nbCpu - 1];
-
-	CL.Kernel[] kerns = new CL.Kernel [nbDevice];
-	CL.Vector!T[] vecs = new CL.Vector!T [nbDevice];
-	
-	foreach (dev ; 0 .. CL.CLContext.instance.devices.length) {
-	    kerns [dev] = initOpenCL (CL.CLContext.instance.devices [dev]);
-	    if (kerns [dev] is null) {
-		nb = nbCpu;
-		break;
-	    }
-	}
-	
-	foreach (it ; 1 .. nb) {
-	    if (it != nb - 1) {
-		auto b = array.local [(array.localLength / nb) * it ..
-				      (array.localLength / nb) * (it + 1)];
-		if (it < nbCpu) 
-		    res [it - 1] = new InitThread (array.begin + (array.localLength / nb) * it, b).start ();
-		else {
-		    vecs [it - nbCpu] = new CL.Vector!T (b);
-		    auto blockSize = CL.CLContext.instance.devices [it - nbCpu].blockSize;
-		    kerns [it - nbCpu] ((b.length +  blockSize - 1) / blockSize,
-					blockSize,
-					vecs [it - nbCpu],
-					array.begin + (array.localLength / nb) * it,					      
-					b.length);
-		}
-	    } else {
-		auto b = array.local [(array.localLength / nb) * it .. $];
-				if (it < nbCpu) 
-		    res [it - 1] = new InitThread (array.begin + (array.localLength / nb) * it, b).start ();
-		else {
-		   vecs [it - nbCpu] = new CL.Vector!T (b);
-		    auto blockSize = CL.CLContext.instance.devices [it - nbCpu].blockSize;
-		    kerns [it - nbCpu] ((b.length +  blockSize - 1) / blockSize,
-					blockSize,
-					vecs [it - nbCpu],
-					array.begin + (array.localLength / nb) * it,					      
-					b.length);
-		}
-	    }
-	}
-
-	init (array.begin, array.local [0 .. array.localLength / nb]);
-	
-	foreach (it ; res) {
-	    it.join ();
-	}
-
-	if (nb != nbCpu)
-	    foreach (it ; 0 .. kerns.length) {
-		kerns [it].join ();
-		vecs [it].copyToLocal ();
-	    }
-	
-	Server.jobResult!(thisJob) (addr, id);
-    }
-
-    static void endJob (uint addr, uint id) {
-	Server.sendMsg (id);
-    }
 
     static CL.Kernel initOpenCL (CL.Device dev) {
 	import std.path, std.file;
-	if (__traits(compiles, fun.call)) {
+	static if (__traits(compiles, fun.call)) {
 	    auto it = (fun.toString ~ dev.id.to!string) in __compiled__;
 
 	    CL.Kernel toLaunch;
-	    if (it is null) {		
+	    if (it is null) {
 		auto src = new Visitor (kernSrc, false).visit ();
 		auto structs = new Visitor (TABLE.inFileStructs).visit ();
 		foreach (str ; structs.strs) TABLE.addStr (str);
-		
+		sem.validate ();
+				
 		auto skel = src.getSkel ("init");
 		TABLE.addSkel (skel);
 
@@ -165,20 +97,18 @@ template InitImpl (T, alias fun) {
 		sem.createFunc (skel, inline);
 		toLaunch = new CL.Kernel (dev, sem.target, "init0");
 		__compiled__ [fun.toString ~ dev.id.to!string] = toLaunch;
+		TABLE.clear ();
 	    } else toLaunch = *it;
 
 	    return toLaunch;
 	} else return null;		
     }
-    
-    auto InitImpl (DistArray!T array) {
-	foreach (id; Server.connected) {
-	    Server.jobRequest!(thisJob) (id, array.id);	    
-	}
 
+    static void localJob (DistArray!T array) {	
 	auto nbCpu = SystemInfo.cpusInfo().length;
 	auto nbDevice = CL.CLContext.instance.devices.length;
 	auto nb = nbCpu + nbDevice;
+	
 	auto res = new Thread [nbCpu - 1];
 
 	CL.Kernel[] kerns = new CL.Kernel [nbDevice];
@@ -212,7 +142,7 @@ template InitImpl (T, alias fun) {
 		if (it < nbCpu) 
 		    res [it - 1] = new InitThread (array.begin + (array.localLength / nb) * it, b).start ();
 		else {
-		   vecs [it - nbCpu] = new CL.Vector!T (b);
+		    vecs [it - nbCpu] = new CL.Vector!T (b);
 		    auto blockSize = CL.CLContext.instance.devices [it - nbCpu].blockSize;
 		    kerns [it - nbCpu] ((b.length +  blockSize - 1) / blockSize,
 					blockSize,
@@ -222,7 +152,6 @@ template InitImpl (T, alias fun) {
 		}
 	    }
 	}
-
 
 	init (array.begin, array.local [0 .. array.localLength / nb]);
 	
@@ -235,7 +164,26 @@ template InitImpl (T, alias fun) {
 		kerns [it].join ();
 		vecs [it].copyToLocal ();
 	    }
+    }
+    
+    static void initJob (uint addr, uint id) {
+	auto array = DataTable.get!(DistArray!T) (id);
+	localJob (array);
+	Server.jobResult!(thisJob) (addr, id);
+    }
+
+    static void endJob (uint addr, uint id) {
+	Server.sendMsg (id);
+    }
+
+    
+    auto InitImpl (DistArray!T array) {
+	foreach (id; Server.connected) {
+	    Server.jobRequest!(thisJob) (id, array.id);	    
+	}
 	
+	localJob (array);
+
 	foreach (id ; Server.connected) {
 	    Server.waitMsg!(uint);	
 	}
