@@ -9,8 +9,12 @@ struct Test {
     long b;
 }
 
-void main() {
+void main(string [] args) {
+    auto adm = new AssignAdmin (args);
+    
     auto a = new DistArray!Test (n);
     auto res = a.Init!(#(i) => Test (i, -i));
-    writeln (res.local);    
+    writeln (res.toString);
+
+    adm.end ();
 }

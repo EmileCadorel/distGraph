@@ -5,7 +5,7 @@ import distGraph.assign.Job;
 public import distGraph.assign.data.Data;
 import distGraph.utils.Singleton;
 import stdA = std.container;
-import std.stdio;
+import std.stdio, std.outbuffer;
 import std.conv, core.exception;
 
 /++
@@ -17,6 +17,7 @@ class DistArray (T) : DistData {
     alias thisFreeJob = Job!(freeJob, freeRespJob);
     alias thisIndexJob = Job!(indexJob, indexRespJob);
     alias thisIndexAssignJob = Job!(indexAssignJob, indexAssignRespJob);
+    alias thisStringJob = Job!(toStringJob, toStringJobEnd);
     
     /++
      L'index de la première case du tableau local
@@ -246,6 +247,29 @@ class DistArray (T) : DistData {
 	return this._machineBegins;
     }    
     
+
+    static void toStringJob (uint addr, uint id) {
+	auto array = DataTable.get!(DistArray!T) (id);
+	Server.jobResult!(thisStringJob) (addr, id, array.local.to!string [1 .. $ - 1]);
+    }
+
+    static void toStringJobEnd (uint addr, uint id, string val) {
+	Server.sendMsg (val);
+    }
+    
+    override string toString () {
+	auto buf = new OutBuffer ();
+	buf.write (this._local.to!string [0 .. $ - 1]);
+	foreach (key , value ; this._machineBegins) {
+	    if (key != Server.machineId && Server.isConnected (key)) {
+		Server.jobRequest!(thisStringJob) (key, this._id);
+		buf.write (Server.waitMsg!string ());
+	    }
+	}
+	buf.write ("]");
+	return buf.toString ();
+    }
+
     /++
      Job appelé par le destructeur d'un tableau pour libérer la mémoire
      Params:
@@ -268,6 +292,8 @@ class DistArray (T) : DistData {
     static void freeRespJob (uint addr, uint id) {
 	Server.sendMsg (id);
     }
+
+
     
     /++
      On libère la mémoire des autres machines.

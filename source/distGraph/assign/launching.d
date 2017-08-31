@@ -569,11 +569,21 @@ void launchInstance (string username, string ip, string pass, string path) {
 	if (path == "" || path is null) {
 	    writeln ("Scp de l'executable ");
 	    path = format("/tmp/distGraph.exec%d.exe", Server.lastMachine + 1UL);
+	    auto pathStr = "/tmp/cl_kernels/";
 	    import fl = std.file;
-	    auto scp = session.newScp (SCPMode.Write | SCPMode.Recursive, path);
+	    auto scp = session.newScp (SCPMode.Write | SCPMode.Recursive, "/tmp");
 	    scp.init ();
 	    scp.pushFile (path, fl.getSize (thisExePath), octal!744);
 	    scp.write (fl.read (thisExePath));
+
+	    if (exists ("cl_kernels")) {
+		scp.pushDirectory (pathStr, octal!744);
+		foreach (string name; dirEntries ("cl_kernels", SpanMode.depth)) {
+		    auto flName = name [name.lastIndexOf ("/") + 1 .. $];
+		    scp.pushFile (flName, fl.getSize (name), octal!744);
+		    scp.write (fl.read (name));
+		}
+	    }
 	}
 
 	/// On récupère l'addresse de la machine d'après la connexion ssh.

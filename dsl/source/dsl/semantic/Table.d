@@ -119,7 +119,9 @@ class Table {
     }
 
     string outdir () {
-	return "cl_kernels/";
+	import std.file, std.string;
+	auto path = thisExePath ();
+	return path [0 .. path.lastIndexOf ("/") + 1] ~ "cl_kernels/";
     }
     
     string outFile () {

@@ -1,0 +1,5 @@
+{
+    "machines" : [
+	{"user" : "emile", "pass" : "truc", "ip" : "localhost", "path" : ""}
+    ]
+}
