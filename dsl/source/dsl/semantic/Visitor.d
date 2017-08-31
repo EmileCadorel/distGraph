@@ -209,7 +209,8 @@ void validate (Expression expr) {
 	(Float fl) => validate (fl),
 	(Par par) => validate (par),
 	(Dot dot) => validate (dot),
-	(AfUnary _af) => validate (_af)
+	(AfUnary _af) => validate (_af),
+	(BefUnary _bef) => validate (_bef)
     );
 }
 
@@ -218,6 +219,13 @@ void validate (AfUnary _af) {
     _af.sym = new Symbol (_af.token, _af.expr.type.unaryOp (_af.token.str));
     if (_af.type is null) throw new UndefinedOp (_af.token, _af.expr.type);
 }
+
+void validate (BefUnary _bef) {
+    validate (_bef.expr);
+    _bef.sym = new Symbol (_bef.token, _bef.expr.type.unaryOp (_bef.token.str));
+    if (_bef.type is null) throw new UndefinedOp (_bef.token, _bef.expr.type);
+}
+
 
 void validate (Binary bin) {
     auto affOp = [Tokens.DIV_AFF, Tokens.STAR_EQUAL, Tokens.PLUS_AFF, Tokens.MINUS_AFF, Tokens.EQUAL];
@@ -460,8 +468,20 @@ Expression inlineLambda (Expression expr, Word token, Lambda lmbd) {
 	(Access acc) => inlineLambda (acc, token, lmbd),
 	(Par par) => inlineLambda (par, token, lmbd),
 	(Dot dot) => inlineLambda (dot, token, lmbd),
+	(AfUnary af) => inlineLambda (af, token, lmbd),
+	(BefUnary bef) => inlineLambda (bef, token, lmbd),	
 	(Expression expr) => expr
     );
+}
+
+Expression inlineLambda (AfUnary af, Word token, Lambda lmbd) {
+    auto expr = inlineLambda (af.expr, token, lmbd);
+    return new AfUnary (af.token, expr);
+}
+
+Expression inlineLambda (BefUnary af, Word token, Lambda lmbd) {
+    auto expr = inlineLambda (af.expr, token, lmbd);
+    return new BefUnary (af.token, expr);
 }
 
 Expression inlineLambda (Binary bin, Word token, Lambda lmbd) {
@@ -534,6 +554,8 @@ Expression replaceEveryWhere (Expression content, Var token, Expression second) 
 	(Access acc) => replaceEveryWhere (acc, token, second),
 	(Par par) => replaceEveryWhere (par, token, second),
 	(Dot dot) => replaceEveryWhere (dot, token, second),
+	(AfUnary af) => replaceEveryWhere (af, token, second),
+	(BefUnary bef) => replaceEveryWhere (bef, token, second),
 	(Var v) {
 	    if (v.token.str == token.token.str) return second;
 	    else return v;
@@ -557,6 +579,16 @@ Instruction replaceEveryWhere (Auto au, Var token, Expression second) {
 		     replaceEveryWhere (au.rights [it], token, second));
 
     return aux;
+}
+
+Expression replaceEveryWhere (AfUnary af, Var token, Expression second) {
+    auto expr = replaceEveryWhere (af.expr, token, second);
+    return new AfUnary (af.token, expr);
+}
+
+Expression replaceEveryWhere (BefUnary bef, Var token, Expression second) {
+    auto expr = replaceEveryWhere (bef.expr, token, second);
+    return new BefUnary (bef.token, expr);
 }
 
 Expression replaceEveryWhere (Binary bin, Var token, Expression second) {

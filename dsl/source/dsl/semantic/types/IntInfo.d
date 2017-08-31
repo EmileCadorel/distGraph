@@ -23,6 +23,14 @@ IntSize maxSize (IntSize a, IntSize b) {
 }
 
 
+IntSize signed (IntSize a) {
+    if (a == IntSize.UBYTE) return IntSize.BYTE;
+    if (a == IntSize.USHORT) return IntSize.SHORT;
+    if (a == IntSize.UINT) return IntSize.INT;
+    if (a == IntSize.ULONG) return IntSize.LONG;
+    return a;
+}
+
 class IntInfo : InfoType {
 
     private IntSize _size;
@@ -69,6 +77,7 @@ class IntInfo : InfoType {
 	switch (op) {
 	case Tokens.DPLUS : return new IntInfo (this._size);
 	case Tokens.DMINUS : return new IntInfo (this._size);
+	case Tokens.MINUS : return new IntInfo (signed (this._size));
 	default : return null;	    
 	}
     }

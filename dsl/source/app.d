@@ -41,8 +41,9 @@ string readDub () {
 	     .filter! (f => f.name.endsWith (".d"))) {
 	declare (name);
     }
-
-    rmdirRecurse ("./out/");
+    if (exists ("./out/"))
+	rmdirRecurse ("./out/");
+    
     mkdir ("./out/");
     targetTime ();
     if (auto exec = "name" in json) {
