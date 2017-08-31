@@ -8,10 +8,6 @@ struct Test {
     long a;
     long b;
 
-    this (int a) {
-	if (true) {
-	}
-    }
 
     void foo () {
     }
