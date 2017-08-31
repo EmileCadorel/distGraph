@@ -23,5 +23,6 @@ enum Keys {
     STRUCT = ("struct"),
     LOCAL = ("__loc"),
     SKEL = ("__skel"),
-    ALIAS = ("alias")
+    ALIAS = ("alias"),
+    MIXIN = ("mixin")
 }

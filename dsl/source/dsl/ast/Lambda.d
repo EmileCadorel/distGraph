@@ -9,7 +9,10 @@ class Lambda : Expression {
 
     private Expression _content;
 
-
+    this () {
+	super (Word.eof);
+    }
+    
     this (Word token) {
 	super (token);
     }

@@ -238,3 +238,63 @@ class Lexer {
     protected ulong _column;
     
 }
+
+
+
+class StringLexer : Lexer {
+
+    private string _content;
+
+    private ulong _beg = 0;
+    
+    this (string content, Token [] skips, Token[2][] comments) {
+	super (skips, comments);
+	this._content = content;
+    }
+    
+    protected override bool getWord (ref Word word) {
+	if (this._beg >= this._content.length) return false;
+	auto where = this._beg;
+	auto line = this._content [this._beg .. $];
+	ulong max = 0, beg = line.length;
+	foreach (it ; this._tokens) {
+	    auto id = indexOf (line, it);
+	    if (id != -1) {
+		if (id == beg && it.length > max)  max = it.length;
+		else if (id < beg) {
+		    beg = id;
+		    max = it.length;
+		}
+	    }
+	}
+	constructWord (word, beg, max, line, where);
+	if (word.str == "\n" || word.str == "\r") {
+	    this._line ++;
+	    this._column = 1;
+	} else {
+	    this._column += word.str.length;
+	}
+	
+	return true;
+    }    
+    
+    protected override void constructWord (ref Word word, ulong beg, ulong _max, string line, ulong where) {
+	import dsl.syntax.Keys;
+	if (beg == line.length + 1) {
+	    this._beg += line.length;
+	    word.str = line;
+	} else if (beg == 0) {
+	    word.str = line [0 .. min(_max, line.length)];
+	    this._beg = (where + _max);
+	} else if (beg > 0) {
+	    word.str = line [0 .. min(beg, line.length)];
+	    this._beg = (where + beg);
+	}
+	word.locus = Location (this._line, this._column, word.str.length, Keys.MIXIN, this._content);
+    }
+
+    override bool isMixinContext () {
+	return true;
+    }
+    
+}

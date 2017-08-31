@@ -4,7 +4,8 @@
 	"emile"
     ],
     "dependencies": {
-	"dopencl" : "*"
+	"dopencl" : "*",
+	"dsl" : "*"
     },
     "description": "Langage de compilation et d'analyse statique pour distGraph",
     "copyright": "Copyright © 2017, emile",

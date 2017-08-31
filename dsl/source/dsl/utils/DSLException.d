@@ -81,11 +81,17 @@ class DSLException : Exception {
      */
     private string getLine (Location locus) {
 	import std.path, std.string;
-	auto file = File (locus.file, "r");
-	string cline = null;
-	foreach (it ; 0 .. locus.line)
-	    cline = file.readln ();
-	return cline;
+	if (locus.file != "mixin") {
+	    auto file = File (locus.file, "r");
+	    string cline = null;
+	    foreach (it ; 0 .. locus.line)
+		cline = file.readln ();
+	    return cline;
+	} else {
+	    import std.stdio;
+	    auto lines = locus.mixLines.splitLines ();
+	    return lines [locus.line - 1];
+	}
     }
 
     /**

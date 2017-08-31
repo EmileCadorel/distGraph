@@ -18,6 +18,13 @@ class Inline : Declaration {
 
     protected this () {
     }
+
+    this (string name) {
+	this._id = new Decimal (Word (Location.eof, "0"));
+	this._what = Word (Location.eof, name);
+	this._begin = Word.eof;
+	this._end = Word.eof;
+    }
     
     this (Word begin, Expression id, Word what, Word end) {
 	this._id = id;

@@ -13,6 +13,10 @@ class Type {
     private bool _isArray;
 
     private InfoType _info;
+
+    this (string name) {
+	this._ident = Word (Location.eof, name);
+    }
     
     this (Word ident) {
 	this._ident = ident;

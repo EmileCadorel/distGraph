@@ -43,6 +43,20 @@ class Program {
 	return this._skels;
     }
 
+    Skeleton getSkel (string name) {
+	foreach (it ; this._skels) {
+	    if (it.ident.str == name) return it;
+	}
+	return null;
+    }
+
+    Function getFunc (string name) {
+	foreach (it ; this._functions) {
+	    if (it.ident.str == name) return it;
+	}
+	return null;
+    }
+    
     Array!GlobLambda globLambda () {
 	return this._globLambda;
     }

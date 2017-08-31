@@ -4,7 +4,10 @@ import dsl.syntax.Word;
 
 class Var : Expression {
 
-
+    this (string name) {
+	super (Word (Location.eof, name));
+    }
+    
     this (Word ident) {
 	super (ident);
     }        

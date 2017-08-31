@@ -21,12 +21,18 @@ class Visitor {
     private Token[] _suiteElem;
     private Token[] _forbiddenIds;
     
-    this (string file) {
+    this (string file, bool isFile = true) {
 	this ();
-	this._lex = new Lexer (file,
-			       [Tokens.SPACE, Tokens.RETOUR, Tokens.RRETOUR, Tokens.TAB],
-			       [[Tokens.LCOMM2, Tokens.RCOMM2],
-				[Tokens.LCOMM1, Tokens.RETOUR]]);
+	if (isFile)
+	    this._lex = new Lexer (file,
+				   [Tokens.SPACE, Tokens.RETOUR, Tokens.RRETOUR, Tokens.TAB],
+				   [[Tokens.LCOMM2, Tokens.RCOMM2],
+				    [Tokens.LCOMM1, Tokens.RETOUR]]);
+	else
+	    this._lex = new StringLexer (file,
+					 [Tokens.SPACE, Tokens.RETOUR, Tokens.RRETOUR, Tokens.TAB],
+					 [[Tokens.LCOMM2, Tokens.RCOMM2],
+					  [Tokens.LCOMM1, Tokens.RETOUR]]);
     }
     
     this () {	
@@ -294,11 +300,16 @@ class Visitor {
     Lambda visitLambda () {
 	auto begin = this._lex.next ();
 	auto lmbd = new Lambda (begin);
-	while (true) {
+	if (begin != Tokens.LPAR) {
+	    this._lex.rewind ();
 	    lmbd.addParam (visitVar ());
-	    auto next = this._lex.next (Tokens.COMA, Tokens.RPAR);
-	    if (next == Tokens.RPAR) break;	    
-	}
+	} else {
+	    while (true) {
+		lmbd.addParam (visitVar ());
+		auto next = this._lex.next (Tokens.COMA, Tokens.RPAR);
+		if (next == Tokens.RPAR) break;	    
+	    }
+	} 
 	this._lex.next (Tokens.IMPLIQUE);
 	lmbd.content = visitExpression ();
 	return lmbd;	

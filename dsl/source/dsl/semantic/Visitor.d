@@ -113,7 +113,6 @@ class ErrorCreation : DSLException {
     
 }
 
-
 void declare (Program prog) {
     foreach (it ; prog.strs) {
 	TABLE.addStr (it);

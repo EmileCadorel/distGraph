@@ -8,7 +8,12 @@ struct Location {
     ulong length;
     string file;
     string mixLines;
-    bool eof;
+    bool isEof;
+
+    static Location eof () {
+	return Location (0, 0, 0, null, null, true);
+    }    
+    
 }
 
 struct Word {
@@ -40,7 +45,7 @@ struct Word {
     }
 
     bool isEof () const {
-	return this._locus.eof;
+	return this._locus.isEof;
     }
 
     bool opEquals (T2 : Word) (T2 elem) const {
@@ -56,7 +61,7 @@ struct Word {
     }
 
     void setEof () {
-	this._locus.eof = true;
+	this._locus.isEof = true;
 	this._str = "";
     }
     
