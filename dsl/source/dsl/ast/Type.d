@@ -43,6 +43,10 @@ class Type {
 	return this._info;
     }
     
+    string initString () {
+	return this._ident.str;
+    }
+
     override string toString () {
 	import std.outbuffer;
 	auto buf = new OutBuffer ();

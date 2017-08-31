@@ -26,6 +26,17 @@ class Struct {
     Array!TypedVar params () {
 	return this._params;
     }
+
+    string initString () {
+	import std.outbuffer;
+	auto buf = new OutBuffer ();
+	buf.writefln ("struct %s {", this._ident);
+	foreach (it ; this._params) {
+	    buf.writefln ("\t%s;", it.initString);
+	}
+	buf.writefln ("};");
+	return buf.toString;
+    }
     
     override string toString () {
 	import std.outbuffer;

@@ -22,6 +22,11 @@ class TypedVar {
     Type type () {
 	return this._type;
     }
+
+    string initString () {
+	import std.format;	
+	return format ("%s %s", this._type.initString, this._ident.toString);	
+    }
     
     override string toString () {
 	import std.format;	

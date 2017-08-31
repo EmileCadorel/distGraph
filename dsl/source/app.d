@@ -26,6 +26,7 @@ void targetTime  () {
     // On commence par valider tout ce qui à été déclaré
     mkdirRecurse (TABLE.outdir);
     toFile (sem.targetStruct (), TABLE.outFileStructs);
+    toFile (sem.inStruct (), TABLE.inFileStructs);
     toFile (sem.target (), TABLE.outFile);
     toFile (cast (string) read ("dub.json"), "out/dub.json");    
 }
@@ -53,8 +54,17 @@ string readDub () {
 
 void generateSolution (string exec) {
     chdir ("./out/");
-    auto cmd = execute (["dub", "build"]);
-    writeln (cmd.output);
+    auto cmd = spawnProcess (["dub", "build"],
+			     std.stdio.stdin,
+			     std.stdio.stdout,
+			     std.stdio.stderr
+    );
+    
+    if (auto val = wait(cmd)) {
+	import std.conv;
+	if (val != 0)
+	    assert (false, "Compilation failed - exit " ~ val.to!string);
+    } 
     chdir ("..");
     copy (buildPath ("out/", exec), exec, Yes.preserveAttributes);    
 }

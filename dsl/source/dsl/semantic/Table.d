@@ -131,6 +131,11 @@ class Table {
 	import std.path;
 	return buildPath (outdir, "structs.h");
     }
+    
+    string inFileStructs () {
+	import std.path;
+	return buildPath (outdir, "in_structs.d");
+    }
 
     mixin Singleton!Table;
 }

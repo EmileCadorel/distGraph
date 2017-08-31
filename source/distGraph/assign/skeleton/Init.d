@@ -25,6 +25,14 @@ template Init (alias fun) {
     }
 }
 
+string nameOf (T) () {
+    import std.string;
+    auto name = typeid (T).toString;
+    auto index = name.lastIndexOf (".");
+    if (index != -1) return name [index + 1 .. $];
+    return name;
+}
+
 template InitImpl (T, alias fun) {
 
     alias thisJob = Job!(initJob, endJob);
@@ -102,14 +110,14 @@ template InitImpl (T, alias fun) {
 	    CL.Kernel toLaunch;
 	    if (it is null) {		
 		auto src = new Visitor (kernSrc, false).visit ();
-		auto structs = new Visitor (TABLE.outFileStructs).visit ();
+		auto structs = new Visitor (TABLE.inFileStructs).visit ();
 		foreach (str ; structs.strs) TABLE.addStr (str);
 		
 		auto skel = src.getSkel ("init");
 		TABLE.addSkel (skel);
 
 		auto inline = new Inline ("init");
-		inline.addTemplate (new Var (typeid(T).toString));
+		inline.addTemplate (new Var (nameOf!(T)));
 		inline.addTemplate (new Visitor (fun.toString, false).visitLambda ());
 		sem.createFunc (skel, inline);
 		toLaunch = new CL.Kernel (dev, sem.target, "init0");

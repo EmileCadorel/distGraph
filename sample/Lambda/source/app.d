@@ -4,8 +4,13 @@ import CL = openclD._;
 
 enum n = 100;
 
+struct Test {
+    long a;
+    long b;
+}
+
 void main() {
-    auto a = new DistArray!int (n);
-    auto res = a.Init!(CL.Lambda !(i => i, "i => -i"));
+    auto a = new DistArray!Test (n);
+    auto res = a.Init!(#(i) => Test (i, -i));
     writeln (res.local);    
 }

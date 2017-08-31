@@ -637,6 +637,15 @@ Instruction replaceEveryWhere (If _if, Var token, Expression second) {
     }    
 }
 
+string inStruct () {
+    auto buf = new OutBuffer ();
+    foreach (it ; TABLE.allStructs ()) {
+	buf.writefln ("%s", it.initString);
+    }
+    
+    return buf.toString;    
+}
+
 string targetStruct () {
     auto buf = new OutBuffer ();
     foreach (it ; TABLE.allStructs ()) {
