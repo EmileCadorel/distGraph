@@ -7,11 +7,11 @@ enum n = 100;
 void main(string [] args) {
     auto adm = new AssignAdmin (args);
     
-    auto a = new DistArray!ulong (100);
-    auto res = a.Init!(#(i) => i);
-    res = res.Map!(#(i, v) => i + v);
+    auto a = new DistArray!ulong (1000);
+    auto res = a.Init!(#(i) => 1);
+    auto res2 = res.Reduce!(#(a, b) => a + b);
     
-    writeln (res.toString);
+    writeln (res2);
 
     adm.end ();
 }

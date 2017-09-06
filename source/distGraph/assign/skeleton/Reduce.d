@@ -8,6 +8,7 @@ import distGraph.assign.cpu;
 import distGraph.assign.data.Array;
 import core.thread;
 import CL = openclD._;
+import dsl._, std.conv;
 
 private auto kernSrc = q{
     __skel reduce (T, alias FUN) (T[] a, T[] b, ulong count, __loc T[] partialSum) {
@@ -31,7 +32,13 @@ private auto kernSrc = q{
     }    
 };
 
-
+string nameOf (T) () {
+    import std.string;
+    auto name = typeid (T).toString;
+    auto index = name.lastIndexOf (".");
+    if (index != -1) return name [index + 1 .. $];
+    return name;
+}
 
 template Reduce (alias fun) {
 
@@ -63,11 +70,17 @@ template ReduceImpl (T, alias fun) {
 	    while (padd < anc) {
 		auto it = 0;
 		for (it = 0; (it + padd) < (anc) ; it += (2*padd)) {
-		    datas [it] = fun (datas [it], datas [it + padd]);
+		    static if (__traits (compiles, fun.call))
+			datas [it] = fun.call (datas [it], datas [it + padd]);
+		    else
+			datas [it] = fun (datas [it], datas [it + padd]);
 		}
 		
 		if (it < anc && (it - (2 * padd)) >= 0) {
-		    datas [it - (2 * padd)] = fun (datas [it - (2 * padd)], datas [it]);
+		    static if (__traits (compiles, fun.call))
+			datas [it - (2 * padd)] = fun.call (datas [it - (2 * padd)], datas [it]);
+		    else
+			datas [it - (2 * padd)] = fun (datas [it - (2 * padd)], datas [it]);
 		    anc = it;
 		}
 		
@@ -89,11 +102,17 @@ template ReduceImpl (T, alias fun) {
 	while (padd < anc) {
 	    auto it = 0;
 	    for (it = 0; (it + padd) < (anc) ; it += (2*padd)) {
-		datas [it] = fun (datas [it], datas [it + padd]);
+		static if (__traits (compiles, fun.call))
+		    datas [it] = fun.call (datas [it], datas [it + padd]);
+		else
+		    datas [it] = fun (datas [it], datas [it + padd]);
 	    }
 	
 	    if (it < anc && (it - (2 * padd)) >= 0) {
-		datas [it - (2 * padd)] = fun (datas [it - (2 * padd)], datas [it]);
+		static if (__traits (compiles, fun.call))
+		    datas [it - (2 * padd)] = fun.call (datas [it - (2 * padd)], datas [it]);
+		else
+		    datas [it - (2 * padd)] = fun (datas [it - (2 * padd)], datas [it]);
 		anc = it;
 	    }
 	    
@@ -105,8 +124,8 @@ template ReduceImpl (T, alias fun) {
 
     static CL.Kernel initOpenCL (CL.Device dev) {
 	import std.path, std.file;
-	static if (__traits (compiles, Fun.call)) {
-	    auto it = (Fun.toString ~ dev.id.to!string) in __compiled__;
+	static if (__traits (compiles, fun.call)) {
+	    auto it = (fun.toString ~ dev.id.to!string) in __compiled__;
 	    
 	    CL.Kernel toLaunch;
 	    if (it is null) {
@@ -120,10 +139,10 @@ template ReduceImpl (T, alias fun) {
 
 		auto inline = new Inline ("reduce");
 		inline.addTemplate (new Var (nameOf!(T)));
-		inline.addTemplate (new Visitor (Fun.toString, false).visitLambda ());
+		inline.addTemplate (new Visitor (fun.toString, false).visitLambda ());
 		sem.createFunc (skel, inline);
 		toLaunch = new CL.Kernel (dev, sem.target, "reduce0");
-		__compiled__ [Fun.toString ~ dev.id.to!string] = toLaunch;
+		__compiled__ [fun.toString ~ dev.id.to!string] = toLaunch;
 		TABLE.clear ();		
 	    } else toLaunch = *it;
 
@@ -132,50 +151,18 @@ template ReduceImpl (T, alias fun) {
 	} else return null;	
     }
 
-    static void localJob (T [] datas) {
-	auto nbCpu = SystemInfo.cpuInfo().length;
+    static T localJob (DistArray!T array) {
+	auto nb = SystemInfo.cpusInfo().length;
 	auto nbDevice = CL.CLContext.instance.devices.length;
-	auto nb = nbDevice + nbCpu;
 	auto res = new Thread [nb - 1];
 
 	CL.Kernel [] kerns = new CL.Kernel [nbDevice];
 	foreach (dev ; 0 .. CL.CLContext.instance.devices.length) {
 	    kerns [dev] = initOpenCL (CL.CLContext.instance.devices [dev]);
 	    if (kerns [dev] is null) {
-		nb = nbCpu;
 		break;
 	    }
 	}
-	
-	foreach (it ; 1 .. nbCpu) {
-	    if (it != nb - 1) {
-		auto b = array.local [(array.localLength / nb) * (it) .. (array.localLength / nb) * (it + 1)];
-		res [it - 1] = new ReduceThread (b).start ();
-	    } else {
-		auto b = array.local [(array.localLength / nb) * (it) .. $];
-		res [it - 1] = new ReduceThread (b).start ();
-	    }
-	}
-
-	foreach (it ; 0 .. array.deviceVectors.length) {
-	    if (nb != nbCpu) {
-		
-	    }
-	}
-	
-	T soluce = reduceArray (array.local [0 .. (array.localLength / nb)]);
-	
-	foreach (it ; res) {
-	    it.join ();
-	    soluce = fun (soluce, (cast (ReduceThread) it).res);
-	}
-	
-    }
-    
-    static void reduceJob (uint addr, uint id) {
-	auto array = DataTable.get!(DistArray!T) (id);
-	auto nb = SystemInfo.nbThreadsPerCpu ();
-	auto res = new Thread [nb - 1];
 	
 	foreach (it ; 1 .. nb) {
 	    if (it != nb - 1) {
@@ -187,12 +174,41 @@ template ReduceImpl (T, alias fun) {
 	    }
 	}
 	
+	auto len = 0;
+      	
 	T soluce = reduceArray (array.local [0 .. (array.localLength / nb)]);
+
+	foreach (it ; 0 .. array.deviceLocals.length) {
+	    auto b = array.deviceLocals [it];
+	    if (kerns [it] !is null) {
+		auto blockSize = CL.CLContext.instance.devices [it].blockSize;
+		static if (__traits (compiles, fun.call))
+		    soluce = fun.call (CL.Reduce!("")(b, kerns [it]), soluce);
+		else
+		    soluce = fun (CL.Reduce!("")(b, kerns [it]), soluce);
+	    } else { // Oblige de le faire sur le CPU
+		b.copyToLocal ();
+		static if (__traits (compiles, fun.call))
+		    soluce = fun.call (soluce, reduceArray (b.local));
+		else
+		    soluce = fun (soluce, reduceArray (b.local));
+	    }
+	}
 	
 	foreach (it ; res) {
 	    it.join ();
-	    soluce = fun (soluce, (cast (ReduceThread) it).res);
+	    static if (__traits (compiles, fun.call))
+		soluce = fun.call (soluce, (cast (ReduceThread) it).res);
+	    else
+ 		soluce = fun (soluce, (cast (ReduceThread) it).res);
 	}
+	
+	return soluce;
+    }
+    
+    static void reduceJob (uint addr, uint id) {
+	auto array = DataTable.get!(DistArray!T) (id);
+	auto soluce = localJob (array);
        	Server.jobResult!(thisJob) (addr, id, soluce);
     }
 
@@ -205,29 +221,14 @@ template ReduceImpl (T, alias fun) {
 	    Server.jobRequest!(thisJob) (id, array.id);	    
 	}
 	
-	auto nb = SystemInfo.nbThreadsPerCpu ();
-	auto res = new Thread [nb - 1];
-	
-	foreach (it ; 1 .. nb) {
-	    if (it != nb - 1) {
-		auto b = array.local [(array.localLength / nb) * (it) .. (array.localLength / nb) * (it + 1)];
-		res [it - 1] = new ReduceThread (b).start ();
-	    } else {
-		auto b = array.local [(array.localLength / nb) * (it) .. $];
-		res [it - 1] = new ReduceThread (b).start ();
-	    }
-	}
-	
-	T soluce = reduceArray (array.local [0 .. (array.localLength / nb)]);	
-
-	foreach (it ; res) {
-	    it.join ();
-	    soluce = fun ((cast (ReduceThread) it).res, soluce);
-	}
+	auto soluce = localJob (array);
 	
 	foreach (id ; Server.connected) {
 	    auto t = Server.waitMsg!T ();
-	    soluce = fun (soluce, t);
+	    static if (__traits (compiles, fun.call))
+		soluce = fun.call (soluce, t);
+	    else
+		soluce = fun (soluce, t);
 	}
 	
 	return soluce;
