@@ -358,7 +358,7 @@ class Visitor {
 	if (next != Tokens.RPAR) {
 	    this._lex.rewind ();
 	    while (true) {
-		_for.addIter (visitExpression ());
+		_for.addIter (visitExpressionUlt ());
 		next = this._lex.next (Tokens.COMA, Tokens.RPAR);
 		if (next == Tokens.RPAR) break;
 	    }
@@ -876,9 +876,15 @@ class Visitor {
     }    
 
     private TypedVar visitTypeVar () {
+	auto next = this._lex.next ();
+	auto isLocal = true;
+	if (next != Keys.LOCAL) {
+	    isLocal = false;	    
+	    this._lex.rewind ();
+	}
 	auto type = visitType ();
 	auto name = visitIdentifiant ();
-	return new TypedVar (type, name);
+	return new TypedVar (type, name, isLocal);	
     }
 
     private TypedVar visitTypeVarFStruct () {
@@ -890,7 +896,7 @@ class Visitor {
 	} else {
 	    this._lex.rewind ();
 	    auto name = visitIdentifiant ();
-	    return new TypedVar (type, name);
+	    return new TypedVar (type, name, false);
 	}
     }
 

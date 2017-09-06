@@ -4,22 +4,12 @@ import CL = openclD._;
 
 enum n = 100;
 
-struct Test {
-    long a;
-    long b;
-
-
-    void foo () {
-    }
-
-}
-
 void main(string [] args) {
     auto adm = new AssignAdmin (args);
     
-    auto a = new DistArray!Test (n);
-    auto res = a.Init!(#(i) => Test (i, -i));
-    res = res.Map!(#(i, v) => Test (v.a + i, v.b));
+    auto a = new DistArray!ulong (100);
+    auto res = a.Init!(#(i) => i);
+    res = res.Map!(#(i, v) => i + v);
     
     writeln (res.toString);
 

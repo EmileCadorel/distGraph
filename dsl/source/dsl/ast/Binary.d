@@ -24,8 +24,12 @@ class Binary : Expression {
     
     override string toString () {
 	import std.format;
-
-	return format ("(%s %s %s)", this._left.toString, this._token.toString, this._right.toString);
+	auto lString = this._left.toString;
+	auto rString = this._right.toString;
+	if (cast (Binary) this._left) lString = format ("(%s)", lString);
+	if (cast (Binary) this._right) rString = format ("(%s)", rString);
+	
+	return format ("%s %s %s", lString, this._token.toString, rString);
     }
 
 

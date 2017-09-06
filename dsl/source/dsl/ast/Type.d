@@ -14,6 +14,8 @@ class Type {
 
     private InfoType _info;
 
+    private bool _isLocal;
+    
     this (string name) {
 	this._ident = Word (Location.eof, name);
     }
@@ -31,6 +33,10 @@ class Type {
 	return this._isArray;
     }
 
+    ref bool isLocal () {
+	return this._isLocal;
+    }
+    
     void isArray (bool isA) {
 	this._isArray = isA;
     }
@@ -50,8 +56,10 @@ class Type {
     override string toString () {
 	import std.outbuffer;
 	auto buf = new OutBuffer ();
-	if (this._isArray)
+	if (this._isArray && !this._isLocal)
 	    buf.writef ("__global ");
+	else if (this._isLocal)
+	    buf.writef ("__local ");
 
 	if (this._info is null) {
 	    buf.writef ("%s", this._ident.toString);	

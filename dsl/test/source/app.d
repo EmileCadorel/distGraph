@@ -2,38 +2,38 @@ import std.stdio;
 import dsl._;
 import CL = openclD._;
 
-auto all = q{
-    struct Test {
-	int b;
-	int i;
+__skel reduce (T, alias FUN) (T [] a, T [] b, ulong count, __loc T[] partialSum) {
+    auto t = get_local_id (0), start = 2 * get_group_id (0) * get_local_size (0);
+    if (start + t < count)
+	partialSum [t] = a [start + t];
+    else partialSum [t] = 0;
+
+    if (start + get_local_size (0) < count)
+	partialSum [get_local_size (0) + t] = a [start + get_local_size (0) + t];
+    else partialSum [get_local_size (0) + t] = 0;
+
+    for (auto stride = get_local_size (0) ; stride >= 1; stride >>= 1) {
+	barrier (CLK_LOCAL_MEM_FENCE);
+	if (t < stride)
+	    partialSum [t] = FUN (partialSum [t], partialSum [stride + t]);
     }
-    
-    __skel map (T, alias FUN) (T [] a, ulong size) {
-	auto i = get_global_id (0);
-	if (i < size)
-	    a [i] = FUN (a [i]);
-    }
-};
+
+    if (t == 0)
+	b [get_group_id (0)] = partialSum [0];
+}
 
 enum LEN = 10L;
 
 void main () {
-    auto src = new Visitor (all, false).visit ();
-    auto map = src.getSkel ("map");
-    TABLE.addSkel (map);
+    auto reduce = #reduce!(int, (a, b) => a + b);
+    auto b = new Vector!(int) (1);
+    auto a = new Vector!(int) (32);
 
-    auto inline = new Inline ("map");
-    inline.addTemplate (new Var ("int"));
-    
-    auto lmbd = new Visitor (CL.Lambda! ((a) => a + 1,
-					 "a => a + 1").toString
-			     , false).visitLambda ();
-    inline.addTemplate (lmbd);
+    foreach (it ; 0 .. a.length)
+	a [it] = 1;
 
-    sem.createFunc (map, inline);    
-    auto kernel = new CL.Kernel (sem.target (), "map0");
-    auto a = new CL.Vector!(int) ([1, 2, 3]);
+    auto local = 32; //CL.CLContext.instance.devices[0].blockSize;    
     
-    kernel (1, 3, a, a.length);
-    writeln (a);
+    reduce.callWithLocalSize (1, local, 2 * local * int.sizeof, a, b, a.length); 
+    writeln (b);
 }

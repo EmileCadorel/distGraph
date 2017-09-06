@@ -6,7 +6,9 @@ public import distGraph.assign.data.Data;
 import distGraph.utils.Singleton;
 import stdA = std.container;
 import std.stdio, std.outbuffer;
+import CL = openclD._;
 import std.conv, core.exception;
+import distGraph.assign.cpu;
 
 /++
  Classe qui permet d'allouer un tableau sur la ram de différentes machines
@@ -37,7 +39,12 @@ class DistArray (T) : DistData {
     /++
      Les données enregistré dans le tableau localement
      +/
-    private T [] _local;    
+    private T [] _local;
+
+    /++
+     Les données enregistré dans la ram des device OpenCL.
+     +/
+    private stdA.Array!(CL.Vector!T) _deviceLocals;
     
     /++
      Allocation d'un nouveau tableau distribué
@@ -59,8 +66,10 @@ class DistArray (T) : DistData {
 	foreach (key, value ; repartition) {
 	    writeln (key, " => ", value);
 	}
+	
 	auto machineId = Server.machineId;
-	this._local = alloc!T (repartition [machineId].len);
+	allocateLocal (repartition [machineId].len);
+	//this._local = alloc!T (repartition [machineId].len);
 	foreach (key, value ; repartition) {
 	    if (key != machineId) {
 		Server.jobRequest!(thisAllocJob) (key, this._id, length, value.begin, value.len);
@@ -84,7 +93,8 @@ class DistArray (T) : DistData {
 	super (id);
 	this._length = length;
 	this._begin = localBegin;
-	this._local = alloc!T (localLength);	
+	allocateLocal (localLength);   
+	//this._local = alloc!T (localLength);	
 	DataTable.add (this);
     }
 
@@ -96,6 +106,26 @@ class DistArray (T) : DistData {
 	DataTable.add (this);
     }
     
+    private void allocateLocal (ulong len) {
+	auto devMem = 0;
+	foreach (it ; CL.CLContext.instance.devices) {
+	    devMem += it.memSize;	    
+	}
+	
+	auto ramSize = SystemInfo.memoryInfo.memAvailable * 1000;
+	auto done = 0;
+	foreach (it ; 0 .. CL.CLContext.instance.devices.length) {
+	    auto thisMem = CL.CLContext.instance.devices [it].memSize;
+	    this._deviceLocals.insertBack (new CL.Vector!T (len * thisMem / (ramSize + devMem)));
+	    this._deviceLocals.back().copyToDevice ();
+	    this._deviceLocals.back().clearLocal ();
+	    done += this._deviceLocals.back().length;
+	}
+
+	auto ram = len - done;
+	this._local = alloc!T (ram);
+    }
+
     /++
      Job appeler lors de la récéption d'une demande d'allocation de tableau
      Params:
@@ -239,6 +269,10 @@ class DistArray (T) : DistData {
     T [] local () @property {
 	return this._local;
     }
+
+    stdA.Array!(CL.Vector!(T)) deviceLocals () {
+	return this._deviceLocals;
+    }
     
     /++
      Returns: la table de routage du tableau
@@ -260,10 +294,15 @@ class DistArray (T) : DistData {
     override string toString () {
 	auto buf = new OutBuffer ();
 	buf.write (this._local.to!string [0 .. $ - 1]);
+
+	foreach (it ; this._deviceLocals) {
+	    buf.writef (", %s", it.toString ()[1 .. $ - 1]);
+	}
+	
 	foreach (key , value ; this._machineBegins) {
 	    if (key != Server.machineId && Server.isConnected (key)) {
 		Server.jobRequest!(thisStringJob) (key, this._id);
-		buf.write (Server.waitMsg!string ());
+		buf.writef (", %s", Server.waitMsg!string ());
 	    }
 	}
 	buf.write ("]");

@@ -7,3 +7,4 @@ public import dsl.semantic.types.ArrayInfo;
 public import dsl.semantic.types.BuiltInInfo;
 public import dsl.semantic.types.StructInfo;
 public import dsl.semantic.types.StructCstInfo;
+public import dsl.semantic.types.VoidInfo;

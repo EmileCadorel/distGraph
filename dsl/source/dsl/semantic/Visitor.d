@@ -196,7 +196,8 @@ void validate (Instruction inst) {
 	(Binary bin) => validate (bin),
 	(Auto _au) => validate (_au),
 	(For _for) => validate (_for),
-	(If _if) => validate (_if)
+	(If _if) => validate (_if),	
+	(Expression _expr) => validate (_expr)
     );
 }
 
@@ -228,7 +229,7 @@ void validate (BefUnary _bef) {
 
 
 void validate (Binary bin) {
-    auto affOp = [Tokens.DIV_AFF, Tokens.STAR_EQUAL, Tokens.PLUS_AFF, Tokens.MINUS_AFF, Tokens.EQUAL];
+    auto affOp = [Tokens.DIV_AFF, Tokens.STAR_EQUAL, Tokens.PLUS_AFF, Tokens.MINUS_AFF, Tokens.RIGHTD_AFF, Tokens.LEFTD_AFF, Tokens.EQUAL];
 
     validate (bin.left);
     validate (bin.right);
@@ -427,11 +428,11 @@ Array!TypedVar replaceEveryWhere (Array!TypedVar inParams, Var token, Var var) {
 	if (it.type.ident.str == token.token.str) {
 	    auto type = new Type (var.token);
 	    type.isArray (it.type.isArray);	    
-	    params.insertBack (new TypedVar (type, it.ident));
+	    params.insertBack (new TypedVar (type, it.ident, it.isLocal));
 	} else {
 	    auto type = new Type (it.type.ident);
 	    type.isArray = it.type.isArray;
-	    params.insertBack (new TypedVar (type, it.ident));
+	    params.insertBack (new TypedVar (type, it.ident, it.isLocal));
 	}
     }
     return params;
@@ -449,7 +450,9 @@ Instruction inlineLambda (Instruction inst, Word token, Lambda lmbd) {
     return inst.matchRet (
 	(Binary bin) => inlineLambda (bin, token, lmbd),
 	(Auto _au) => inlineLambda (_au, token, lmbd),
-	(If _if) => inlineLambda (_if, token, lmbd)
+	(If _if) => inlineLambda (_if, token, lmbd),
+	(For _for) => inlineLambda (_for, token, lmbd),
+	(Expression _expr) => inlineLambda (_expr, token, lmbd)
     );
 }
 
@@ -540,6 +543,19 @@ Instruction inlineLambda (If _if, Word token, Lambda lmbd) {
 	return new If (_if.token, test, block);
 }
 
+Instruction inlineLambda (For _for, Word token, Lambda lmbd) {
+    auto for_ = new For (_for.token);
+    if (_for.begin) for_.setBegin = inlineLambda (_for.begin, token, lmbd);
+    if (_for.test) for_.setTest = inlineLambda (_for.test, token, lmbd);
+    foreach (it ; _for.iter) {
+	for_.addIter (inlineLambda (it, token, lmbd));
+    }
+    
+    for_.setBlock (inlineLambda (_for.block, token, lmbd));
+    return for_;    
+}
+
+
 Block replaceEveryWhere (Block block, Var token, Expression second) {
     auto aux = new Block (block.token);
     foreach (it ; block.insts) {
@@ -568,7 +584,9 @@ Instruction replaceEveryWhere (Instruction inst, Var token, Expression second) {
     return inst.matchRet (
 	(Binary bin) => replaceEveryWhere (bin, token, second),
 	(Auto au) => replaceEveryWhere (au, token, second),
-	(If _if) => replaceEveryWhere (_if, token, second)
+	(If _if) => replaceEveryWhere (_if, token, second),
+	(For _for) => replaceEveryWhere (_for, token, second),
+	(Expression expr) => replaceEveryWhere (expr, token, second)
     );
 }
 
@@ -635,6 +653,19 @@ Instruction replaceEveryWhere (If _if, Var token, Expression second) {
     } else {
 	return new If (_if.token, test, block);
     }    
+}
+
+
+Instruction replaceEveryWhere (For _for, Var token, Expression second) {
+    auto for_ = new For (_for.token);
+    if (_for.begin) for_.setBegin = replaceEveryWhere (_for.begin, token, second);
+    if (_for.test) for_.setTest = replaceEveryWhere (_for.test, token, second);
+    foreach (it ; _for.iter) {
+	for_.addIter (replaceEveryWhere (it, token, second));
+    }
+    
+    for_.setBlock (replaceEveryWhere (_for.block, token, second));
+    return for_;    
 }
 
 string inStruct () {

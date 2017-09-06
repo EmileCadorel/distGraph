@@ -102,70 +102,62 @@ template MapImpl (T, alias Fun) {
 	    return null;
     }
     
-    static void localJob (ulong begin, T [] datas) {
-	auto nbCpu = SystemInfo.cpusInfo().length;
+    static void localJob (DistArray!T array) {
+	auto nb = SystemInfo.cpusInfo().length;
 	auto nbDevice = CL.CLContext.instance.devices.length;
-	auto nb = nbCpu + nbDevice;
-	auto res = new Thread [nbCpu - 1];
+	auto res = new Thread [nb - 1];
 
 	CL.Kernel[] kerns = new CL.Kernel [nbDevice];
 	CL.Vector!T[] vecs = new CL.Vector!T [nbDevice];
 	
-	foreach (dev ; 0 .. CL.CLContext.instance.devices.length) {
+	foreach (dev ; 0 .. nbDevice) {
 	    kerns [dev] = initOpenCL (CL.CLContext.instance.devices [dev]);
 	    if (kerns [dev] is null) {
-		nb = nbCpu;
 		break;
 	    }
 	}
 	foreach (it ; 1 .. nb) {
 	    if (it != nb - 1) {
-		auto b = datas [(datas.length / nb) * it ..
-				(datas.length / nb) * (it + 1)];
-		if (it < nbCpu) 
-		    res [it - 1] = new MapThread (begin + (datas.length / nb) * it, b).start ();
-		else {
-		    vecs [it - nbCpu] = new CL.Vector!T (b);
-		    auto blockSize = CL.CLContext.instance.devices [it - nbCpu].blockSize;
-		    kerns [it - nbCpu] ((b.length +  blockSize - 1) / blockSize,
-					blockSize,
-					vecs [it - nbCpu],
-					begin + (datas.length / nb) * it,					      
-					b.length);
-		}
+		auto b = array.local [(array.local.length / nb) * it ..
+				(array.local.length / nb) * (it + 1)];
+		res [it - 1] = new MapThread (array.begin + (array.local.length / nb) * it, b).start ();
 	    } else {
-		auto b = datas [(datas.length / nb) * it ..
-							    $];
-		if (it < nbCpu)
-		    res [it - 1] = new MapThread (begin + (datas.length / nb) * it, b).start ();
-		else {
-		    vecs [it - nbCpu] = new CL.Vector!T (b);
-		    auto blockSize = CL.CLContext.instance.devices [it - nbCpu].blockSize;
-		    kerns [it - nbCpu] ((b.length +  blockSize - 1) / blockSize,
-					blockSize,
-					vecs [it - nbCpu],
-					begin + (datas.length / nb) * it,					      
-					b.length);
-		}
+		auto b = array.local [(array.local.length / nb) * it .. $];
+		res [it - 1] = new MapThread (array.begin + (array.local.length / nb) * it, b).start ();		
 	    }
 	}
-
-	map (begin, datas [0 .. datas.length / nb]);
+	
+	auto len = 0;
+	foreach (it ; 0 .. array.deviceLocals.length) {
+	    auto b = array.deviceLocals [it];
+	    if (kerns [it] !is null) {
+		auto blockSize = CL.CLContext.instance.devices [it].blockSize;
+		kerns [it] ((b.length +  blockSize - 1) / blockSize,
+			    blockSize,
+			    b,
+			    array.begin + array.local.length + len,
+			    b.length);       			
+	    } else { // Oblige de le faire sur le CPU
+		b.copyToLocal ();
+		map (array.begin + array.local.length + len, b.local);
+	    }
+	    len += b.length;
+	}
+	
+	map (array.begin, array.local [0 .. array.local.length / nb]);
 	
 	foreach (it ; res) {
 	    it.join ();
 	}
 
-	if (nb != nbCpu)
-	    foreach (it ; 0 .. kerns.length) {
-		kerns [it].join ();
-		vecs [it].copyToLocal ();
-	    }	
+	foreach (it ; 0 .. kerns.length) {
+	    kerns [it].join ();
+	}	
     }    
 
     static void mapJob (uint addr, uint id) {
 	auto array = DataTable.get!(DistArray!T) (id);
-	localJob (array.begin, array.local);	
+	localJob (array);	
 	Server.jobResult!(thisJob) (addr, id);
     }
 
@@ -179,7 +171,7 @@ template MapImpl (T, alias Fun) {
 	    Server.jobRequest!(thisJob) (id, array.id);	    
 	}
 
-	localJob (array.begin, array.local);
+	localJob (array);
 	
 	foreach (id ; Server.connected) {
 	    Server.waitMsg!(uint);	    

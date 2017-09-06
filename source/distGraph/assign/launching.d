@@ -294,9 +294,14 @@ class ServerS {
      +/
     ulong [uint] getMachinesFreeMemory () {
 	import distGraph.assign.cpu, distGraph.assign.defaultJob;
+	import CL = openclD._;
 			
 	ulong [uint] sizes;	
 	sizes [this.machineId] = SystemInfo.memoryInfo.memAvailable;
+
+	foreach (it ; CL.CLContext.instance.devices) {
+	    sizes [this.machineId] += it.memSize;
+	}
 	
 	foreach (it ; this._connected) {
 	    jobRequest!(MemoryJob) (it, 0U);
