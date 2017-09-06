@@ -116,9 +116,7 @@ class DistArray (T) : DistData {
 	auto done = 0;
 	foreach (it ; 0 .. CL.CLContext.instance.devices.length) {
 	    auto thisMem = CL.CLContext.instance.devices [it].memSize;
-	    this._deviceLocals.insertBack (new CL.Vector!T (len * thisMem / (ramSize + devMem)));
-	    this._deviceLocals.back().copyToDevice ();
-	    this._deviceLocals.back().clearLocal ();
+	    this._deviceLocals.insertBack (new CL.Vector!T (len * thisMem / (ramSize + devMem), false));
 	    done += this._deviceLocals.back().length;
 	}
 

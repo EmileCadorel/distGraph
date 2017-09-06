@@ -9,6 +9,9 @@ void main(string [] args) {
     
     auto a = new DistArray!ulong (1000);
     auto res = a.Init!(#(i) => 1);
+    foreach (it ; 0 .. 100)
+	res = res.Map!(#(i, v) => v + 1);
+    
     auto res2 = res.Reduce!(#(a, b) => a + b);
     
     writeln (res2);
