@@ -5,6 +5,7 @@
 		"derelict_extras-opencl": "1.2.1",
 		"dist-graph": "~master",
 		"dopencl": "~master",
+		"dsl": "~master",
 		"libssh-d": "0.7.3-4"
 	}
 }

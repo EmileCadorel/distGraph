@@ -6,7 +6,6 @@
     "description": "A minimal D application.",
     "copyright": "Copyright © 2017, emile",
     "license": "proprietary",
-    "dflags" : ["-v"],
     "lflags" : ["-lssh"],
     "dependencies" : {
 	"dist-graph" : "*"

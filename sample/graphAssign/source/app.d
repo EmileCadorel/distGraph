@@ -1,16 +1,7 @@
 import std.stdio;
-import assign.admin;
-import assign.graph.loader;
-import assign.graph.JoinVertices;
-import assign.graph.MapVertices;
-import assign.graph.MapReduceTriplets;
-import assign.graph.FilterEdges;
-import assign.graph.InitVertices;
-import assign.graph.Pregel;
-import assign.graph.DistGraph;
-import assign.data.AssocArray;
+import distGraph.assign._;
 import std.datetime, std.algorithm;
-import utils.Options, std.conv;
+import distGraph.utils._, std.conv;
 
 struct DstVertex {
 
@@ -32,10 +23,10 @@ void main (string [] args) {
 
 	auto beginT = Clock.currTime;	
 	auto grp = begin.InitVertices! (
-	    (VertexD v, ulong nb) => DstVertex (v.id, new float [nb])
+	    (VertexD v, ulong nb) => DstVertex (v.id, new float [1])
 	) (nbVerts);
 	
-	foreach (it ; 0 .. nbVerts) {
+	foreach (it ; 0 .. 1) {
 	    writeln ("VERT : ", it);	    
 	    grp = grp.InitVertices! (
 		(v, val) {

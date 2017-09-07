@@ -299,9 +299,9 @@ class ServerS {
 	ulong [uint] sizes;	
 	sizes [this.machineId] = SystemInfo.memoryInfo.memAvailable;
 
-	foreach (it ; CL.CLContext.instance.devices) {
-	    sizes [this.machineId] += it.memSize;
-	}
+	// foreach (it ; CL.CLContext.instance.devices) {
+	//     sizes [this.machineId] += (it.memSize / 1000);
+	// }
 	
 	foreach (it ; this._connected) {
 	    jobRequest!(MemoryJob) (it, 0U);

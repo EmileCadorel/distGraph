@@ -179,6 +179,9 @@ template MapReduceTripletsS (VD, ED, Fun ...) {
 	foreach (it ; 0 .. ids.length) {
 	    if (auto loc = ids [it] in assoc.local) {
 		res [realLen] = KV (ids [it] , *loc);
+		
+		// On la supprime pour ne pas l'avoir plusieurs fois
+		assoc.local.remove (ids [it]); 
 		realLen ++;
 	    } 
 	}
