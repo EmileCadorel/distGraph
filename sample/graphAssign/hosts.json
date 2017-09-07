@@ -2,6 +2,7 @@
     "machines" : [
 	{"user" : "emile", "pass" : "truc", "ip" : "localhost", "path" : ""},
 	{"user" : "emile", "pass" : "truc", "ip" : "localhost", "path" : ""},
-	{"user" : "emile", "pass" : "truc", "ip" : "localhost", "path" : ""}	
+	{"user" : "emile", "pass" : "truc", "ip" : "localhost", "path" : ""},
+	{"user" : "emile", "pass" : "truc", "ip" : "localhost", "path" : ""}
     ]
 }

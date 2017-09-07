@@ -9,10 +9,7 @@ alias MemoryJob = Job!(memJob, memRespJob);
 
 void memJob (uint addr, uint id) {
     import CL = openclD._;
-    auto mem = SystemInfo.memoryInfo.memAvailable;
-    // foreach (it ; CL.CLContext.instance.devices)
-    // 	mem += (it.memSize / 1000);
-    
+    auto mem = SystemInfo.memoryInfo.memAvailable;    
     Server.jobResult!(MemoryJob) (addr, id, mem);   
 }
 
